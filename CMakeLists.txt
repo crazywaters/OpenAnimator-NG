@@ -57,8 +57,6 @@ option(SDL_SHARED "" OFF)
 
 add_subdirectory(thirdparty/sdl3)
 include_directories(thirdparty/sdl3/include)
-add_subdirectory(thirdparty/nativefiledialogextended)
-include_directories(thirdparty/nativefiledialogextended/src/include)
 
 
 if (WITH_POCO)

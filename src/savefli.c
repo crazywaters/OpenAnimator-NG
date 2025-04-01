@@ -766,7 +766,7 @@ static void ask_qsave_seg(char *title_key, char *save_word, SHORT start_frame, S
 
 	char* file_path = pj_dialog_file_save(
 		"Flic Files",
-		"fli,flc",
+		"fli;flc",
 		last_folder,
 		last_name
 	);
