@@ -2,6 +2,8 @@
 // Created by Charles Wardlaw on 2022-10-02.
 //
 
+#include <stdio.h>
+#include <stdlib.h>
 #include <stdbool.h>
 
 #include <nfd.h>

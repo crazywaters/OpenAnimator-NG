@@ -14,3 +14,7 @@ _build
 _output
 *~
 .__idea
+
+# pixi environments
+.pixi
+*.egg-info
