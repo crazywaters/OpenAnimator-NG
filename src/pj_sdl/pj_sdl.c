@@ -251,7 +251,7 @@ static void FileDialogCallback(void* userdata, const char* const* files, int fil
     SDL_UnlockMutex(result->mutex);
 }
 
-static static char** ShowDialogBlocking(SDL_Window* window,
+static char** ShowDialogBlocking(SDL_Window* window,
                                void (*show_dialog)(SDL_DialogFileCallback, void*, SDL_Window*,
                                                  const SDL_DialogFileFilter*, int, const char*, bool),
                                const SDL_DialogFileFilter* filters,
