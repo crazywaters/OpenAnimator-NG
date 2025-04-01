@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.26 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.25 FATAL_ERROR)
 
 project(animator-pro)
 
@@ -42,6 +42,11 @@ if (UNIX)
 		-Wno-sometimes-uninitialized
 		-Wno-format-security
 		-Wno-null-pointer-subtraction
+	)
+endif()
+
+if (APPLE)
+	add_compile_options(
 		-Wdeprecated-non-prototype
 	)
 endif()

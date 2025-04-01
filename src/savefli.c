@@ -764,10 +764,6 @@ static void ask_qsave_seg(char *title_key, char *save_word, SHORT start_frame, S
 	char* last_folder = dirname(last_path);
 	char* last_name = basename(last_path);
 
-	if (strlen(last_folder) == 1 && last_folder[0] == '.') {
-		sprintf(last_folder, "/Users/kiki");
-	}
-
 	char* file_path = pj_dialog_file_save(
 		"Flic Files",
 		"fli,flc",

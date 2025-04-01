@@ -211,7 +211,7 @@ const char* mac_preferences_path() {
 void open_file() {
 	nfdchar_t *outPath;
 	nfdfilteritem_t filterItem[2] = { { "Source code", "c,cpp,cc" }, { "Headers", "h,hpp" } };
-	nfdresult_t result = NFD_OpenDialog(&outPath, filterItem, 2, "/Users/kiki/dev");
+	nfdresult_t result = NFD_OpenDialog(&outPath, filterItem, 2, "/Users/home/dev");
 	if (result == NFD_OKAY)
 	{
 		puts("Success!");

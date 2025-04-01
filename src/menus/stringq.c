@@ -440,10 +440,13 @@ void setf_stringq(Button *sqb, int drawit, char *fmt, ...)
 	 * usage and calling the functions directly fixes this.
 	 */
 
-	va_list args;
-	va_start(args, fmt);
+	/*
+	 * kiki note #2:
+	 * gcc on linux doesn't like assigning to va_args.
+	 */
+
+	va_start(fa.args, fmt);
 	init_formatarg(&fa, fmt);
-	fa.args = args;
 
 	if (stq->undo != NULL) {
 		strcpy(stq->undo, stq->string);
@@ -456,7 +459,7 @@ void setf_stringq(Button *sqb, int drawit, char *fmt, ...)
 		draw_buttontop(sqb);
 	}
 
-	va_end(args);
+	va_end(fa.args);
 }
 
 /***** some stuff for a numq *****/
