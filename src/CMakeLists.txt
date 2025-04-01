@@ -193,7 +193,6 @@ target_link_libraries(
 			trdutil
 			wndolib
 			SDL3-static
-			nfd
 	)
 
 	if (UNIX)

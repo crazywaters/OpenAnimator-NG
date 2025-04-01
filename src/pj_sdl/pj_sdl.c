@@ -6,8 +6,6 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
-#include <nfd.h>
-
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_filesystem.h>
 #include <SDL3/SDL_surface.h>
@@ -16,12 +14,12 @@
 
 
 /*--------------------------------------------------------------*/
-SDL_Surface* s_surface		  = NULL;
-SDL_Window* window			  = NULL;
-SDL_Surface* s_window_surface = NULL;
-SDL_Renderer* renderer		  = NULL;
-SDL_Texture* render_target    = NULL;
-SDL_Palette* vga_palette      = NULL;
+SDL_Surface*  s_surface		   = NULL;
+SDL_Window*   window		   = NULL;
+SDL_Surface*  s_window_surface = NULL;
+SDL_Renderer* renderer		   = NULL;
+SDL_Texture*  render_target    = NULL;
+SDL_Palette*  vga_palette      = NULL;
 
 // for the file requestors
 static char last_path[PATH_MAX] = "";
@@ -195,6 +193,138 @@ const char* pj_sdl_preferences_path() {
 
 
 /*--------------------------------------------------------------*/
+/*
+ * File Dialog Support
+ *
+ * I was using nativefiledialog-extended, but it looks like it's
+ * totally broken for me on Linux.  I'm punting and using the SDL
+ * dialogs, only I've wrapped them in blocking calls because the
+ * way they work currently is terrible.
+ */
+/*--------------------------------------------------------------*/
+
+typedef struct {
+    char** files;
+    bool completed;
+    SDL_Mutex* mutex;
+    int error;
+} DialogResult;
+
+
+static void FreeFileList(char** files) {
+    if (files) {
+        for (int i = 0; files[i]; i++) SDL_free(files[i]);
+        SDL_free(files);
+    }
+}
+
+
+static void FileDialogCallback(void* userdata, const char* const* files, int filter) {
+    (void)filter;
+    DialogResult* result = (DialogResult*)userdata;
+
+    SDL_LockMutex(result->mutex);
+
+    // Clear previous results
+    FreeFileList(result->files);
+    result->files = NULL;
+    result->error = 0;
+
+    if (!files) {
+        result->error = SDL_GetError()[0] ? -1 : 0;
+    } else {
+        // Copy file list
+        int count = 0;
+        while (files[count]) count++;
+
+        if (count > 0) {
+            result->files = SDL_malloc((count + 1) * sizeof(char*));
+            if (result->files) {
+                for (int i = 0; i < count; i++)
+                    result->files[i] = SDL_strdup(files[i]);
+                result->files[count] = NULL;
+            }
+        }
+    }
+
+    result->completed = true;
+    SDL_UnlockMutex(result->mutex);
+}
+
+static static char** ShowDialogBlocking(SDL_Window* window,
+                               void (*show_dialog)(SDL_DialogFileCallback, void*, SDL_Window*,
+                                                 const SDL_DialogFileFilter*, int, const char*, bool),
+                               const SDL_DialogFileFilter* filters,
+                               int nfilters,
+                               const char* default_location,
+                               bool allow_many)
+{
+    DialogResult result = {0};
+    result.mutex = SDL_CreateMutex();
+    if (!result.mutex) {
+        fprintf(stderr, "Mutex creation failed: %s\n", SDL_GetError());
+        return NULL;
+    }
+
+    show_dialog(FileDialogCallback, &result, window, filters, nfilters,
+               default_location, allow_many);
+
+    // Event processing loop
+    SDL_Event event;
+    while (1) {
+        SDL_PumpEvents();
+        while (SDL_PollEvent(&event)) {
+            if (event.type == SDL_EVENT_QUIT) {
+                SDL_DestroyMutex(result.mutex);
+                FreeFileList(result.files);
+                return NULL;
+            }
+        }
+
+        SDL_LockMutex(result.mutex);
+        bool completed = result.completed;
+        SDL_UnlockMutex(result.mutex);
+
+        if (completed) break;
+        SDL_Delay(10);
+    }
+
+    SDL_LockMutex(result.mutex);
+    char** final_files = result.files;
+    if (result.error) {
+        fprintf(stderr, "Dialog error: %s\n", SDL_GetError());
+        FreeFileList(final_files);
+        final_files = NULL;
+    }
+    SDL_UnlockMutex(result.mutex);
+
+    SDL_DestroyMutex(result.mutex);
+    return final_files;
+}
+
+static char** ShowOpenFileDialogBlocking(SDL_Window* window,
+                                const SDL_DialogFileFilter* filters,
+                                int nfilters,
+                                const char* default_location,
+                                bool allow_many)
+{
+    return ShowDialogBlocking(window, SDL_ShowOpenFileDialog,
+                            filters, nfilters, default_location, allow_many);
+}
+
+static char** ShowSaveFileDialogBlocking(SDL_Window* window,
+                                const SDL_DialogFileFilter* filters,
+                                int nfilters,
+                                const char* default_location)
+{
+    return ShowDialogBlocking(window, (void(*)(SDL_DialogFileCallback, void*, SDL_Window*,
+                                             const SDL_DialogFileFilter*, int, const char*, bool))SDL_ShowSaveFileDialog,
+                            filters, nfilters, default_location, false);
+}
+
+
+
+/*--------------------------------------------------------------*/
 void pj_dialog_set_last_path(const char* path) {
 	if (path) {
 		strncpy(last_path, path, PATH_MAX);
@@ -209,23 +339,18 @@ void pj_dialog_set_last_path(const char* path) {
 char* pj_dialog_file_open(const char* type_name,
 						  const char* extensions,
 						  const char* default_path) {
-	char* result = last_path;
+	const SDL_DialogFileFilter filters[] = {
+		{type_name, extensions}
+	};
 
-	nfdchar_t* outPath;
-	const nfdfilteritem_t filterItem = {type_name, extensions};
-
-	nfdresult_t dialog_result = NFD_OpenDialog(&outPath, &filterItem, 1, default_path);
-
-	if (dialog_result == NFD_OKAY) {
-		strncpy(last_path, outPath, PATH_MAX);
-		NFD_FreePath(outPath);
-	}
-	else {
-		result = NULL;
+	char** open_files = ShowOpenFileDialogBlocking(window, filters, 1, NULL, false);
+	if (open_files) {
+		strncpy(last_path, open_files[0], PATH_MAX);
+		FreeFileList(open_files);
+		return last_path;
 	}
 
-	NFD_Quit();
-	return result;
+	return NULL;
 }
 
 
@@ -234,21 +359,16 @@ char* pj_dialog_file_save(const char* type_name,
 						  const char* extensions,
 						  const char* default_path,
 						  const char* default_name) {
-	char* result = last_path;
+	const SDL_DialogFileFilter filters[] = {
+		{type_name, extensions}
+	};
 
-	nfdchar_t* outPath;
-	const nfdfilteritem_t filterItem = {type_name, extensions};
-
-	nfdresult_t dialog_result = NFD_SaveDialog(&outPath, &filterItem, 1, default_path, default_name);
-
-	if (dialog_result == NFD_OKAY) {
-		strncpy(last_path, outPath, PATH_MAX);
-		NFD_FreePath(outPath);
-	}
-	else {
-		result = NULL;
+	char** open_files = ShowSaveFileDialogBlocking(window, filters, 1, strnlen(last_path, PATH_MAX) == 0 ? NULL : last_path);
+	if (open_files) {
+		strncpy(last_path, open_files[0], PATH_MAX);
+		FreeFileList(open_files);
+		return last_path;
 	}
 
-	NFD_Quit();
-	return result;
+	return NULL;
 }

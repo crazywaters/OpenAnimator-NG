@@ -156,7 +156,7 @@ void qload(void)
 	}
 
 	const char* file_path = pj_dialog_file_open(
-		"Flic Files", "flc,fli", last_folder);
+		"Flic Files", "fli;flc", last_folder);
 
 	if (file_path) {
 		strncpy(last_path, file_path, PATH_MAX);
