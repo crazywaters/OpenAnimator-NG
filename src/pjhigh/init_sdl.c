@@ -19,8 +19,6 @@
 #include "pj_sdl.h"
 #include "resource.h"
 
-short pj_crit_errval = 1 - 19;
-
 char pj_mcga_name[] = "=SDL.DRV";
 
 // from xfile.c

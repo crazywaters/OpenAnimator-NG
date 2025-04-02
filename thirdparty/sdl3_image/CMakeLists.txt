@@ -218,7 +218,7 @@ else()
 endif()
 
 # Save BUILD_SHARED_LIBS variable
-set(SDLIMAGE_BUILD_SHARED_LIBS ${BUILD_SHARED_LIBS})
+set(SDLIMAGE_BUILD_SHARED_LIBS OFF)
 
 set(sdl_required_components Headers)
 
@@ -232,9 +232,9 @@ else()
     set(sdl3_target_name SDL3::SDL3)
 endif()
 
-if(NOT TARGET SDL3::Headers OR NOT TARGET ${sdl3_target_name})
-    find_package(SDL3 ${SDL_REQUIRED_VERSION} REQUIRED COMPONENTS ${sdl_required_components})
-endif()
+#if(NOT TARGET SDL3::Headers OR NOT TARGET ${sdl3_target_name})
+#    find_package(SDL3 ${SDL_REQUIRED_VERSION} REQUIRED COMPONENTS ${sdl_required_components})
+#endif()
 
 SDL_DetectTargetCPUArchitectures(SDL_CPU_NAMES)
 SDL_DetectCMakePlatform()

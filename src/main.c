@@ -368,7 +368,7 @@ static void add_local_pdrs(void)
 	add_local_pdr(&rif_local_pdr);
 	add_local_pdr(&targa_local_pdr);
 
-	add_local_pdr(&skeleton_local_pdr);
+	// add_local_pdr(&skeleton_local_pdr);
 }
 
 static void delete_file_list(char **list)

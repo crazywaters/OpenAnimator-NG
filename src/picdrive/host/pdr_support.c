@@ -16,13 +16,13 @@ char   *stristr(char *string, char *pattern);
 
 Errcode pdr_boxfmt(char* fmt, ...)
 {
-	// Errcode err;
-	// va_list args;
-	//
-	// va_start(args, fmt);
-	// err = vprintf(fmt, args);
-	// va_end(args);
-	// return (err);
+	Errcode err;
+	va_list args;
+
+	va_start(args, fmt);
+	err = vprintf(fmt, args);
+	va_end(args);
+	return (err);
 }
 
 

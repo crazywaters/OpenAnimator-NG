@@ -54,9 +54,12 @@ endif()
 ## thirdparty dependencies
 option(SDL_STATIC "" ON)
 option(SDL_SHARED "" OFF)
+option(BUILD_SHARED_LIBS "" OFF)
 
 add_subdirectory(thirdparty/sdl3)
 include_directories(thirdparty/sdl3/include)
+add_subdirectory(thirdparty/sdl3_image)
+include_directories(thirdparty/sdl3_image/include)
 
 
 if (WITH_POCO)

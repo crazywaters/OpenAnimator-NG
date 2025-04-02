@@ -9,7 +9,8 @@ set(HOST_SRC_FILES
 )
 
 set(BMP_SRC_FILES
-	bmp/bmp.c
+#	bmp/bmp.c
+	sdl_bmp.c
 )
 
 set(FLILO_SRC_FILES
@@ -40,9 +41,9 @@ set(TARGA_SRC_FILES
 	targa/tgawritf.c
 )
 
-set(SDLIMAGE_SRC_FILES
-	skeleton/skeleton.c
-)
+#set(SDLIMAGE_SRC_FILES
+#	skeleton/skeleton.c
+#)
 
 add_library(picdrive
 	${HOST_SRC_FILES}
@@ -52,8 +53,13 @@ add_library(picdrive
 	${PCX_SRC_FILES}
 	${RIF_SRC_FILES}
 	${TARGA_SRC_FILES}
-	${SDLIMAGE_SRC_FILES}
+#	${SDLIMAGE_SRC_FILES}
 )
 
-target_include_directories(picdrive PUBLIC ../inc)
+target_include_directories(
+	picdrive
+	PUBLIC
+		../inc
+		../pj_sdl
+)
 target_link_libraries(picdrive flilib)

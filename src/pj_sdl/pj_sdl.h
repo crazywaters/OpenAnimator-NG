@@ -21,6 +21,8 @@ extern struct SDL_Renderer* renderer;
 extern struct SDL_Texture*  render_target;
 extern struct SDL_Palette*  vga_palette;
 
+#define SDL_BITSPERPIXEL(format) (SDL_ISPIXELFORMAT_FOURCC(format) ? 0 : (((format) >> 8) & 0xFF))
+
 
 int pj_sdl_get_video_size(LONG* width, LONG* height);
 int pj_sdl_get_window_size(LONG* width, LONG* height);
