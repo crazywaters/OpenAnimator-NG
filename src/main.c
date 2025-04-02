@@ -356,6 +356,7 @@ static void add_local_pdrs(void)
 	extern Local_pdr pcx_local_pdr;
 	extern Local_pdr rif_local_pdr;
 	extern Local_pdr targa_local_pdr;
+	extern Local_pdr skeleton_local_pdr;
 
 	add_local_pdr(&fli_local_pdr);
 	add_local_pdr(&pic_local_pdr);
@@ -366,6 +367,8 @@ static void add_local_pdrs(void)
 	add_local_pdr(&pcx_local_pdr);
 	add_local_pdr(&rif_local_pdr);
 	add_local_pdr(&targa_local_pdr);
+
+	add_local_pdr(&skeleton_local_pdr);
 }
 
 static void delete_file_list(char **list)
@@ -416,7 +419,6 @@ static void outofhere(bool save_state)
 int main(int argc, char** argv)
 {
 	Errcode err;
-	UBYTE oldconfig;
 	static Argparse_list apl[] = {
 		ARGP(apl, 0, "-flic", get_flic_arg),
 		ARGP(apl, APLAST, "-poc", get_poco_arg),
@@ -428,7 +430,6 @@ int main(int argc, char** argv)
 	{
 		goto error;
 	}
-	oldconfig = err;
 
 	add_local_pdrs();
 	set_hotkey_func(do_pj_hotkey); /* set input hot key function */
@@ -470,11 +471,6 @@ int main(int argc, char** argv)
 	if(err < Success) {
 		goto error;
 	}
-
-	// kiki note: don't need this any more
-//	if(!oldconfig) {
-//		soft_continu_box("newconfig");
-//	}
 
 	if (cl_flic_name != NULL) {
 		pj_delete(tflxname); /* Delete old tempflx */

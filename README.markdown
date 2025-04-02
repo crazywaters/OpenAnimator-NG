@@ -6,7 +6,7 @@ The build is set up with CMake, but a makefile wraps the build.  Typing `make` s
 This currently only builds for MacOS and Windows.
 
 For Mac, you'll need the following installed: 
-- CMake 3.26+
+- CMake 3.25+
 - autoconf
 - automake
 
@@ -24,7 +24,7 @@ Windows has only been tested under Windows 11-aarch64, and not all menu options 
 Animator Pro A.K.A.
 ===================
 
-Animator Pro, (A.K.A. Autodesk Animator Pro, Ani Pro, PJ Paint, or simply PJ) 
+Animator Pro, (A.K.A. Autodesk Animator Pro, Ani Pro, V Paint, PJ Paint, or simply PJ) 
 is a 256 color paint and animation package for MSDOS. It was popular 
 in the early to mid 1990's for game art, online animation, 
 business presentations and occasional TV productions.

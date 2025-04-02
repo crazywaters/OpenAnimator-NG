@@ -2,26 +2,26 @@
 #define PCX_H
 
 #ifndef STDTYPES_H
-	#include "stdtypes.h"
+#include "stdtypes.h"
 #endif
 
 #ifndef PICDRIVE_H
-	#include "picdrive.h"
+#include "picdrive.h"
 #endif
 
 #include "animinfo.h"
 #include "xfile.h"
 
-typedef struct pcx_header
-	{
+typedef struct pcx_header {
 	UBYTE magic, version, encode, bitpx;
-	SHORT x1,y1,x2,y2;
+	SHORT x1, y1, x2, y2;
 	SHORT cardw, cardh;
 	UBYTE palette[48];
 	UBYTE vmode, nplanes;
-	SHORT bpl;	/* bytes per line of piccie */
+	SHORT bpl; /* bytes per line of piccie */
 	UBYTE pad[60];
-	} Pcx_header;
+} Pcx_header;
+
 STATIC_ASSERT(pcx, sizeof(Pcx_header) == 128);
 
 typedef struct pcx_image_file {

@@ -26,11 +26,11 @@ typedef struct pdr_options {
 	char	*choicelst2;
 	char	*choicelst3;
 	char	*choicelst4;
-	UBYTE	options_valid;
 	UBYTE	option1;
 	UBYTE	option2;
 	UBYTE	option3;
 	UBYTE	option4;
+	bool	options_valid;
 	} Pdroptions;
 
 /*----------------------------------------------------------------------------
@@ -275,8 +275,9 @@ struct pdr {
 	long reserved[4];	/* PDR should init these fields to NULL */
 
 };
-#define Pdr struct pdr
 
+
+#define Pdr struct pdr
 
 #ifndef REXLIB_CODE
 

@@ -62,7 +62,7 @@ Errcode default_temp_path(char *buf)
 }
 
 
-const char* get_default_config_name() {
+char* get_default_config_name() {
 	static char config_name[PATH_MAX];
 	static int initialized = 0;
 
@@ -100,7 +100,6 @@ Errcode init_config(bool force_create)
 		goto bad_config;
 
 	/* check magic and size fields */
-
 	if (incfg.id.type != VCFG_MAGIC || incfg.id.size != sizeof(AA_config) ||
 		incfg.id.version != VCFG_VERSION) {
 		goto bad_config;
@@ -147,15 +146,18 @@ done:
 	err = set_temp_path(vconfg.temp_path);
 	if (err < Success) {
 		err = default_temp_path(vconfg.temp_path);
-		if (err < Success)
+		if (err < Success) {
 			goto fatal_error;
+		}
 
 		err = set_temp_path(vconfg.temp_path);
-		if (err < Success)
+		if (err < Success) {
 			goto fatal_error;
+		}
 	}
 
-	fprintf(stderr, "+ Working temp path: %s\n", vconfg.temp_path);
+	fprintf(stdout, "+ Working temp path: %s\n", vconfg.temp_path);
+	fflush(stdout);
 
 	return goodret;
 

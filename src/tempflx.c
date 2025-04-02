@@ -361,6 +361,8 @@ static Errcode abort_anim_load(char* name, int frame_count)
 	}
 	return (Success);
 }
+
+
 static Errcode ring_loaded_anim(char* name, Errcode reason, int frame_count)
 /* We come here if have partially loaded a flic, but got an error somewhere
  * along the way.   Try to make up a ring frame.  If this fails back up
@@ -390,6 +392,7 @@ static Errcode ring_loaded_anim(char* name, Errcode reason, int frame_count)
 	pj_freez(&frame);
 	return (err);
 }
+
 
 static Errcode fli_to_tempflx(char* name, int extra_frames, bool allow_abort)
 /* closes old tflx and creates a new tempflx from a fli (file name)
@@ -457,6 +460,8 @@ done:
 	pj_fli_close(&flif);
 	return (err);
 }
+
+
 Errcode make_pdr_tempflx(char* pdr_name, char* flicname, Anim_info* ainfo)
 {
 	Errcode err;
@@ -535,6 +540,8 @@ done:
 	flush_tflx();
 	return (err);
 }
+
+
 Errcode make_tempflx(char* name, bool allow_abort)
 {
 	Errcode err;
@@ -546,6 +553,8 @@ Errcode make_tempflx(char* name, bool allow_abort)
 	maybe_pop_most();
 	return (err);
 }
+
+
 static Errcode set_first_frame(int ix)
 {
 	Errcode err;
@@ -600,6 +609,8 @@ error:
 	show_mp();
 	return (err);
 }
+
+
 void qset_first_frame(void* data)
 {
 	SHORT ix;
@@ -610,9 +621,10 @@ void qset_first_frame(void* data)
 		return;
 	set_first_frame(ix - 1);
 }
-void empty_cleared_flx(Pixel color)
+
 
 /* called from auto if desired to clear whole flx in clear pic do auto */
+void empty_cleared_flx(Pixel color)
 {
 	Errcode err;
 	SHORT oix;

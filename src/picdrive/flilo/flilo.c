@@ -137,6 +137,7 @@ static void close_flow_file(Image_file **pifile)
 	--files_open;
 }
 
+
 static Errcode create_flow_file(Pdr *pd, char *path, Image_file **pif,
 								 Anim_info *ainfo )
 {
@@ -177,6 +178,7 @@ error:
 	close_flow_file(pif);
 	return err;
 }
+
 
 static Errcode flow_save_frames(Image_file *ifile,
 								Rcel *screen,

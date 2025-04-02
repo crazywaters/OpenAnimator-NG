@@ -188,6 +188,7 @@ const char* pj_sdl_preferences_path() {
 		// eat the last separator
 		preferences_path[SDL_strlen(preferences_path)-1] = '\0';
 	}
+
 	return preferences_path;
 }
 

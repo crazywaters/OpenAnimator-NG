@@ -176,7 +176,7 @@ struct ado_setting
 
 
 Errcode default_temp_path(char *buf);
-const char* get_default_config_name(void);
+char*   get_default_config_name(void);
 
 /* names of all our temp files */
 

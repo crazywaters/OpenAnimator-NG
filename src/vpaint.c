@@ -248,25 +248,6 @@ void toggle_cel_opt(int mode)
 }
 
 
-#ifdef TESTING
-static void tram_dir()
-{
-	int ipos = 0;
-	char picked[20];
-	Names* nl;
-	Errcode err;
-
-	if ((err = rget_dir(&nl)) < Success) {
-		softerr(err, "ram_dir");
-	} else {
-		picked[0] = 0;
-		qscroller(picked, "Ram directory", nl, 10, &ipos);
-	}
-	rfree_dir(&nl);
-}
-#endif /* TESTING */
-
-
 static void flix_first_frame(void)
 {
 	mini_first_frame(&flxtime_data);
@@ -290,17 +271,6 @@ static void flix_playit(void)
 	mini_playit(&flxtime_data);
 }
 
-#ifdef TESTING
-static void tog_debug()
-{
-	debug = !debug;
-	if (debug) {
-		boxf("Debug flag = TRUE");
-	} else {
-		boxf("Debug flag = FALSE");
-	}
-}
-#endif
 
 static void tog_zoom(void)
 {
@@ -326,6 +296,7 @@ static void toggle_one_color(void)
 }
 
 
+// !TODO: remappable keys
 static Keyequiv header_keys[] = {
 	{"ztogl", tog_zoom, KE_NOHIDE, 'z'},
 	{"qpal", palette, KE_HIDE, '@'},
@@ -346,38 +317,6 @@ bool common_header_keys(void)
 {
 	return (do_keyequiv(icb.inkey, header_keys, Array_els(header_keys)));
 }
-
-
-#ifdef TESTING
-static void eatk()
-{
-	static SHORT kb64 = 1;
-	static void* mem = NULL;
-
-	pj_gentle_free(mem);
-	mem = NULL;
-	while (!mem) {
-		if (qreq_number(&kb64, 1, 100, "How much mem times 64k to eat?")) {
-			mem = begmem(((LONG)kb64) * 0x0000FFFFL);
-		} else {
-			break;
-		}
-	}
-	return;
-}
-
-
-static void plus_trd()
-{
-	trd_compact(0L);
-}
-
-
-static void minus_trd()
-{
-	trd_compact(1024L * 1024L * 1024L);
-}
-#endif /* TESTING */
 
 
 static void tog_pen(void)
@@ -423,6 +362,7 @@ static void toggle_two_color(void)
 }
 
 
+// !TODO: remappable keys
 static Keyequiv home_keys[] = {
 #define UNDO_KE &home_keys[0]
 	{"help", home_help, KE_NOHIDE, FKEY1},
@@ -450,13 +390,6 @@ static Keyequiv home_keys[] = {
 	{"dither", toggle_dither, KE_HIDE, 'd'},
 	{"key_color", toggle_key_clear, KE_HIDE, 'k'},
 	{"two_color", toggle_two_color, KE_HIDE, '2'},
-#ifdef TESTING
-	{"test", test, KE_HIDE, '/'},
-	{"eatk", eatk, KE_NOHIDE, '\''},
-	{"trdp", plus_trd, KE_NOHIDE, '+'},
-	{"trdm", minus_trd, KE_NOHIDE, '-'},
-	{"rdir", tram_dir, KE_NOHIDE, '='},
-#endif /* TESTING */
 };
 
 
