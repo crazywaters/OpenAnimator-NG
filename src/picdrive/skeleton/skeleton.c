@@ -22,7 +22,7 @@
  *--------------------------------------------------------------------------*/
 
 extern Errcode pdr_boxfmt(char *fmt, ...);
-extern char *stristr(char *string, char *pattern);
+extern char   *stristr(char *string, char *pattern);
 
 
 /*----------------------------------------------------------------------------
@@ -52,7 +52,6 @@ extern char *stristr(char *string, char *pattern);
 /*----------------------------------------------------------------------------
  * driver description strings.
  *--------------------------------------------------------------------------*/
-char short_description[] = "SKELETON.PDR";
 char long_description[]  = "This driver doesn't actually process "
 						   "any picture file format.\n\n"
 						   "It just demonstrates the major features "
@@ -196,7 +195,7 @@ static Errcode alloc_and_open(Skel_file **psf, char *path, char *openmode)
 /*****************************************************************************
  * Open up the file, verify file header.
  ****************************************************************************/
-static Errcode open_file(Pdr		 *pd,
+static Errcode open_file(Pdr *pd,
 				  char		 *path,
 				  Image_file **pif,
 				  Anim_info  *ainfo)
@@ -235,11 +234,11 @@ static Errcode open_file(Pdr		 *pd,
 	 * rgb_readlines(), and make you hit a key 480 times).
 	 *----------------------------------------------------------------------*/
 
-	if (stristr(path, "dmyrgb")) {
+	if (strcasestr(path, "dmyrgb")) {
 		sf->width  = 640;
 		sf->height = 3;
 		sf->pdepth = 24;
-	} else if (stristr(path, "dmy")) {
+	} else if (strcasestr(path, "dmy")) {
 		sf->width  = 640;
 		sf->height = 480;
 		sf->pdepth = 8;
@@ -434,7 +433,15 @@ Pdr skeleton_header = {
 
 	"Skeleton (Dummy) format",   /* title_info */
 	long_description,                    /* long_info */
-	".DMY;.DM1;.DM?",         /* default_suffi */
+
+	/*
+	 * Suffixes in SDL use a specific format:
+	 * - suffix characters
+	 * - no '.' character
+	 * - separate multiple extensions with ';'
+	 */
+
+	"dmy;dm1",                /* default_suffi */
 	1,1,   /* max_write_frames, max_read_frames */
 	spec_best_fit,                       /* (*spec_best_fit)() */
 	create_file,                         /* (*create_image_file)() */
@@ -451,6 +458,6 @@ Pdr skeleton_header = {
 
 Local_pdr skeleton_local_pdr = {
 	NULL,
-	short_description,
+	"SKELETON.PDR",
 	&skeleton_header,
 };

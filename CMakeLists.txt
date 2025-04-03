@@ -56,6 +56,10 @@ option(SDL_STATIC "" ON)
 option(SDL_SHARED "" OFF)
 option(BUILD_SHARED_LIBS "" OFF)
 
+set(SDLIMAGE_VENDORED ON CACHE BOOL "" FORCE)
+set(SDLIMAGE_AVIF OFF CACHE BOOL "" FORCE)
+set(SDLIMAGE_WEBP OFF CACHE BOOL "" FORCE)
+
 add_subdirectory(thirdparty/sdl3)
 include_directories(thirdparty/sdl3/include)
 add_subdirectory(thirdparty/sdl3_image)

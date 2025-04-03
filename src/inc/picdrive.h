@@ -13,7 +13,7 @@ struct anim_info;
 struct rgb3;
 
 #define PDR_VERSION 0
-#define PDR_SUFFI_SIZE 15
+#define PDR_SUFFI_SIZE 64
 
 /*----------------------------------------------------------------------------
  * structure used by PDR to specify that the CONVERT program is to conduct

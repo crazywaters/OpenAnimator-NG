@@ -176,16 +176,20 @@ void qload_pic(void)
 {
 	char* title;
 	char buf[50];
+	static char last_path[PATH_MAX] = "";
+	static char last_folder[PATH_MAX] = "";
 
-	title = vset_get_filename(stack_string("load_pic", buf), get_pictype_suffi(), load_str,
-							  PIC_PATH, NULL, 0);
-	if (title != NULL) {
+	char* file_path = pj_dialog_file_open(
+	"Load Image", get_pictype_suffi(), last_folder);
+
+	if (file_path != NULL) {
 		unzoom();
 		save_undo();
-		load_the_pic(title);
+		load_the_pic(file_path);
 		see_cmap();
 		dirties();
 		rezoom();
+		strncpy(last_path, file_path, PATH_MAX);
 	}
 }
 
@@ -194,10 +198,12 @@ void qsave_pic(void)
 {
 	Errcode err;
 	char title[61];
-	char* picpath;
 	char suffi[PDR_SUFFI_SIZE];
 	int sph_size;
 	char sph_buf[50];
+
+	static char last_path[PATH_MAX] = "";
+	static char last_folder[PATH_MAX] = "";
 
 	stack_string("save_pic", sph_buf);
 	sph_size = strlen(sph_buf) + 1;
@@ -208,15 +214,14 @@ void qsave_pic(void)
 		return;
 	}
 
-	picpath = vset_get_filename(title, suffi, save_str, PIC_PATH, NULL, 1);
-	if (picpath != NULL) {
-		if (overwrite_old(picpath)) {
-			unzoom();
-			soft_put_wait_box("!%s", "wait_save", picpath);
-			err = save_current_pictype(picpath, vb.pencel);
-			softerr(err, "!%s", "cant_save", picpath);
-			rezoom();
-		}
+	char* file_path = pj_dialog_file_save("Save Image", get_pictype_suffi(), last_folder, last_path);
+	if (file_path != NULL) {
+		unzoom();
+		soft_put_wait_box("!%s", "wait_save", file_path);
+		err = save_current_pictype(file_path, vb.pencel);
+		softerr(err, "!%s", "cant_save", file_path);
+		rezoom();
+		strncpy(last_path, file_path, PATH_MAX);
 	}
 }
 

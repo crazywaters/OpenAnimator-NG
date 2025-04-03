@@ -252,7 +252,7 @@ if(NOT DEFINED OpenGL_GL_PREFERENCE)
     set(OpenGL_GL_PREFERENCE GLVND)
 endif()
 
-set(BUILD_SHARED_LIBS ${SDLIMAGE_BUILD_SHARED_LIBS})
+set(BUILD_SHARED_LIBS off)
 add_library(${sdl3_image_target_name}
     src/IMG.c
     src/IMG_WIC.c
