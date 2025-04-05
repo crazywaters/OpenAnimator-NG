@@ -15,6 +15,11 @@ struct rgb3;
 #define PDR_VERSION 0
 #define PDR_SUFFI_SIZE 64
 
+// ----------------------------------------------------------------------------
+// forward declarations for the SDL picdrivers
+typedef struct SDL_Surface SDL_Surface;
+
+
 /*----------------------------------------------------------------------------
  * structure used by PDR to specify that the CONVERT program is to conduct
  * Qchoice dialogs before calling create_image_file().
@@ -272,8 +277,11 @@ struct pdr {
 	 * one line of data.
 	 *************************************************************************/
 
-	long reserved[4];	/* PDR should init these fields to NULL */
+	// SDL picdriver specific functions
+	bool (*sdl_save_image)(SDL_Surface* surface, char* path);
+	SDL_Surface*  (*sdl_load_image)(char* path);
 
+	long reserved[4];	/* PDR should init these fields to NULL */
 };
 
 

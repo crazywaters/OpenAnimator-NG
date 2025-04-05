@@ -5,6 +5,8 @@
 #include "stdtypes.h"
 #endif
 
+#include "cmap.h"
+
 struct button;
 struct ink;
 struct rcel;

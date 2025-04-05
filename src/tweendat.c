@@ -1,8 +1,8 @@
-#include "jimk.h"
 #include "broadcas.h"
 #include "errcodes.h"
 #include "grid.h"
 #include "inks.h"
+#include "jimk.h"
 #include "mask.h"
 #include "pentools.h"
 #include "rastcurs.h"
@@ -11,6 +11,7 @@
 #include "tweenpul.h"
 #include "zoom.h"
 
+// clang-format off
 static Button twe_grid_sel = MB_INIT1(
 	NONEXT,
 	NOCHILD, /* children */
@@ -23,6 +24,7 @@ static Button twe_grid_sel = MB_INIT1(
 	NOKEY,
 	MB_B_GHILITE /* flags */
 	);
+
 static Button twe_mask_sel = MB_INIT1(
 	&twe_grid_sel, /* next */
 	NOCHILD,
@@ -30,11 +32,12 @@ static Button twe_mask_sel = MB_INIT1(
 	NODATA,		/* Read in from menu file */
 	see_mask_button,
 	mb_toggle_mask,
-	qmask_keep_undo, 
+	qmask_keep_undo,
 	&vs.use_mask,1,
 	NOKEY,
 	MB_B_GHILITE
 	);
+
 static Button twe_zpan_sel = MB_INIT1(
 	&twe_mask_sel,
 	&zpan_cycle_group,
@@ -47,6 +50,7 @@ static Button twe_zpan_sel = MB_INIT1(
 	NOKEY,
 	0
 	);
+
 static Button twe_minipal_sel = MB_INIT1(
 	&twe_zpan_sel,
 	&minipal_sel,
@@ -59,6 +63,7 @@ static Button twe_minipal_sel = MB_INIT1(
 	NOKEY,
 	0
 	);
+
 static Button twe_goinks_sel = MB_INIT1(
 	&twe_minipal_sel,
 	NOCHILD,
@@ -71,9 +76,11 @@ static Button twe_goinks_sel = MB_INIT1(
 	NOKEY,
 	MB_GHILITE
 	);
+
 static Sgroup1_data twe_sh1dat = {
 	&flxtime_data,
 	};
+
 static Button twe_std1_sel = MB_INIT1(
 	&twe_goinks_sel,
 	&std_head1_sel,
@@ -86,6 +93,7 @@ static Button twe_std1_sel = MB_INIT1(
 	NOKEY,
 	0 /* flags */
 	);
+
 static Button twe_tool_sel = MB_INIT1(
 	&twe_std1_sel,
 	NOCHILD,
@@ -98,6 +106,7 @@ static Button twe_tool_sel = MB_INIT1(
 	NOKEY,
 	0 /* flags */
 	);
+
 static Button twe_title_sel = MB_INIT1(
 	&twe_tool_sel,
 	NOCHILD,
@@ -111,6 +120,8 @@ static Button twe_title_sel = MB_INIT1(
 	0 /* flags */
 	);
 
+// clang-format on
+
 static void twemenu_credraw(void *dat, USHORT why)
 {
 	(void)dat;
@@ -120,52 +131,52 @@ static void twemenu_credraw(void *dat, USHORT why)
 	zpan_ccycle_redraw(&twe_zpan_sel);
 	draw_button(&twe_minipal_sel);
 }
-static Redraw_node twemenu_rn = {
-	{ NULL, NULL }, /* node */
-	twemenu_credraw,
-	NULL,
-	NEW_CCOLOR };
 
-static void twemenu_on_showhide(Menuhdr *mh, bool showing)
+static Redraw_node twemenu_rn = {{NULL, NULL}, /* node */
+								 twemenu_credraw,
+								 NULL,
+								 NEW_CCOLOR};
+
 /* also used in paste menu which uses same common buttons */
+static void twemenu_on_showhide(Menuhdr *mh, bool showing)
 {
 	(void)mh;
 
-	if(showing)
+	if (showing) {
 		add_color_redraw(&twemenu_rn);
-	else
+	} else {
 		rem_color_redraw(&twemenu_rn);
+	}
 }
-Menuhdr twe_menu = MENU_INIT0(
-	320,25,0,0,   /* width, height, x, y */
-	TWEEN_MUID,		/* id */
-	PANELMENU,		/* type */
-	&twe_title_sel,	/* buttons */
-	SCREEN_FONT,	/* font */
-	&menu_cursor.hdr,	/* cursor */
-	seebg_white, 		/* seebg */
-	NULL,					/* dodata */
-	NULL,					/* domenu */
-	(MBPEN|MBRIGHT|KEYHIT), /* ioflags */
-	0,				/* flags */
-	NULL,			/* procmouse */
-	twemenu_on_showhide, /* on_showhide */
-	NULL			/* cleanup */
+
+Menuhdr twe_menu = MENU_INIT0(320, 25, 0, 0,              /* width, height, x, y */
+							  TWEEN_MUID,                 /* id */
+							  PANELMENU,                  /* type */
+							  &twe_title_sel,             /* buttons */
+							  SCREEN_FONT,                /* font */
+							  &menu_cursor.hdr,           /* cursor */
+							  seebg_white,                /* seebg */
+							  NULL,                       /* dodata */
+							  NULL,                       /* domenu */
+							  (MBPEN | MBRIGHT | KEYHIT), /* ioflags */
+							  0,                          /* flags */
+							  NULL,                       /* procmouse */
+							  twemenu_on_showhide,        /* on_showhide */
+							  NULL                        /* cleanup */
 );
 
 static Smu_button_list twe_smblist[] = {
-	{ "title",  { /* butn */ &twe_title_sel } },
-	{ "grid",   { /* butn */ &twe_grid_sel } },
-	{ "mask",   { /* butn */ &twe_mask_sel } },
-	{ "tool",   { /* butn */ &twe_tool_sel } },
+	{"title", {/* butn */ &twe_title_sel}},
+	{"grid", {/* butn */ &twe_grid_sel}},
+	{"mask", {/* butn */ &twe_mask_sel}},
+	{"tool", {/* butn */ &twe_tool_sel}},
 
 	/* texts with first char a 'T' */
-	{ "Ttoolname",  { /* ps */ &tween_pen_tool.ot.name } },
+	{"Ttoolname", {/* ps */ &tween_pen_tool.ot.name}},
 };
 
-
-Errcode load_tween_panel_strings(void **ss)
 /* Load up strings associated with tween panel */
+Errcode load_tween_panel_strings(void **ss)
 {
-	return(soft_buttons("tween_panel",twe_smblist,Array_els(twe_smblist),ss));
+	return soft_buttons("tween_panel", twe_smblist, Array_els(twe_smblist), ss);
 }

@@ -12,6 +12,8 @@
 struct wndo;
 struct wscreen;
 
+#include "raster.h"
+
 #define DMARQI_MILLIS 100 /* milli-seconds between marqi draws for creepy
 					       * marqis */
 

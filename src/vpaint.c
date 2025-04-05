@@ -45,7 +45,6 @@
 #include "zoom.h"
 
 #include <SDL3/SDL.h>
-#include <SDL3/SDL_dialog.h>
 #include <pj_sdl.h>
 
 #define UNSAVE_BUFSIZ 80
@@ -174,8 +173,6 @@ static Errcode load_the_pic(char* title)
 
 void qload_pic(void)
 {
-	char* title;
-	char buf[50];
 	static char last_path[PATH_MAX] = "";
 	static char last_folder[PATH_MAX] = "";
 
@@ -250,6 +247,33 @@ void toggle_cel_opt(int mode)
 	}
 
 	do_rmode_redraw(changes);
+}
+
+
+static void go_pic_options()
+{
+	// not doing the ! invert because I may change the enum values at some point
+
+	char* choices[2] = {
+		"Auto-fit Palette",
+		"Exit Menu",
+	};
+
+	USHORT flags[] = {
+		vs.pic_auto_fit_palette == PIC_IO_PAL_FIT ? QCF_ASTERISK : 0,
+		0,
+	};
+
+	int result = qchoice(flags, "PIC OPTIONS", choices, 2);
+
+	switch (result) {
+		case 0: // auto-fit palette option
+			vs.pic_auto_fit_palette = (BYTE)(
+				vs.pic_auto_fit_palette == PIC_IO_PAL_OVERWRITE
+					? PIC_IO_PAL_FIT : PIC_IO_PAL_OVERWRITE);
+		default:
+			break;
+	}
 }
 
 
@@ -544,7 +568,9 @@ static void qquit(void)
 	}
 }
 
-
+/*
+ * This responds to all the main menu choices.
+ */
 void main_selit(Menuhdr* mh, SHORT hitid)
 {
 	(void)mh;
@@ -634,6 +660,9 @@ void main_selit(Menuhdr* mh, SHORT hitid)
 				break;
 			case PIC_FIL_PUL: /* files */
 				go_files(FTP_PIC);
+				break;
+			case PIC_OPT_PUL: /* files */
+				go_pic_options();
 				break;
 			case CEL_CLI_PUL: /* clip */
 				clip_cel();

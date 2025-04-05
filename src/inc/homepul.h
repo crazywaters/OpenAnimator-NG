@@ -27,6 +27,7 @@
 #define PIC_SEP_PUL 304
 #define PIC_VIE_PUL 305
 #define PIC_FIL_PUL 306
+#define PIC_OPT_PUL 308
 #define CEL_PUL 400
 #define CEL_CLI_PUL 401
 #define CEL_GET_PUL 402

@@ -720,6 +720,7 @@ static void same_old_files(void)
 	{
 		return;
 	}
+
 	menu_to_cursor(vb.screen, &fml_menu);
 	do_reqloop(vb.screen, &fml_menu, NULL, NULL, NULL);
 	smu_free_scatters(&ss);

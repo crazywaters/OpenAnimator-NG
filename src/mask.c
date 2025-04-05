@@ -334,8 +334,8 @@ USHORT mdis[9];
 OUT:
 	flx_draw_olays();
 	show_mp();
-	return;
 }
+
 void qmask(void)
 {
 	/* this is a kludge. all the things that

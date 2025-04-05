@@ -298,6 +298,8 @@ Pull home_with_poco
 	"Separate",304
 	"View",305
 	"Files...",306
+    "----",307
+	"Options",308
 	}
 "Cel",400
 	{
@@ -389,6 +391,8 @@ Pull home
 	"Separate",304
 	"View",305
 	"Files...",306
+    "----",307
+    "Options",308
 	}
 "Cel",400
 	{
@@ -1363,7 +1367,7 @@ Pull palette
 }
 
 
-Text color_fit {"Color fit screen?"}
+Text color_fit {"Color fit screen to new palette?"}
 Text use_mc {"Use this color set for menus?"}
 Text bad_colors {"Sorry, menus wouldn't be visible...."}
 Text one_palette {
@@ -1625,6 +1629,13 @@ Text newconfig {
 	"Program isn't configured.\n"
 	"Assuming defaults."
 }
+
+// SDL Picdriver messages
+Text sdl_did_write {"Wrote image successfully:\n![1]"}
+Text sdl_cant_write {"Unable to write image!"}
+Text sdl_did_read {"Read image successfully:\n![1]"}
+Text sdl_cant_read {"Unable to read image!"}
+
 
 // qreq number texts
 
