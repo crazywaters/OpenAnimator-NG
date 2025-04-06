@@ -15,11 +15,13 @@ set(FLILO_SRC_FILES
 )
 
 set(SDLPDR_SRC_FILES
-	sdl_pdr.c
 	sdl_pdr.h
-
+	sdl_pdr.c
+	sdl_convert.c
+	
 	sdl_bmp.c
 	sdl_pcx.c
+	sdl_jpeg.c
 )
 
 add_library(picdrive

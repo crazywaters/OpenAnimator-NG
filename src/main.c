@@ -350,8 +350,6 @@ static Errcode get_rest_of_command_line(Argparse_list *ap,int argc,
 
 static void add_local_pdrs(void)
 {
-	extern Local_pdr BMP_local_pdr;
-	extern Local_pdr PCX_local_pdr;
 	extern Local_pdr flilo_local_pdr;
 
 	add_local_pdr(&fli_local_pdr);
@@ -360,8 +358,13 @@ static void add_local_pdrs(void)
 	add_local_pdr(&flilo_local_pdr);
 
 	// SDL_PDR drivers
+	extern Local_pdr BMP_local_pdr;
+	extern Local_pdr PCX_local_pdr;
+	extern Local_pdr JPEG_local_pdr;
+
 	add_local_pdr(&BMP_local_pdr);
 	add_local_pdr(&PCX_local_pdr);
+	add_local_pdr(&JPEG_local_pdr);
 
 	// add_local_pdr(&skeleton_local_pdr);
 }

@@ -8,6 +8,7 @@
 #include "picdrive.h" /* required header file */
 #include "pj_sdl.h"
 
+// from sdl_pdr.c
 typedef struct pdr_sdlfile PDR_SdlFile;
 
 bool sdlpdr_spec_best_fit(Anim_info *ainfo);
@@ -19,6 +20,10 @@ Errcode sdlpdr_create_file(Pdr *pd, char *path, Image_file **pif, Anim_info *ain
 Errcode sdlpdr_save_frames(Image_file *ifile, Rcel *screen, int num_frames,
 						   Errcode (*seek_frame)(int ix, void *seek_data), void *seek_data,
 						   Rcel *work_screen);
+
+// from sdl_convert.c
+SDL_Surface* sdlpdr_convert_colors(SDL_Surface* surface, size_t num_colors);
+
 
 /*
  * SDLPDR Macro
