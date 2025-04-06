@@ -6,7 +6,7 @@
 
 void about(void)
 {
-	static char date[] = __DATE__;
+	// static char date[] = __DATE__;
 	char relnum[16];
 	char idtext[32];
 

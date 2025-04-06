@@ -76,7 +76,7 @@ Errcode sdlpdr_save_frames(Image_file *ifile, Rcel *screen, int num_frames,
                                                                         \
 	Local_pdr ID##_local_pdr = {                                        \
 		NULL,                                                           \
-		"BMP.SDL",                                                      \
+		#ID ".SDL",                                                     \
 		&ID##_header,                                                   \
 	};
 

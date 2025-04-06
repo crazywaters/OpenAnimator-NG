@@ -19,6 +19,7 @@ set(SDLPDR_SRC_FILES
 	sdl_pdr.h
 
 	sdl_bmp.c
+	sdl_pcx.c
 )
 
 add_library(picdrive
