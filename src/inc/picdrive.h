@@ -278,8 +278,8 @@ struct pdr {
 	 *************************************************************************/
 
 	// SDL picdriver specific functions
-	bool (*sdl_save_image)(SDL_Surface* surface, char* path);
 	SDL_Surface*  (*sdl_load_image)(char* path);
+	bool (*sdl_save_image)(SDL_Surface* surface, char* path);
 
 	long reserved[4];	/* PDR should init these fields to NULL */
 };

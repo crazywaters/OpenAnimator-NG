@@ -392,6 +392,7 @@ struct vsettings {
 
 	/* pic operation options */
 	BYTE pic_auto_fit_palette;   /* when loading a pic, auto-fit to the current palette */
+	UBYTE pic_save_quality;      /* when saving a pic, save with this quality */
 
 	/* WARNING! do NOT add any pad to this struct. If additional fields are
 	 * added and the order unchanged the settings loader will fill fields beyond

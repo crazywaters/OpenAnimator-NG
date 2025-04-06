@@ -219,6 +219,7 @@ Vsettings default_vs = {
 
 	/* pic file IO settings */
 	PIC_IO_PAL_FIT, /* on load, don't auto-fit palette; overwrite */
+	100,            /* on save, save with this quality */
 };
 
 
