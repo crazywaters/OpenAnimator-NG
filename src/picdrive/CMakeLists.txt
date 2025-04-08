@@ -20,8 +20,9 @@ set(SDLPDR_SRC_FILES
 	sdl_convert.c
 	
 	sdl_bmp.c
-	sdl_pcx.c
 	sdl_jpeg.c
+	sdl_pcx.c
+	sdl_png.c
 )
 
 add_library(picdrive

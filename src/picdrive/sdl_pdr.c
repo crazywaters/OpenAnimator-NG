@@ -44,13 +44,8 @@ typedef struct pdr_sdlfile {
  ****************************************************************************/
 bool sdlpdr_spec_best_fit(Anim_info *ainfo)
 {
-	if (ainfo->depth == 8 && ainfo->num_frames == 1) {
-		return true;
-	}
-
-	ainfo->depth = 8;
-	ainfo->num_frames = 1;
-	return false;
+	(void)ainfo;
+	return true;
 }
 
 /*****************************************************************************
@@ -282,6 +277,32 @@ Errcode sdlpdr_save_frames(Image_file *ifile, Rcel *screen, int num_frames,
 		return Err_no_surface;
 	}
 
+	/*
+	 * Copy over palette
+	 */
+
+	SDL_Palette *palette = SDL_CreatePalette(screen->cmap->num_colors);
+	if (!palette) {
+		SDL_DestroySurface(sf->surface);
+		sdlpdr_close_file((Image_file **)&sf);
+		return Err_no_palette;
+	}
+
+	for (int c = 0; c < screen->cmap->num_colors; c += 1) {
+		palette->colors[c].r = screen->cmap->ctab[c].r;
+		palette->colors[c].g = screen->cmap->ctab[c].g;
+		palette->colors[c].b = screen->cmap->ctab[c].b;
+
+		// !TODO: export with alpha channel for color 0 for formats that support it?
+		palette->colors[c].a = 0xFF;
+	}
+
+	palette->ncolors = screen->cmap->num_colors;
+
+	SDL_SetSurfacePalette(sf->surface, palette);
+	SDL_DestroyPalette(palette);
+	palette = NULL;
+
 	Pixel *buf = malloc(w + 2);
 	if (!buf) {
 		SDL_DestroySurface(sf->surface);
@@ -305,30 +326,6 @@ Errcode sdlpdr_save_frames(Image_file *ifile, Rcel *screen, int num_frames,
 	}
 
 	SDL_UnlockSurface(sf->surface);
-
-	/*
-	 * Copy over palette
-	 */
-
-	SDL_Palette *palette = SDL_CreatePalette(screen->cmap->num_colors);
-	if (!palette) {
-		SDL_DestroySurface(sf->surface);
-		sdlpdr_close_file((Image_file **)&sf);
-		return Err_no_palette;
-	}
-
-	for (int c = 0; c < screen->cmap->num_colors; c += 1) {
-		palette->colors[c].r = screen->cmap->ctab[c].r;
-		palette->colors[c].g = screen->cmap->ctab[c].g;
-		palette->colors[c].b = screen->cmap->ctab[c].b;
-
-		// !TODO: export with alpha channel for color 0 for formats that support it?
-		palette->colors[c].a = 0xFF;
-	}
-
-	SDL_SetSurfacePalette(sf->surface, palette);
-	SDL_DestroyPalette(palette);
-	palette = NULL;
 
 	/*
 	 * Write Image

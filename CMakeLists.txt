@@ -64,6 +64,8 @@ add_subdirectory(thirdparty/sdl3)
 include_directories(thirdparty/sdl3/include)
 add_subdirectory(thirdparty/sdl3_image)
 include_directories(thirdparty/sdl3_image/include)
+add_subdirectory(thirdparty/miniz)
+include_directories(thirdparty/miniz)
 
 
 if (WITH_POCO)

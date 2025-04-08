@@ -194,6 +194,7 @@ target_link_libraries(
 			wndolib
 			SDL3-static
 			SDL3_image-static
+			miniz
 #			SDL3_ttf::SDL3_ttf-static
 	)
 
