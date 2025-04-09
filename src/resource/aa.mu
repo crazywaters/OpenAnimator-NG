@@ -731,6 +731,13 @@ Qchoice record
 "Cancel"
 }
 
+Qchoice pic_options_menu
+{
+"Pic Options",
+"Auto-fit Palette"
+"Exit Menu"
+}
+
 
 Text info
 {

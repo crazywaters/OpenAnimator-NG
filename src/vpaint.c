@@ -5,8 +5,10 @@
 
 #include <stdio.h>
 #include <string.h>
-//#!TODO: unportable
+#include <SDL3/SDL.h>
+// #!TODO: unportable
 #include <libgen.h>
+#include <pj_sdl.h>
 
 #include "a3d.h"
 #include "aaconfig.h"
@@ -44,9 +46,6 @@
 #include "tween.h"
 #include "zoom.h"
 
-#include <SDL3/SDL.h>
-#include <pj_sdl.h>
-
 #define UNSAVE_BUFSIZ 80
 
 
@@ -56,13 +55,11 @@ static void qquit(void);
 // from mainpull.c
 Errcode run_pull_poco(Menuhdr* mh, SHORT id);
 
-
 static void get_color(void)
 {
 	check_input(MMOVE);
 	update_ccolor(pj_get_dot(vb.screen->viscel, icb.cx, icb.cy));
 }
-
 
 static void qreset_seq(void)
 {
@@ -81,7 +78,6 @@ static void qreset_seq(void)
 			break;
 	}
 }
-
 
 static void qnew_flx(void)
 {
@@ -108,21 +104,18 @@ static void qnew_flx(void)
 	return;
 }
 
-
 void qload_mask(void)
 {
 	char* title;
 	char buf[50];
 
-	title = vset_get_filename(stack_string("load_msk", buf), ".MSK", load_str, MASK_PATH, NULL,
-							  0);
+	title = vset_get_filename(stack_string("load_msk", buf), ".MSK", load_str, MASK_PATH, NULL, 0);
 	if (title != NULL) {
 		unzoom();
 		cant_load(load_the_mask(title), title);
 		rezoom();
 	}
 }
-
 
 void qsave_mask(void)
 {
@@ -133,8 +126,7 @@ void qsave_mask(void)
 		return;
 	}
 
-	title = vset_get_filename(stack_string("save_msk", buf), ".MSK", save_str, MASK_PATH, NULL,
-							  1);
+	title = vset_get_filename(stack_string("save_msk", buf), ".MSK", save_str, MASK_PATH, NULL, 1);
 	if (title != NULL) {
 		unzoom();
 		if (overwrite_old(title)) {
@@ -143,7 +135,6 @@ void qsave_mask(void)
 		rezoom();
 	}
 }
-
 
 void qload(void)
 {
@@ -154,8 +145,7 @@ void qload(void)
 		return;
 	}
 
-	const char* file_path = pj_dialog_file_open(
-		"Flic Files", "fli;flc", last_folder);
+	const char* file_path = pj_dialog_file_open("Flic Files", "fli;flc", last_folder);
 
 	if (file_path) {
 		strncpy(last_path, file_path, PATH_MAX);
@@ -164,20 +154,17 @@ void qload(void)
 	}
 }
 
-
 static Errcode load_the_pic(char* title)
 {
 	return load_any_picture(title, vb.pencel);
 }
-
 
 void qload_pic(void)
 {
 	static char last_path[PATH_MAX] = "";
 	static char last_folder[PATH_MAX] = "";
 
-	char* file_path = pj_dialog_file_open(
-	"Load Image", get_pictype_suffi(), last_folder);
+	char* file_path = pj_dialog_file_open("Load Image", get_pictype_suffi(), last_folder);
 
 	if (file_path != NULL) {
 		unzoom();
@@ -189,7 +176,6 @@ void qload_pic(void)
 		strncpy(last_path, file_path, PATH_MAX);
 	}
 }
-
 
 void qsave_pic(void)
 {
@@ -206,12 +192,12 @@ void qsave_pic(void)
 	sph_size = strlen(sph_buf) + 1;
 	strcpy(title, sph_buf);
 	err = get_picsave_info(suffi, (title + (sph_size - 1)), sizeof(title) - sph_size);
-	if (err <
-		Success) {
+	if (err < Success) {
 		return;
 	}
 
-	char* file_path = pj_dialog_file_save("Save Image", get_pictype_suffi(), last_folder, last_path);
+	char* file_path =
+		pj_dialog_file_save("Save Image", get_pictype_suffi(), last_folder, last_path);
 	if (file_path != NULL) {
 		unzoom();
 		soft_put_wait_box("!%s", "wait_save", file_path);
@@ -221,7 +207,6 @@ void qsave_pic(void)
 		strncpy(last_path, file_path, PATH_MAX);
 	}
 }
-
 
 void toggle_cel_opt(int mode)
 {
@@ -249,57 +234,54 @@ void toggle_cel_opt(int mode)
 	do_rmode_redraw(changes);
 }
 
-
 static void go_pic_options()
 {
-	// not doing the ! invert because I may change the enum values at some point
+	hide_mp();
+	flx_clear_olays();
 
-	char* choices[2] = {
-		"Auto-fit Palette",
-		"Exit Menu",
-	};
+	for (;;) {
+		USHORT flags[] = {
+			vs.pic_auto_fit_palette == PIC_IO_PAL_FIT ? QCF_ASTERISK : 0,
+			0,
+		};
 
-	USHORT flags[] = {
-		vs.pic_auto_fit_palette == PIC_IO_PAL_FIT ? QCF_ASTERISK : 0,
-		0,
-	};
+		int choice = soft_qchoice(flags, "pic_options_menu");
 
-	int result = qchoice(flags, "PIC OPTIONS", choices, 2);
-
-	switch (result) {
-		case 0: // auto-fit palette option
-			vs.pic_auto_fit_palette = (BYTE)(
-				vs.pic_auto_fit_palette == PIC_IO_PAL_OVERWRITE
-					? PIC_IO_PAL_FIT : PIC_IO_PAL_OVERWRITE);
-		default:
-			break;
+		switch (choice) {
+			case 0:  // auto-fit palette option
+				// not doing the ! invert because I may change the enum values at some point
+				vs.pic_auto_fit_palette =
+					(BYTE)(vs.pic_auto_fit_palette == PIC_IO_PAL_OVERWRITE ? PIC_IO_PAL_FIT
+																		   : PIC_IO_PAL_OVERWRITE);
+				break;
+			default:
+				goto OUT;
+		}
 	}
+OUT:
+	flx_draw_olays();
+	show_mp();
 }
-
 
 static void flix_first_frame(void)
 {
 	mini_first_frame(&flxtime_data);
 }
 
-
 static void flix_next_frame(void)
 {
 	mini_next_frame(&flxtime_data);
 }
-
 
 static void flix_prev_frame(void)
 {
 	mini_prev_frame(&flxtime_data);
 }
 
-
 static void flix_playit(void)
 {
 	mini_playit(&flxtime_data);
 }
-
 
 static void tog_zoom(void)
 {
@@ -312,18 +294,15 @@ static void tog_zoom(void)
 	show_mp();
 }
 
-
 static void toggle_render_under(void)
 {
 	toggle_cel_opt(2);
 }
 
-
 static void toggle_one_color(void)
 {
 	toggle_cel_opt(3);
 }
-
 
 // !TODO: remappable keys
 static Keyequiv header_keys[] = {
@@ -347,12 +326,10 @@ bool common_header_keys(void)
 	return (do_keyequiv(icb.inkey, header_keys, Array_els(header_keys)));
 }
 
-
 static void tog_pen(void)
 {
 	toggle_pen(&sh1_brush_sel);
 }
-
 
 static void home_help(void)
 {
@@ -371,12 +348,10 @@ static void home_help(void)
 	}
 }
 
-
 static void toggle_dither(void)
 {
 	vl.ink->dither = !vl.ink->dither;
 }
-
 
 static void toggle_key_clear(void)
 {
@@ -384,12 +359,10 @@ static void toggle_key_clear(void)
 	do_rmode_redraw(RSTAT_ZCLEAR);
 }
 
-
 static void toggle_two_color(void)
 {
 	vs.color2 = !vs.color2;
 }
-
 
 // !TODO: remappable keys
 static Keyequiv home_keys[] = {
@@ -435,12 +408,10 @@ Errcode load_home_keys(void)
 	return load_key_equivs("home_keys", home_keys, Array_els(home_keys));
 }
 
-
 bool hit_undo_key(void)
 {
 	return hit_keyequiv(UNDO_KE, icb.inkey);
 }
-
 
 /* returns 0 if input unused 1 if used */
 bool home_dokeys(void)
@@ -455,7 +426,6 @@ bool home_dokeys(void)
 
 	return do_keyequiv(icb.inkey, home_keys, Array_els(home_keys));
 }
-
 
 static void pixel_menu(void)
 {
@@ -492,7 +462,6 @@ static void pixel_menu(void)
 	}
 }
 
-
 static void view_frame(void)
 {
 	hide_mp();
@@ -502,14 +471,12 @@ static void view_frame(void)
 	show_mp();
 }
 
-
 static void v12(void)
 {
 	swap_pencels(vb.pencel, vl.alt_cel);
 	see_cmap();
 	zoom_it();
 }
-
 
 static void view_alt(void)
 {
@@ -521,7 +488,6 @@ static void view_alt(void)
 		v12();
 	}
 }
-
 
 static char* unsaved_string(char* buf)
 {
@@ -537,7 +503,6 @@ static char* unsaved_string(char* buf)
 	return buf;
 }
 
-
 bool confirm_dirty_load(void)
 {
 	char buf[UNSAVE_BUFSIZ];
@@ -550,7 +515,6 @@ bool confirm_dirty_load(void)
 
 	return true;
 }
-
 
 static void qquit(void)
 {
