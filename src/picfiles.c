@@ -376,7 +376,8 @@ Errcode find_pdr_loader(char *ifname,
 	for(;;)
 	{
 		*ainfo = screen_info;
-		if((err = (*(cpd->local_get_ainfo))(ifname,ainfo)) >= Success)
+		err = (*(cpd->local_get_ainfo))(ifname,ainfo);
+		if(err >= Success)
 		{
 			strcpy(pdr_name,(cpd->local_name));
 

@@ -154,7 +154,7 @@ cleanup:
 /*----------------------------------------------------------------------------
  * Setup rex & pdr interface structures...
  *--------------------------------------------------------------------------*/
-char pcx_long_description[] =
+static char long_description[] =
 	"SDL_Image Loader: PCX Files\n\n"
 	"All PCX files are saved as 8-bit.";
 
@@ -162,7 +162,7 @@ char pcx_long_description[] =
 SDL_PDR_CREATE(
 	PCX,
 	"PCX Format (SDL)",
-	pcx_long_description,
+	long_description,
 	"pcx",
 	IMG_Load,
 	sdlpdr_save_pcx

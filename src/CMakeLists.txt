@@ -192,9 +192,11 @@ target_link_libraries(
 			softmenu
 			trdutil
 			wndolib
+
 			SDL3-static
 			SDL3_image-static
 			miniz
+			giflib
 #			SDL3_ttf::SDL3_ttf-static
 	)
 

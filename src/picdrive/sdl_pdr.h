@@ -8,6 +8,10 @@
 #include "picdrive.h" /* required header file */
 #include "pj_sdl.h"
 
+#ifndef MAXFRAMES
+#define MAXFRAMES 4000
+#endif
+
 // from sdl_pdr.c
 typedef struct pdr_sdlfile PDR_SdlFile;
 
@@ -28,10 +32,13 @@ SDL_Surface* sdlpdr_convert_colors(SDL_Surface* surface, size_t num_colors);
 /*
  * SDLPDR Macro
  * Quick way to define the Pdr structure for each image type driver
+ *
+ * This first macro allows the user to overwrite spec_best_fit--
+ * needed for animated gif support.
  */
 
-// ID, name, long description, suffixes, loader, saver
-#define SDL_PDR_CREATE(ID, name, long_desc, suffix, loader, saver)      \
+// ID, name, long description, suffixes, loader, saver, spec_best_fit
+#define SDL_PDR_CREATE_ANIM(ID, name, long_desc, suffix, loader, saver, spec_best_fit)      \
 	Pdr ID##_header = {                                                 \
 		{                                                               \
 			REX_PICDRIVER,                                              \
@@ -62,7 +69,7 @@ SDL_Surface* sdlpdr_convert_colors(SDL_Surface* surface, size_t num_colors);
 		suffix, /* default_suffi */                                     \
 		1,                                                              \
 		1,                    /* max_write_frames, max_read_frames */   \
-		sdlpdr_spec_best_fit, /* (*spec_best_fit)() */                  \
+		spec_best_fit,        /* (*spec_best_fit)() */                  \
 		sdlpdr_create_file,   /* (*create_image_file)() */              \
 		sdlpdr_open_file,     /* (*open_image_file)() */                \
 		sdlpdr_close_file,    /* (*close_image_file)() */               \
@@ -81,8 +88,12 @@ SDL_Surface* sdlpdr_convert_colors(SDL_Surface* surface, size_t num_colors);
                                                                         \
 	Local_pdr ID##_local_pdr = {                                        \
 		NULL,                                                           \
-		#ID ".SDL",                                                     \
+		#ID ".PDR",                                                     \
 		&ID##_header,                                                   \
 	};
+
+/* This is the main macro that specifies sdlpdr_spec_best_fit as a default */
+
+#define SDL_PDR_CREATE(ID, name, long_desc, suffix, loader, saver) SDL_PDR_CREATE_ANIM(ID, name, long_desc, suffix, loader, saver, sdlpdr_spec_best_fit)
 
 #endif  // __SDL_PDR_H

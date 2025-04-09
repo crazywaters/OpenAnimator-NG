@@ -22,10 +22,17 @@
 static SDL_Surface* sdlpdr_load_png(const char* path)
 {
 	SDL_Surface* loaded = IMG_Load(path);
-	SDL_Surface* result = loaded;
+	SDL_Surface* result = NULL;
+	if (!loaded) {
+		return NULL;
+	}
+
+	// Always convert to indexed color format for AnimatorPro
 	if (loaded->format != SDL_PIXELFORMAT_INDEX8) {
 		result = sdlpdr_convert_colors(loaded, 256);
 		SDL_DestroySurface(loaded);
+	} else {
+		result = loaded;
 	}
 
 	return result;
@@ -306,12 +313,18 @@ cleanup:
 /*----------------------------------------------------------------------------
  * Setup rex & pdr interface structures...
  *--------------------------------------------------------------------------*/
-char png_long_description[] =
+static char long_description[] =
 	"SDL_Image Loader: PNG Files\n\n"
 	"All PNG files are saved as 8-bit.\n"
 	"PNGs are quantized to 256 colors\n"
 	"at load time as needed.";
 
 
-SDL_PDR_CREATE(PNG, "PNG Format (SDL)", png_long_description, "png", sdlpdr_load_png,
-			   sdlpdr_save_png);
+SDL_PDR_CREATE(
+	PNG,
+	"PNG Format (SDL)",
+	long_description,
+	"png",
+	sdlpdr_load_png,
+	sdlpdr_save_png
+);

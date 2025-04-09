@@ -48,7 +48,7 @@ static SDL_Surface* sdlpdr_load_jpeg(const char *path) {
 /*----------------------------------------------------------------------------
  * Setup rex & pdr interface structures...
  *--------------------------------------------------------------------------*/
-char jpeg_long_description[] =
+static char long_description[] =
 	"SDL_Image Loader: JPEG Files\n\n"
 	"All JPEG files are saved as 24-bit.\n"
 	"JPEGs are quantized to 256 colors\n"
@@ -57,7 +57,7 @@ char jpeg_long_description[] =
 
 SDL_PDR_CREATE(JPEG,
 			   "JPEG Format (SDL)",
-			   jpeg_long_description,
+			   long_description,
 			   "jpg;jpeg",
 			   sdlpdr_load_jpeg,
 			   sdlpdr_save_jpeg);

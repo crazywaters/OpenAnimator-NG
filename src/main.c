@@ -359,11 +359,13 @@ static void add_local_pdrs(void)
 
 	// SDL_PDR drivers
 	extern Local_pdr BMP_local_pdr;
+	extern Local_pdr GIF_local_pdr;
 	extern Local_pdr PCX_local_pdr;
 	extern Local_pdr JPEG_local_pdr;
 	extern Local_pdr PNG_local_pdr;
 
 	add_local_pdr(&BMP_local_pdr);
+	add_local_pdr(&GIF_local_pdr);
 	add_local_pdr(&PCX_local_pdr);
 	add_local_pdr(&JPEG_local_pdr);
 	add_local_pdr(&PNG_local_pdr);

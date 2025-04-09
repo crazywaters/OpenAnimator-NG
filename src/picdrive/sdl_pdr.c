@@ -108,7 +108,6 @@ Errcode sdlpdr_open_file(Pdr *pd, char *path, Image_file **pif, Anim_info *ainfo
 
 	assert(pd->sdl_load_image);
 
-
 	sf = NULL;   /* preset these to NULL in case we take our 	*/
 	*pif = NULL; /* error exit path before everything's alloc'd. */
 
@@ -143,16 +142,17 @@ Errcode sdlpdr_open_file(Pdr *pd, char *path, Image_file **pif, Anim_info *ainfo
 
 	sf->width = sf->surface->w;
 	sf->height = sf->surface->h;
-	sf->depth = SDL_BITSPERPIXEL(sf->surface->format);
+
+	// Fix the logic for determining the depth
+	sf->depth = (sf->surface->format == SDL_PIXELFORMAT_INDEX8) ? 8 : 24;
 
 	/*------------------------------------------------------------------------
 	 * fill in values we return to the host via pointers.
 	 *----------------------------------------------------------------------*/
-
 	memset(ainfo, 0, sizeof(*ainfo));
-	ainfo->width = sf->width;
-	ainfo->height = sf->height;
-	ainfo->depth = SDL_BITSPERPIXEL(sf->surface->format);
+	ainfo->width = sf->surface->w;
+	ainfo->height = sf->surface->h;
+	ainfo->depth = sf->depth;
 	ainfo->num_frames = 1;
 	ainfo->millisec_per_frame = DEFAULT_AINFO_SPEED;
 
@@ -170,14 +170,18 @@ Errcode sdlpdr_read_first(Image_file *ifile, Rcel *screen)
 	assert(sf);
 	assert(sf->surface);
 
-
-	if (sf->depth > 8) { /* we don't do rgb via this routine yet */
-		// !TODO!
-		return Err_rgb_convert;
+	// If not in INDEX8 format, convert it
+	if (sf->surface->format != SDL_PIXELFORMAT_INDEX8) {
+		SDL_Surface* converted = sdlpdr_convert_colors(sf->surface, 256);
+		if (!converted) {
+			return Err_rgb_convert;
+		}
+		SDL_DestroySurface(sf->surface);
+		sf->surface = converted;
+		sf->depth = 8;
 	}
 
 	/* read pixels by index for now */
-
 	if (!SDL_LockSurface(sf->surface)) {
 		fprintf(stderr, "Unable to lock surface for file load: %s\n", SDL_GetError());
 		return Err_no_lock;
