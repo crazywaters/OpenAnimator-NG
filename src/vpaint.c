@@ -234,6 +234,12 @@ void toggle_cel_opt(int mode)
 	do_rmode_redraw(changes);
 }
 
+enum {
+	PICOPT_AUTOFIT_PALETTE = 0,
+	PICOPT_WRITE_ALPHA = 1,
+	PICOPT_JPEG_QUALITY = 2,
+};
+
 static void go_pic_options()
 {
 	hide_mp();
@@ -242,18 +248,35 @@ static void go_pic_options()
 	for (;;) {
 		USHORT flags[] = {
 			vs.pic_auto_fit_palette == PIC_IO_PAL_FIT ? QCF_ASTERISK : 0,
+			vs.pic_write_alpha == PIC_IO_WRITE_ALPHA ? QCF_ASTERISK : 0,
+			0,
 			0,
 		};
 
 		int choice = soft_qchoice(flags, "pic_options_menu");
 
 		switch (choice) {
-			case 0:  // auto-fit palette option
+			case PICOPT_AUTOFIT_PALETTE:
 				// not doing the ! invert because I may change the enum values at some point
 				vs.pic_auto_fit_palette =
 					(BYTE)(vs.pic_auto_fit_palette == PIC_IO_PAL_OVERWRITE ? PIC_IO_PAL_FIT
 																		   : PIC_IO_PAL_OVERWRITE);
 				break;
+
+			case PICOPT_WRITE_ALPHA:
+				vs.pic_write_alpha =
+					(BYTE)(vs.pic_write_alpha == PIC_IO_NO_ALPHA ? PIC_IO_WRITE_ALPHA : PIC_IO_NO_ALPHA);
+				break;
+
+			case PICOPT_JPEG_QUALITY:
+				// I'm randomly deciding 25 is the min quality.
+				// Realistically I don't see people going below 60.
+				SHORT jpeg_quality = vs.pic_save_quality;
+				if (soft_qreq_number(&jpeg_quality, 25, 100, "pic_opt_jpeg_quality")) {
+					vs.pic_save_quality = jpeg_quality;
+				}
+				break;
+
 			default:
 				goto OUT;
 		}

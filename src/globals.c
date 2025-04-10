@@ -218,8 +218,10 @@ Vsettings default_vs = {
 	1, /* font_unzag */
 
 	/* pic file IO settings */
-	PIC_IO_PAL_FIT, /* on load, don't auto-fit palette; overwrite */
-	100,            /* on save, save with this quality */
+	PIC_IO_PAL_FIT,  /* on load, don't auto-fit palette; overwrite */
+	PIC_IO_NO_ALPHA, /* by default, don't write alpha channel */
+	100,             /* on save, save with this quality */
+
 };
 
 

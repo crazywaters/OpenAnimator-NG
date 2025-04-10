@@ -94,6 +94,11 @@ enum {
 	PIC_IO_PAL_FIT       = 1,
 };
 
+enum {
+	PIC_IO_NO_ALPHA    = 0,
+	PIC_IO_WRITE_ALPHA = 1,
+};
+
 extern Menuhdr quick_menu;
 extern Button ink_group_sel;
 
@@ -391,8 +396,9 @@ struct vsettings {
 	SHORT font_unzag;   /* Oversample/antialias outline fonts? */
 
 	/* pic operation options */
-	BYTE pic_auto_fit_palette;   /* when loading a pic, auto-fit to the current palette */
-	UBYTE pic_save_quality;      /* when saving a pic, save with this quality */
+	BYTE  pic_auto_fit_palette;  /* when loading a pic, auto-fit to the current palette */
+	BYTE  pic_write_alpha;       /* If True, color zero is written as full alpha */
+	SHORT pic_save_quality;      /* when saving a pic, save with this quality */
 
 	/* WARNING! do NOT add any pad to this struct. If additional fields are
 	 * added and the order unchanged the settings loader will fill fields beyond

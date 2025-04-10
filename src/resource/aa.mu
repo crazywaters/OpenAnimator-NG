@@ -734,7 +734,9 @@ Qchoice record
 Qchoice pic_options_menu
 {
 "Pic Options",
-"Auto-fit Palette"
+"Auto-fit Palette on Load?"
+"Write alpha channel (PNG, GIF)?"
+"JPEG Export Quality..."
 "Exit Menu"
 }
 
@@ -1657,6 +1659,7 @@ Text boxil_wid { "Set \"boxil\" width" }
 Text slatsize { "Set mask \"slat\" spacing" }
 Text quant_wid {"Width of quantization unit?"}
 Text quant_hgt {"Height of quantization unit?"}
+Text pic_opt_jpeg_quality {"JPEG Export Quality"}
 
 // yes no box texts
 
