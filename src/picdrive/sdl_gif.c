@@ -97,7 +97,7 @@ static SDL_Surface* sdlpdr_load_gif(const char* path) {
 			.r = colorMap->Colors[i].Red,
 			.g = colorMap->Colors[i].Green,
 			.b = colorMap->Colors[i].Blue,
-			.a = 255  // GIF doesn't store alpha, so set to opaque
+			.a = 0xFF  // GIF doesn't store alpha, so set to opaque
 		};
 		SDL_SetPaletteColors(palette, &color, i, 1);
 	}
