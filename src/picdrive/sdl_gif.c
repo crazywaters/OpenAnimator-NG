@@ -15,8 +15,10 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "sdl_pdr.h"
 #include "gif_lib.h"
+
+#include "jimk.h"
+#include "sdl_pdr.h"
 
 
 // ---------------------------------------------------------------------------
@@ -135,7 +137,8 @@ static bool sdlpdr_save_gif(SDL_Surface* surface, const char* path) {
 	ColorMapObject* colorMap = NULL;
 	bool success = false;
 	int error;
-	
+	const bool write_alpha = vs.pic_write_alpha == PIC_IO_WRITE_ALPHA;
+
 	// Check that we have an 8-bit indexed surface with palette
 	SDL_Palette* palette = SDL_GetSurfacePalette(surface);
 	if (surface->format != SDL_PIXELFORMAT_INDEX8 || !palette) {
@@ -166,6 +169,21 @@ static bool sdlpdr_save_gif(SDL_Surface* surface, const char* path) {
 	// Set the screen descriptor
 	if (EGifPutScreenDesc(gif, surface->w, surface->h, 8, 0, colorMap) != GIF_OK) {
 		goto cleanup;
+	}
+	
+	// Add transparency for index 0 when requested
+	if (write_alpha) {
+		// Graphics Control Extension block
+		const uint8_t gce_block[4] = {
+			0x01,       // Packed field: 1=transparency enabled
+			0x00, 0x00, // Delay time (not used for still images)
+			0x00        // Transparent color index (0)
+		};
+		
+		// Write the Graphics Control Extension
+		if (EGifPutExtension(gif, GRAPHICS_EXT_FUNC_CODE, 4, gce_block) != GIF_OK) {
+			goto cleanup;
+		}
 	}
 	
 	// Set the image descriptor (full screen, no local color map)
