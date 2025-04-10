@@ -1,5 +1,5 @@
+#include <assert.h>
 #include <stdlib.h>
-#include <string.h>
 #include <SDL3/SDL.h>
 
 /**
@@ -253,4 +253,27 @@ cleanup:
     if (rgb_bufs[2]) free(rgb_bufs[2]);
     
     return NULL;
+}
+
+
+SDL_Surface* sdlpdr_convert_surface_to_palette(SDL_Surface* surface, SDL_Palette* palette)
+{
+	assert(surface);
+	assert(palette);
+
+	// Convert the surface to 8-bit indexed format with the specified palette
+	SDL_Surface* indexedSurface = SDL_ConvertSurfaceAndColorspace(
+		surface,
+		SDL_PIXELFORMAT_INDEX8,
+		palette,
+		SDL_COLORSPACE_UNKNOWN,  // Generally use UNKNOWN for indexed formats
+		0                        // No additional properties needed
+	);
+
+	if (!indexedSurface) {
+		SDL_SetError("Indexed surface conversion failed.");
+		return NULL;
+	}
+
+	return surface;
 }

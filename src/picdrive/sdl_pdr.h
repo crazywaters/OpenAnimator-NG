@@ -27,6 +27,7 @@ Errcode sdlpdr_save_frames(Image_file *ifile, Rcel *screen, int num_frames,
 
 // from sdl_convert.c
 SDL_Surface* sdlpdr_convert_colors(SDL_Surface* surface, size_t num_colors);
+SDL_Surface* sdlpdr_convert_surface_to_palette(SDL_Surface* surface, SDL_Palette* palette);
 
 
 /*
