@@ -297,9 +297,8 @@ Pull home_with_poco
 	"Apply Ink",303
 	"Separate",304
 	"View",305
-	"Files...",306
-    "----",307
 	"Options",308
+	"Files...",306
 	}
 "Cel",400
 	{
@@ -390,9 +389,8 @@ Pull home
 	"Apply Ink",303
 	"Separate",304
 	"View",305
-	"Files...",306
-    "----",307
     "Options",308
+	"Files...",306
 	}
 "Cel",400
 	{
@@ -734,7 +732,7 @@ Qchoice record
 Qchoice pic_options_menu
 {
 "Pic Options",
-"Auto-fit Palette on Load?"
+"Overwrite Palette on Load?"
 "Write alpha channel (PNG, GIF)?"
 "JPEG Export Quality..."
 "Exit Menu"
@@ -1754,6 +1752,7 @@ Text wait_reorder {"re-ordering flic frames..."}
 Text wait_ringing {"couldn't load entire flic.\nCalculating ring frame..."}
 Text olay_cleanup {"cleaning up fli overlays ..."}
 Text wait_save {"saving ![1]"}
+Text wait_load {"loading ![1]"}
 Text wait_fdread {"Reading floppy ![1]:"}
 
 

@@ -15,6 +15,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "jimk.h"
+#include "rcel.h"
 #include "sdl_pdr.h"
 
 
@@ -133,6 +135,10 @@ Errcode sdlpdr_open_file(Pdr *pd, char *path, Image_file **pif, Anim_info *ainfo
 		sf->surface = NULL;
 	}
 
+	/*
+	 * This calls the specific load function in each PDR, but allows
+	 * the rest of the code to be more generic.
+	 */
 	sf->surface = pd->sdl_load_image(path);
 
 	if (!sf->surface) {
@@ -167,18 +173,43 @@ Errcode sdlpdr_open_file(Pdr *pd, char *path, Image_file **pif, Anim_info *ainfo
 Errcode sdlpdr_read_first(Image_file *ifile, Rcel *screen)
 {
 	PDR_SdlFile *sf = (PDR_SdlFile *)ifile;
+	SDL_Palette* screen_palette = NULL;
 	assert(sf);
 	assert(sf->surface);
 
-	// If not in INDEX8 format, convert it
+	//!TODO: handle color remapping
 	if (sf->surface->format != SDL_PIXELFORMAT_INDEX8) {
-		SDL_Surface* converted = sdlpdr_convert_colors(sf->surface, 256);
-		if (!converted) {
-			return Err_rgb_convert;
+		SDL_Palette* screen_palette = SDL_CreatePalette(screen->cmap->num_colors);
+		if (!screen_palette) {
+			fprintf(stderr, "[sdlpdr_read_first] unable to create palette: %s\n", SDL_GetError());
+			sdlpdr_close_file((Image_file **)&sf);
+			return Err_no_memory;
 		}
-		SDL_DestroySurface(sf->surface);
-		sf->surface = converted;
-		sf->depth = 8;
+
+		sdlpdr_cmap_to_palette(screen->cmap, screen_palette);
+
+		if (vs.pic_auto_fit_palette == PIC_IO_PAL_FIT) {
+			SDL_Surface* temp = sdlpdr_convert_surface_to_palette(sf->surface, screen_palette);
+			if (!temp) {
+				fprintf(stderr, "[sdlpdr_open_file] unable to fit to palette.\n");
+				SDL_DestroyPalette(screen_palette);
+				sdlpdr_close_file((Image_file **)&sf);
+				return Err_no_memory;
+			}
+			SDL_DestroySurface(sf->surface);
+			sf->surface = temp;
+		}
+		else { // PIC_IO_PAL_OVERWRITE
+			SDL_Surface* temp = sdlpdr_convert_colors(sf->surface, 256);
+			if (!temp) {
+				fprintf(stderr, "[sdlpdr_open_file] unable to convert high color to indexed: %s\n", SDL_GetError());
+				sdlpdr_close_file((Image_file **)&sf);
+				return Err_no_memory;
+			}
+
+			SDL_DestroySurface(sf->surface);
+			sf->surface = temp;
+		}
 	}
 
 	/* read pixels by index for now */
@@ -206,11 +237,7 @@ Errcode sdlpdr_read_first(Image_file *ifile, Rcel *screen)
 		return Err_no_palette;
 	}
 
-	for (int index = 0; index < 256; index += 1) {
-		screen->cmap->ctab[index].r = pal->colors[index].r;
-		screen->cmap->ctab[index].g = pal->colors[index].g;
-		screen->cmap->ctab[index].b = pal->colors[index].b;
-	}
+	sdlpdr_palette_to_cmap(pal, screen->cmap);
 
 	return Success;
 }
@@ -266,7 +293,6 @@ Errcode sdlpdr_save_frames(Image_file *ifile, Rcel *screen, int num_frames,
 
 	PDR_SdlFile *sf = (PDR_SdlFile *)ifile;
 
-
 	/*------------------------------------------------------------------------
 	 * write the picture file from the input screen, using output options.
 	 *----------------------------------------------------------------------*/
@@ -292,14 +318,7 @@ Errcode sdlpdr_save_frames(Image_file *ifile, Rcel *screen, int num_frames,
 		return Err_no_palette;
 	}
 
-	for (int c = 0; c < screen->cmap->num_colors; c += 1) {
-		palette->colors[c].r = screen->cmap->ctab[c].r;
-		palette->colors[c].g = screen->cmap->ctab[c].g;
-		palette->colors[c].b = screen->cmap->ctab[c].b;
-
-		// !TODO: export with alpha channel for color 0 for formats that support it?
-		palette->colors[c].a = 0xFF;
-	}
+	sdlpdr_cmap_to_palette(screen->cmap, palette);
 
 	palette->ncolors = screen->cmap->num_colors;
 
@@ -333,8 +352,9 @@ Errcode sdlpdr_save_frames(Image_file *ifile, Rcel *screen, int num_frames,
 
 	/*
 	 * Write Image
+	 * This calls the specific save function in each PDR, but allows
+	 * the rest of the code to be more generic.
 	 */
-
 	if (!sf->sdl_save_image(sf->surface, sf->path)) {
 		sdlpdr_close_file((Image_file **)&sf);
 		soft_continu_box("!%s", "sdl_cant_write", sf->path);

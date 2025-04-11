@@ -244,7 +244,7 @@ static void go_pic_options()
 
 	for (;;) {
 		USHORT flags[] = {
-			vs.pic_auto_fit_palette == PIC_IO_PAL_FIT ? QCF_ASTERISK : 0,
+			vs.pic_auto_fit_palette == PIC_IO_PAL_OVERWRITE ? QCF_ASTERISK : 0,
 			vs.pic_write_alpha == PIC_IO_WRITE_ALPHA ? QCF_ASTERISK : 0,
 			0,
 			0,

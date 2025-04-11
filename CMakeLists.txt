@@ -3,9 +3,9 @@ cmake_minimum_required(VERSION 3.25 FATAL_ERROR)
 project(animator-pro)
 
 cmake_policy(SET CMP0114 NEW)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 if(APPLE)
-	## fixes issues with nativefiledialogextended
 	enable_language(OBJC)
 endif()
 

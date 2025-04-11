@@ -26,6 +26,8 @@ Errcode sdlpdr_save_frames(Image_file *ifile, Rcel *screen, int num_frames,
 						   Rcel *work_screen);
 
 // from sdl_convert.c
+void sdlpdr_cmap_to_palette(const Cmap *cmap, SDL_Palette *palette);
+void sdlpdr_palette_to_cmap(const SDL_Palette *palette, Cmap *cmap);
 SDL_Surface* sdlpdr_convert_colors(SDL_Surface* surface, size_t num_colors);
 SDL_Surface* sdlpdr_convert_surface_to_palette(const struct SDL_Surface* surface, const struct SDL_Palette* palette);
 

@@ -28,22 +28,6 @@ static bool sdlpdr_save_jpeg(SDL_Surface *surface, char *path) {
 	return IMG_SaveJPG(surface, path, vs.pic_save_quality);
 }
 
-/*
- * Wrapper for SDL_Image's IMG_Load function that converts the 
- * loaded JPEG to a 256-color indexed surface.
- */
-static SDL_Surface* sdlpdr_load_jpeg(const char *path) {
-	SDL_Surface *temp = IMG_Load(path);
-	if (!temp) {
-		return NULL;
-	}
-
-	SDL_Surface* result = sdlpdr_convert_colors(temp, 256);
-	SDL_DestroySurface(temp);
-
-	return result;
-}
-
 
 /*----------------------------------------------------------------------------
  * Setup rex & pdr interface structures...
@@ -59,6 +43,6 @@ SDL_PDR_CREATE(JPEG,
 			   "JPEG Format (SDL)",
 			   long_description,
 			   "jpg;jpeg",
-			   sdlpdr_load_jpeg,
+			   IMG_Load,
 			   sdlpdr_save_jpeg);
 

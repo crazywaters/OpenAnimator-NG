@@ -2,6 +2,7 @@
    basic file types. */
 
 #include <stdio.h>
+#include <string.h>
 
 #include "jimk.h"
 #include "a3d.h"
@@ -13,6 +14,7 @@
 #include "options.h"
 #include "palmenu.h"
 #include "picfile.h"
+#include "pj_sdl.h"
 #include "poly.h"
 #include "rastcurs.h"
 #include "softmenu.h"
@@ -495,27 +497,28 @@ static Errcode po_load_tween(char *name)
 
 static void qload_tween(void)
 {
-	char buf[PJ_PATH_MAX];
-	char *path = vset_get_filename(stack_string("load_tween",buf),
-							".TWE",load_str,TWEEN_PATH,NULL,0);
+	static char last_path[PATH_MAX] = "";
 
-	if (path != NULL)
-	{
-		po_load_tween(path);
+	char* file_path =
+		pj_dialog_file_open("Load Tween", "twe", last_path);
+
+	if (file_path != NULL) {
+		po_load_tween(file_path);
 		a3d_disables();
+		strncpy(last_path, file_path, PATH_MAX);
 	}
 }
 
 static void qsave_tween(void)
 {
-char buf[PJ_PATH_MAX];
-	char *path = vset_get_filename(stack_string("save_tween",buf),
-								".TWE",save_str,TWEEN_PATH,NULL, true);
+	static char last_path[PATH_MAX] = "";
 
-	if (path != NULL) {
-		if (overwrite_old(path)) {
-			po_save_tween(path);
-		}
+	char* file_path =
+		pj_dialog_file_save("Load Tween", "twe", last_path);
+
+	if (file_path != NULL) {
+		po_save_tween(file_path);
+		strncpy(last_path, file_path, PATH_MAX);
 	}
 }
 

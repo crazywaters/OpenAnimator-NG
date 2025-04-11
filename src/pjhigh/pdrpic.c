@@ -27,14 +27,6 @@ Errcode pdr_load_picture(char *pdr_path,char *picname, Rcel *screen)
 		return err;
 	}
 
-	if (ainfo.depth > 8)			/* only the CONVERT program can load */
-	{								/* RGB/truecolor pictures; tell the  */
-		err = Err_rgb_convert;		/* user that. */
-		pdr_close_ifile(&ifile);
-		free_pdr(&pd);
-		return err;
-	}
-
 	screen = center_virtual_rcel(screen, &virt, ainfo.width, ainfo.height);
 
 	err = pdr_read_first(ifile, screen);

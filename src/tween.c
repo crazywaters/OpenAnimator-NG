@@ -1,4 +1,5 @@
 /* generated with makepull */
+#include <string.h>
 #include "tween.h"
 
 #include "auto.h"
@@ -12,6 +13,7 @@
 #include "marqi.h"
 #include "menus.h"
 #include "pentools.h"
+#include "pj_sdl.h"
 #include "poly.h"
 #include "polyrub.h"
 #include "rastcurs.h"
@@ -208,7 +210,7 @@ static Errcode tween_sv_undo(void)
 /* Copy current state to undo and report error */
 static Errcode tween_save_undo(void)
 {
-	return (softerr(tween_sv_undo(), "tween_undo"));
+	return softerr(tween_sv_undo(), "tween_undo");
 }
 
 /* Exchange old state and cur state */
@@ -434,38 +436,42 @@ static Poly *query_end(bool saveit)
 /* Save one end of the tween to a .ply file */
 static void save_cur_shape(void)
 {
-	char *path;
-	Poly *p;
-	char sbuf[50];
+	static char last_path[PATH_MAX] = "";
+	Poly *p = query_end(true);
 
-	if ((p = query_end(true)) == NULL) {
+	if (p == NULL) {
 		return;
 	}
-	if ((path = vset_get_filename(stack_string("save_shape", sbuf), ".PLY", save_str, POLY_PATH,
-								  NULL, true)) != NULL) {
-		if (overwrite_old(path)) {
-			save_poly(path, p);
-		}
+
+	char* file_path =
+		pj_dialog_file_save("Load Tween", "ply", last_path);
+
+	if (file_path != NULL) {
+		save_poly(file_path, p);
+		strncpy(last_path, file_path, PATH_MAX);
 	}
 }
 
 /* Load one end of the tween from a .ply file */
 static void load_cur_shape(void)
 {
-	char *path;
-	Poly *p;
-	char sbuf[50];
+	static char last_path[PATH_MAX] = "";
+	Poly *p = query_end(false);
 
-	if ((p = query_end(false)) == NULL) {
+	if (p == NULL) {
 		return;
 	}
-	if ((path = vset_get_filename(stack_string("load_shape", sbuf), ".PLY", load_str, POLY_PATH,
-								  NULL, false)) != NULL) {
+
+	char* file_path =
+		pj_dialog_file_open("Load Tween", "ply", last_path);
+
+	if (file_path != NULL) {
 		if (tween_save_undo() >= Success) {
-			if (load_a_poly(path, p) >= Success) {
+			if (load_a_poly(file_path, p) >= Success) {
 				softerr(force_other(p), NULL);
 				redraw_both_ends();
 			}
+			strncpy(last_path, file_path, PATH_MAX);
 		}
 	}
 }
