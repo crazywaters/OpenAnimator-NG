@@ -2,6 +2,8 @@
    of related code in cluster.c and palpull.c.  This file starts with
    the Button declarations for the palette editor control panel. */
 
+#include <string.h>
+
 #include "jimk.h"
 #include "aaconfig.h"
 #include "auto.h"
@@ -24,6 +26,9 @@
 #include "render.h"
 #include "softmenu.h"
 #include "timemenu.h"
+
+#include "pj_sdl.h"
+
 
 static void pal_feel_qslider(Button *m);
 static void sliders_from_ccolor_with_menuwndo(Menuwndo *m);
@@ -406,7 +411,7 @@ static Errcode load_palette(char *title, int fitting)
 {
 	Errcode err;
 	Errcode fliret;
-	Flifile flif;
+	Flifile flif = {0};
 	autoarg_func how;
 
 	if (title == NULL) {
@@ -446,8 +451,8 @@ static Errcode load_palette(char *title, int fitting)
 	}
 	/* for undo to work change colors again...*/
 	swap_cmaps(vb.pencel->cmap, new_cmap);
-	see_cmap();
 	err = uzauto(how, NULL);
+
 error:
 	pj_cmap_free(new_cmap);
 	pj_fli_close(&flif);
@@ -456,27 +461,28 @@ error:
 
 void qload_palette(void)
 {
-	char *title;
-	char buf[50];
+	static char last_path[PATH_MAX] = "";
 
-	title = vset_get_filename(stack_string("load_pal", buf), ".COL;.FLC;.CEL", load_str,
-								   PALETTE_PATH, NULL, 0);
-	if (title != NULL) {
-		load_palette(title, PIC_IO_PAL_FIT);
+	char* file_path =
+		pj_dialog_file_open("Load Palette", "col;flc;cel", last_path);
+
+	if (file_path != NULL) {
+		load_palette(file_path, PIC_IO_PAL_FIT);
 	}
 }
 
 void qsave_palette(void)
 {
-	char *title;
-	char buf[50];
+	static char last_path[PATH_MAX] = "";
 
-	title =
-		vset_get_filename(stack_string("save_pal", buf), ".COL", save_str, PALETTE_PATH, NULL, 1);
-	if (title != NULL) {
-		if (overwrite_old(title)) {
-			softerr(pj_col_save(title, vb.pencel->cmap), "!%s", "cant_save", title);
-		}
+	char* file_path =
+		pj_dialog_file_save("Save Palette", "col", last_path);
+
+	if (file_path != NULL) {
+		soft_put_wait_box("!%s", "wait_save", file_path);
+		softerr(pj_col_save(file_path, vb.pencel->cmap),
+				"!%s", "cant_save", file_path);
+		strncpy(last_path, file_path, PATH_MAX);
 	}
 }
 

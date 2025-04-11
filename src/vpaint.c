@@ -139,17 +139,15 @@ void qsave_mask(void)
 void qload(void)
 {
 	static char last_path[PATH_MAX] = "";
-	char last_folder[PATH_MAX] = "";
 
 	if (!confirm_dirty_load()) {
 		return;
 	}
 
-	const char* file_path = pj_dialog_file_open("Flic Files", "fli;flc", last_folder);
+	const char* file_path = pj_dialog_file_open("Flic Files", "fli;flc", last_path);
 
 	if (file_path) {
 		strncpy(last_path, file_path, PATH_MAX);
-		strncpy(last_folder, dirname(last_path), PATH_MAX);
 		resize_load_fli(file_path);
 	}
 }
@@ -162,9 +160,8 @@ static Errcode load_the_pic(char* title)
 void qload_pic(void)
 {
 	static char last_path[PATH_MAX] = "";
-	static char last_folder[PATH_MAX] = "";
 
-	char* file_path = pj_dialog_file_open("Load Image", get_pictype_suffi(), last_folder);
+	char* file_path = pj_dialog_file_open("Load Image", get_pictype_suffi(), last_path);
 
 	if (file_path != NULL) {
 		unzoom();
@@ -186,7 +183,6 @@ void qsave_pic(void)
 	char sph_buf[50];
 
 	static char last_path[PATH_MAX] = "";
-	static char last_folder[PATH_MAX] = "";
 
 	stack_string("save_pic", sph_buf);
 	sph_size = strlen(sph_buf) + 1;
@@ -197,7 +193,8 @@ void qsave_pic(void)
 	}
 
 	char* file_path =
-		pj_dialog_file_save("Save Image", get_pictype_suffi(), last_folder, last_path);
+		pj_dialog_file_save("Save Image", get_pictype_suffi(), last_path);
+
 	if (file_path != NULL) {
 		unzoom();
 		soft_put_wait_box("!%s", "wait_save", file_path);

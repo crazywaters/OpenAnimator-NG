@@ -10,6 +10,7 @@
 
 /*--------------------------------------------------------------*/
 struct SDL_Surface;
+struct SDL_Palette;
 struct SDL_Window;
 struct SDL_Renderer;
 struct SDL_Rect;
@@ -38,8 +39,7 @@ bool pj_is_directory(const char *path);
 
 void pj_dialog_set_last_path(const char* path);
 char* pj_dialog_file_open(const char* type_name, const char* extensions, const char* default_path);
-char* pj_dialog_file_save(const char* type_name, const char* extensions,
-						  const char* default_path, const char* default_name);
+char* pj_dialog_file_save(const char* type_name, const char* extensions, const char* default_path);
 
 // from sdl_mac.m
 const char* pj_sdl_mac_bundle_path();
