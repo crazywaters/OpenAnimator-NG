@@ -4,7 +4,6 @@
 
 #include <string.h>
 
-#include "jimk.h"
 #include "aaconfig.h"
 #include "auto.h"
 #include "broadcas.h"
@@ -15,19 +14,19 @@
 #include "flicel.h"
 #include "flx.h"
 #include "inks.h"
+#include "jimk.h"
 #include "memory.h"
 #include "menus.h"
 #include "palchunk.h"
 #include "palmenu.h"
 #include "palpul.h"
 #include "pentools.h"
+#include "pj_sdl.h"
 #include "rastcurs.h"
 #include "redo.h"
 #include "render.h"
 #include "softmenu.h"
 #include "timemenu.h"
-
-#include "pj_sdl.h"
 
 
 static void pal_feel_qslider(Button *m);
@@ -38,301 +37,99 @@ static void ccolor_from_sliders(void *data, Button *b);
 static void change_hls_mode(Button *m);
 static void pal_menu_back(Button *m);
 
-static SHORT ccred,ccgreen,ccblue;
+static SHORT ccred, ccgreen, ccblue;
 static Cmap *new_cmap;
 
-static Qslider red_sl   = QSL_INIT1(0,RGB_MAX-1,&ccred,0,ccolor_from_sliders,leftright_arrs);
-static Qslider green_sl = QSL_INIT1(0,RGB_MAX-1,&ccgreen,0,ccolor_from_sliders,leftright_arrs);
-static Qslider blue_sl  = QSL_INIT1(0,RGB_MAX-1,&ccblue,0,ccolor_from_sliders,leftright_arrs);
+static Qslider red_sl = QSL_INIT1(0, RGB_MAX - 1, &ccred, 0, ccolor_from_sliders, leftright_arrs);
+static Qslider green_sl =
+	QSL_INIT1(0, RGB_MAX - 1, &ccgreen, 0, ccolor_from_sliders, leftright_arrs);
+static Qslider blue_sl = QSL_INIT1(0, RGB_MAX - 1, &ccblue, 0, ccolor_from_sliders, leftright_arrs);
 
 
 /*** Button Data ***/
-Button pal_pal_sel = MB_INIT1(
-	NONEXT,
-	NOCHILD,
-	320,58,0,(142)-103,
-	NOTEXT,
-	see_powell_palette,
-	feel_pp,
-	right_click_pp,
-	NULL,0,
-	NOKEY,
-	MB_SCALE_ABS
-	);
+Button pal_pal_sel = MB_INIT1(NONEXT, NOCHILD, 320, 58, 0, (142) - 103, NOTEXT, see_powell_palette,
+							  feel_pp, right_click_pp, NULL, 0, NOKEY, MB_SCALE_ABS);
 
-static Button pal_bsl_sel = MB_INIT1(
-	NONEXT,
-	NOCHILD,
-	86+1,10+1,229,(129)-103,
-	&blue_sl,
-	see_qslider,
-	pal_feel_qslider,
-	NOOPT,
-	NOGROUP,0,
-	NOKEY,
-	0
-	);
+static Button pal_bsl_sel = MB_INIT1(NONEXT, NOCHILD, 86 + 1, 10 + 1, 229, (129) - 103, &blue_sl,
+									 see_qslider, pal_feel_qslider, NOOPT, NOGROUP, 0, NOKEY, 0);
 
-static Button pal_gsl_sel = MB_INIT1(
-	&pal_bsl_sel,
-	NOCHILD,
-	85+1,10+1,141,(129)-103,
-	&green_sl,
-	see_qslider,
-	pal_feel_qslider,
-	NOOPT,
-	NOGROUP,0,
-	NOKEY,
-	0
-	);
+static Button pal_gsl_sel =
+	MB_INIT1(&pal_bsl_sel, NOCHILD, 85 + 1, 10 + 1, 141, (129) - 103, &green_sl, see_qslider,
+			 pal_feel_qslider, NOOPT, NOGROUP, 0, NOKEY, 0);
 
-static Button pal_rsl_sel = MB_INIT1(
-	&pal_gsl_sel,
-	NOCHILD,
-	85+1,10+1,53,(129)-103,
-	&red_sl,
-	see_qslider,
-	pal_feel_qslider,
-	NOOPT,
-	NOGROUP,0,
-	NOKEY,
-	0
-	);
+static Button pal_rsl_sel =
+	MB_INIT1(&pal_gsl_sel, NOCHILD, 85 + 1, 10 + 1, 53, (129) - 103, &red_sl, see_qslider,
+			 pal_feel_qslider, NOOPT, NOGROUP, 0, NOKEY, 0);
 
 static Button pal_hls_sel = MB_INIT1(
-	&pal_rsl_sel,
-	NOCHILD,
-	22+1,10+1,28,(129)-103,
-	NODATA,		/* Read in from menu file */
-	dcorner_text,
-	change_hls_mode,
-	NOOPT,
-	&vs.hls,1,
-	NOKEY,
-	MB_B_GHILITE
-	);
+	&pal_rsl_sel, NOCHILD, 22 + 1, 10 + 1, 28, (129) - 103, NODATA, /* Read in from menu file */
+	dcorner_text, change_hls_mode, NOOPT, &vs.hls, 1, NOKEY, MB_B_GHILITE);
 
 static Button pal_rgb_sel = MB_INIT1(
-	&pal_hls_sel,
-	NOCHILD,
-	22+1,10+1,3,(129)-103,
-	NODATA,		/* Read in from menu file */
-	dcorner_text,
-	change_hls_mode,
-	NOOPT,
-	&vs.hls,0,
-	NOKEY,
-	MB_B_GHILITE
+	&pal_hls_sel, NOCHILD, 22 + 1, 10 + 1, 3, (129) - 103, NODATA, /* Read in from menu file */
+	dcorner_text, change_hls_mode, NOOPT, &vs.hls, 0, NOKEY, MB_B_GHILITE);
+
+Button pal_cco_sel = MB_INIT1(&pal_rgb_sel, NOCHILD, 11, 11, 306, 105 - 103, NOTEXT, ccolor_box,
+							  go_color_grid, NOOPT, NOGROUP, 0, NOKEY, 0);
+
+static Button pal_bru_sel = MB_INIT1(&pal_cco_sel, NOCHILD, 11, 11, 293, 105 - 103, NOTEXT, see_pen,
+									 toggle_pen, set_pbrush, NULL, 0, NOKEY, 0);
+
+Button pal_spe_sel = MB_INIT1(&pal_bru_sel, NOCHILD, 85, 10, 232, 117 - 103, NOTEXT, see_cluster,
+							  feel_cluster, mselect_bundle, NULL, 1, NOKEY, 0);
+
+static Button pal_tsp_sel =
+	MB_INIT1(&pal_spe_sel, NOCHILD, 15, 9, 215, 117 - 103, NODATA, /* Read in from menu file */
+			 dcorner_text, change_cluster_mode, NOOPT, &vs.use_bun, 1, NOKEY, MB_B_GHILITE);
+
+Button pal_bun_sel = MB_INIT1(&pal_tsp_sel, NOCHILD, 85, 10, 126, (117) - 103, NOTEXT, see_cluster,
+							  feel_cluster, mselect_bundle, NULL, 0, NOKEY, 0);
+
+static Button pal_tbu_sel =
+	MB_INIT1(&pal_bun_sel, NOCHILD, 15, 9, 109, 117 - 103, NODATA, /* Read in from menu file */
+			 dcorner_text, change_cluster_mode, NOOPT, &vs.use_bun, 0, NOKEY, MB_B_GHILITE);
+
+static Button pal_clu_sel =
+	MB_INIT1(&pal_tbu_sel, NOCHILD, 47, 9, 246, 106 - 103, NODATA, /* Read in from menu file */
+			 dcorner_text, change_mode, NOOPT, &vs.pal_to, 0, NOKEY, MB_GHILITE);
+
+static Button pal_all_sel =
+	MB_INIT1(&pal_clu_sel, NOCHILD, 25, 9, 219, (106) - 103, NODATA, /* Read in from menu file */
+			 dcorner_text, change_mode, NOOPT, &vs.pal_to, 1, NOKEY, MB_GHILITE);
+
+static Button pal_minipal_sel = MB_INIT1(&pal_all_sel, &minipal_sel, 92, 9, 8, 117 - 103, NOTEXT,
+										 hang_children, NOFEEL, NOOPT, NULL, 0, NOKEY, 0);
+
+static Button pal_m_sel =
+	MB_INIT1(&pal_minipal_sel, NOCHILD, 11, 9, 205, 106 - 103, NODATA, /* Read in from menu file */
+			 ncorner_text, toggle_bgroup, go_multi, &vs.multi, 1, NOKEY, MB_B_GHILITE);
+
+static Button pal_min_sel = MB_INIT1(&pal_m_sel, &minitime_sel, 77, 9, 129, (106) - 103, NOTEXT,
+									 hang_children, NOFEEL, NOOPT, &flxtime_data, 0, NOKEY, 0);
+
+static Button pal_fit_sel =
+	MB_INIT1(&pal_min_sel, NOCHILD, 33, 9, 94, 106 - 103, NODATA, /* Read in from menu file */
+			 ncorner_text, toggle_bgroup, NOOPT, &vs.pal_fit, 1, NOKEY, MB_B_GHILITE);
+
+static Button pal_res_sel =
+	MB_INIT1(&pal_fit_sel, NOCHILD, 33, 9, 59, 106 - 103, NODATA, /* Read in from menu file */
+			 see_undo, menu_doundo, NOOPT, NOGROUP, 0, '\b', 0);
+
+static Button pal_tit_sel =
+	MB_INIT1(&pal_res_sel, NOCHILD, 54, 9, 3, (106) - 103, NODATA, /* Read in from menu file */
+			 see_titlebar, feel_titlebar, mb_menu_to_bottom, &tbg_moveclose, 0, 'q', 0 /* flags */
 	);
 
-Button pal_cco_sel = MB_INIT1(
-	&pal_rgb_sel,
-	NOCHILD,
-	11,11,306,105-103,
-	NOTEXT,
-	ccolor_box,
-	go_color_grid,
-	NOOPT,
-	NOGROUP,0,
-	NOKEY,
-	0
-	);
-
-static Button pal_bru_sel = MB_INIT1(
-	&pal_cco_sel,
-	NOCHILD,
-	11,11,293,105-103,
-	NOTEXT,
-	see_pen,
-	toggle_pen,
-	set_pbrush,
-	NULL,0,
-	NOKEY,
-	0
-	);
-
-Button pal_spe_sel = MB_INIT1(
-	&pal_bru_sel,
-	NOCHILD,
-	85,10,232,117-103,
-	NOTEXT,
-	see_cluster,
-	feel_cluster,
-	mselect_bundle,
-	NULL,1,
-	NOKEY,
-	0
-	);
-
-static Button pal_tsp_sel = MB_INIT1(
-	&pal_spe_sel,
-	NOCHILD,
-	15,9,215,117-103,
-	NODATA,		/* Read in from menu file */
-	dcorner_text,
-	change_cluster_mode,
-	NOOPT,
-	&vs.use_bun,1,
-	NOKEY,
-	MB_B_GHILITE
-	);
-
-Button pal_bun_sel = MB_INIT1(
-	&pal_tsp_sel,
-	NOCHILD,
-	85,10,126,(117)-103,
-	NOTEXT,
-	see_cluster,
-	feel_cluster,
-	mselect_bundle,
-	NULL,0,
-	NOKEY,
-	0
-	);
-
-static Button pal_tbu_sel = MB_INIT1(
-	&pal_bun_sel,
-	NOCHILD,
-	15,9,109,117-103,
-	NODATA,		/* Read in from menu file */
-	dcorner_text,
-	change_cluster_mode,
-	NOOPT,
-	&vs.use_bun,0,
-	NOKEY,
-	MB_B_GHILITE
-	);
-
-static Button pal_clu_sel = MB_INIT1(
-	&pal_tbu_sel,
-	NOCHILD,
-	47,9,246,106-103,
-	NODATA,		/* Read in from menu file */
-	dcorner_text,
-	change_mode,
-	NOOPT,
-	&vs.pal_to,0,
-	NOKEY,
-	MB_GHILITE
-	);
-
-static Button pal_all_sel = MB_INIT1(
-	&pal_clu_sel,
-	NOCHILD,
-	25,9,219,(106)-103,
-	NODATA,		/* Read in from menu file */
-	dcorner_text,
-	change_mode,
-	NOOPT,
-	&vs.pal_to,1,
-	NOKEY,
-	MB_GHILITE
-	);
-
-static Button pal_minipal_sel = MB_INIT1(
-	&pal_all_sel,
-	&minipal_sel,
-	92,9,8,117-103,
-	NOTEXT,
-	hang_children,
-	NOFEEL,
-	NOOPT,
-	NULL,0,
-	NOKEY,
-	0
-	);
-
-static Button pal_m_sel = MB_INIT1(
-	&pal_minipal_sel,
-	NOCHILD,
-	11,9,205,106-103,
-	NODATA,		/* Read in from menu file */
-	ncorner_text,
-	toggle_bgroup,
-	go_multi,
-	&vs.multi,1,
-	NOKEY,
-	MB_B_GHILITE
-	);
-
-static Button pal_min_sel = MB_INIT1(
-	&pal_m_sel,
-	&minitime_sel,
-	77,9,129,(106)-103,
-	NOTEXT,
-	hang_children,
-	NOFEEL,
-	NOOPT,
-	&flxtime_data,0,
-	NOKEY,
-	0
-	);
-
-static Button pal_fit_sel = MB_INIT1(
-	&pal_min_sel,
-	NOCHILD,
-	33,9,94,106-103,
-	NODATA,		/* Read in from menu file */
-	ncorner_text,
-	toggle_bgroup,
-	NOOPT,
-	&vs.pal_fit,1,
-	NOKEY,
-	MB_B_GHILITE
-	);
-
-static Button pal_res_sel = MB_INIT1(
-	&pal_fit_sel,
-	NOCHILD,
-	33,9,59,106-103,
-	NODATA,		/* Read in from menu file */
-	see_undo,
-	menu_doundo,
-	NOOPT,
-	NOGROUP,0,
-	'\b',
-	0
-	);
-
-static Button pal_tit_sel = MB_INIT1(
-	&pal_res_sel,
-	NOCHILD,
-	54,9,3,(106)-103,
-	NODATA,		/* Read in from menu file */
-	see_titlebar,
-	feel_titlebar,
-	mb_menu_to_bottom,
-	&tbg_moveclose,0,
-	'q',
-	0 /* flags */
-	);
-
-static Button pal_most_sel = MB_INIT1(
-	&pal_pal_sel,
-	&pal_tit_sel,
-	320,40,0,0,
-	NOTEXT,
-	pal_menu_back,
-	NOFEEL,
-	NOOPT,
-	NOGROUP,0,
-	NOKEY,
-	MB_SCALE_ABS
-	);
+static Button pal_most_sel =
+	MB_INIT1(&pal_pal_sel, &pal_tit_sel, 320, 40, 0, 0, NOTEXT, pal_menu_back, NOFEEL, NOOPT,
+			 NOGROUP, 0, NOKEY, MB_SCALE_ABS);
 
 static Smu_button_list pal_blist[] = {
-	{ "title",  { &pal_tit_sel } },
-	{ "hls",    { &pal_hls_sel } },
-	{ "rgb",    { &pal_rgb_sel } },
-	{ "b",      { &pal_tsp_sel } },
-	{ "a",      { &pal_tbu_sel } },
-	{ "clus",   { &pal_clu_sel } },
-	{ "all",    { &pal_all_sel } },
-	{ "t",      { &pal_m_sel } },
-	{ "fit",    { &pal_fit_sel } },
-	{ "undo",   { &pal_res_sel } },
-	{ "pen",    { &pal_bru_sel } },
-	};
+	{"title", {&pal_tit_sel}}, {"hls", {&pal_hls_sel}}, {"rgb", {&pal_rgb_sel}},
+	{"b", {&pal_tsp_sel}},     {"a", {&pal_tbu_sel}},   {"clus", {&pal_clu_sel}},
+	{"all", {&pal_all_sel}},   {"t", {&pal_m_sel}},     {"fit", {&pal_fit_sel}},
+	{"undo", {&pal_res_sel}},  {"pen", {&pal_bru_sel}},
+};
 
 static void pmu_color_redraw(void *mh, USHORT why)
 {
@@ -379,6 +176,9 @@ Menuhdr palette_menu = MENU_INIT0(320, 97, 0, 103,                   /* width, h
 								  NULL                               /* cleanup */
 );
 
+/*
+ * Called when a palette color slider has changed.
+ */
 static void pal_feel_qslider(Button *m)
 {
 	save_undo();
@@ -463,8 +263,7 @@ void qload_palette(void)
 {
 	static char last_path[PATH_MAX] = "";
 
-	char* file_path =
-		pj_dialog_file_open("Load Palette", "col;flc;cel", last_path);
+	char *file_path = pj_dialog_file_open("Load Palette", "col;flc;cel", last_path);
 
 	if (file_path != NULL) {
 		load_palette(file_path, PIC_IO_PAL_FIT);
@@ -475,13 +274,11 @@ void qsave_palette(void)
 {
 	static char last_path[PATH_MAX] = "";
 
-	char* file_path =
-		pj_dialog_file_save("Save Palette", "col", last_path);
+	char *file_path = pj_dialog_file_save("Save Palette", "col", last_path);
 
 	if (file_path != NULL) {
 		soft_put_wait_box("!%s", "wait_save", file_path);
-		softerr(pj_col_save(file_path, vb.pencel->cmap),
-				"!%s", "cant_save", file_path);
+		softerr(pj_col_save(file_path, vb.pencel->cmap), "!%s", "cant_save", file_path);
 		strncpy(last_path, file_path, PATH_MAX);
 	}
 }
@@ -615,22 +412,6 @@ void hls_rampit(const Rgb3 *r1, const Rgb3 *r2, Rgb3 *dr, int ccount)
 	}
 }
 
-
-#ifdef SLUFFED
-int a_break_key(void)
-{
-	switch ((UBYTE)icb.inkey) {
-		case 'x':
-		case 'X':
-		case 'q':
-		case 'Q':
-		case ' ':
-			return (1);
-	}
-	return (0);
-}
-#endif /* SLUFFED */
-
 static void get_menu_5(void)
 {
 	Rgb3 omc[NUM_MUCOLORS];
@@ -662,10 +443,10 @@ static void get_menu_5(void)
 Rgb3 pure_white = {255, 255, 255};
 Rgb3 pure_black = {0, 0, 0};
 
-static bool visible_cmap(void)
 /* Are colors distinct enough from each other? */
+static bool visible_cmap(void)
 {
-	return (visible_mucolors(vb.screen->wndo.cmap, vb.screen->mc_colors));
+	return visible_mucolors(vb.screen->wndo.cmap, vb.screen->mc_colors);
 }
 
 void find_colors(void)
@@ -782,8 +563,8 @@ static void pal_menu_back(Button *m)
 {
 	wbg_ncorner_back(m);
 }
-void cycle_ccolor(void)
 /* called when a tool has done it's thing */
+void cycle_ccolor(void)
 {
 	vs.cdraw_ix++;
 	if (vs.cdraw_ix >= cluster_count()) {
@@ -869,12 +650,12 @@ static int get_mousecolor(Wndo *w)
 	(void)w;
 
 	if (JSTHIT(MBRIGHT)) {
-		return (check_pen_abort());
+		return check_pen_abort();
 	}
 	if (JSTHIT(MBPEN)) {
 		set_ccolor(pj_get_dot(vb.screen->viscel, icb.sx, icb.sy));
 	}
-	return (0); /* no need to reset mouse in do_reqloop() */
+	return 0; /* no need to reset mouse in do_reqloop() */
 }
 
 static void scale_palette_menu(Rscale *scale)
@@ -892,7 +673,7 @@ static bool pal_dopull(Menuhdr *mh)
 	set_pul_disable(mh, VAL_BLE_PUL, cclip_isnt);
 	set_pul_disable(mh, VAL_PAS_PUL, cclip_isnt);
 	pul_xflag(mh, PAL_CYC_PUL, vs.cycle_draw);
-	return (menu_dopull(mh));
+	return menu_dopull(mh);
 }
 
 static void qone_palette(void)
