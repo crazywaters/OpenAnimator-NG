@@ -5,8 +5,10 @@
 
 #include <stdio.h>
 #include <string.h>
-//#!TODO: unportable
+#include <SDL3/SDL.h>
+// #!TODO: unportable
 #include <libgen.h>
+#include <pj_sdl.h>
 
 #include "a3d.h"
 #include "aaconfig.h"
@@ -44,10 +46,6 @@
 #include "tween.h"
 #include "zoom.h"
 
-#include <SDL3/SDL.h>
-#include <SDL3/SDL_dialog.h>
-#include <pj_sdl.h>
-
 #define UNSAVE_BUFSIZ 80
 
 
@@ -57,13 +55,11 @@ static void qquit(void);
 // from mainpull.c
 Errcode run_pull_poco(Menuhdr* mh, SHORT id);
 
-
 static void get_color(void)
 {
 	check_input(MMOVE);
 	update_ccolor(pj_get_dot(vb.screen->viscel, icb.cx, icb.cy));
 }
-
 
 static void qreset_seq(void)
 {
@@ -82,7 +78,6 @@ static void qreset_seq(void)
 			break;
 	}
 }
-
 
 static void qnew_flx(void)
 {
@@ -109,21 +104,18 @@ static void qnew_flx(void)
 	return;
 }
 
-
 void qload_mask(void)
 {
 	char* title;
 	char buf[50];
 
-	title = vset_get_filename(stack_string("load_msk", buf), ".MSK", load_str, MASK_PATH, NULL,
-							  0);
+	title = vset_get_filename(stack_string("load_msk", buf), ".MSK", load_str, MASK_PATH, NULL, 0);
 	if (title != NULL) {
 		unzoom();
 		cant_load(load_the_mask(title), title);
 		rezoom();
 	}
 }
-
 
 void qsave_mask(void)
 {
@@ -134,8 +126,7 @@ void qsave_mask(void)
 		return;
 	}
 
-	title = vset_get_filename(stack_string("save_msk", buf), ".MSK", save_str, MASK_PATH, NULL,
-							  1);
+	title = vset_get_filename(stack_string("save_msk", buf), ".MSK", save_str, MASK_PATH, NULL, 1);
 	if (title != NULL) {
 		unzoom();
 		if (overwrite_old(title)) {
@@ -145,81 +136,74 @@ void qsave_mask(void)
 	}
 }
 
-
 void qload(void)
 {
 	static char last_path[PATH_MAX] = "";
-	char last_folder[PATH_MAX] = "";
 
 	if (!confirm_dirty_load()) {
 		return;
 	}
 
-	const char* file_path = pj_dialog_file_open(
-		"Flic Files", "fli;flc", last_folder);
+	const char* file_path = pj_dialog_file_open("Flic Files", "fli;flc", last_path);
 
 	if (file_path) {
 		strncpy(last_path, file_path, PATH_MAX);
-		strncpy(last_folder, dirname(last_path), PATH_MAX);
 		resize_load_fli(file_path);
 	}
 }
-
 
 static Errcode load_the_pic(char* title)
 {
 	return load_any_picture(title, vb.pencel);
 }
 
-
 void qload_pic(void)
 {
-	char* title;
-	char buf[50];
+	static char last_path[PATH_MAX] = "";
 
-	title = vset_get_filename(stack_string("load_pic", buf), get_pictype_suffi(), load_str,
-							  PIC_PATH, NULL, 0);
-	if (title != NULL) {
+	char* file_path = pj_dialog_file_open("Load Image", get_pictype_suffi(), last_path);
+
+	if (file_path != NULL) {
 		unzoom();
 		save_undo();
-		load_the_pic(title);
+		load_the_pic(file_path);
 		see_cmap();
 		dirties();
 		rezoom();
+		strncpy(last_path, file_path, PATH_MAX);
 	}
 }
-
 
 void qsave_pic(void)
 {
 	Errcode err;
 	char title[61];
-	char* picpath;
 	char suffi[PDR_SUFFI_SIZE];
 	int sph_size;
 	char sph_buf[50];
+
+	static char last_path[PATH_MAX] = "";
 
 	stack_string("save_pic", sph_buf);
 	sph_size = strlen(sph_buf) + 1;
 	strcpy(title, sph_buf);
 	err = get_picsave_info(suffi, (title + (sph_size - 1)), sizeof(title) - sph_size);
-	if (err <
-		Success) {
+	if (err < Success) {
 		return;
 	}
 
-	picpath = vset_get_filename(title, suffi, save_str, PIC_PATH, NULL, 1);
-	if (picpath != NULL) {
-		if (overwrite_old(picpath)) {
-			unzoom();
-			soft_put_wait_box("!%s", "wait_save", picpath);
-			err = save_current_pictype(picpath, vb.pencel);
-			softerr(err, "!%s", "cant_save", picpath);
-			rezoom();
-		}
+	char* file_path =
+		pj_dialog_file_save("Save Image", get_pictype_suffi(), last_path);
+
+	if (file_path != NULL) {
+		unzoom();
+		soft_put_wait_box("!%s", "wait_save", file_path);
+		err = save_current_pictype(file_path, vb.pencel);
+		softerr(err, "!%s", "cant_save", file_path);
+		rezoom();
+		strncpy(last_path, file_path, PATH_MAX);
 	}
 }
-
 
 void toggle_cel_opt(int mode)
 {
@@ -247,60 +231,77 @@ void toggle_cel_opt(int mode)
 	do_rmode_redraw(changes);
 }
 
+enum {
+	PICOPT_AUTOFIT_PALETTE = 0,
+	PICOPT_WRITE_ALPHA = 1,
+	PICOPT_JPEG_QUALITY = 2,
+};
 
-#ifdef TESTING
-static void tram_dir()
+static void go_pic_options()
 {
-	int ipos = 0;
-	char picked[20];
-	Names* nl;
-	Errcode err;
+	hide_mp();
+	flx_clear_olays();
 
-	if ((err = rget_dir(&nl)) < Success) {
-		softerr(err, "ram_dir");
-	} else {
-		picked[0] = 0;
-		qscroller(picked, "Ram directory", nl, 10, &ipos);
+	for (;;) {
+		USHORT flags[] = {
+			vs.pic_auto_fit_palette == PIC_IO_PAL_OVERWRITE ? QCF_ASTERISK : 0,
+			vs.pic_write_alpha == PIC_IO_WRITE_ALPHA ? QCF_ASTERISK : 0,
+			0,
+			0,
+		};
+
+		int choice = soft_qchoice(flags, "pic_options_menu");
+
+		switch (choice) {
+			case PICOPT_AUTOFIT_PALETTE:
+				// not doing the ! invert because I may change the enum values at some point
+				vs.pic_auto_fit_palette =
+					(BYTE)(vs.pic_auto_fit_palette == PIC_IO_PAL_OVERWRITE ? PIC_IO_PAL_FIT
+																		   : PIC_IO_PAL_OVERWRITE);
+				break;
+
+			case PICOPT_WRITE_ALPHA:
+				vs.pic_write_alpha =
+					(BYTE)(vs.pic_write_alpha == PIC_IO_NO_ALPHA ? PIC_IO_WRITE_ALPHA : PIC_IO_NO_ALPHA);
+				break;
+
+			case PICOPT_JPEG_QUALITY:
+				// I'm randomly deciding 25 is the min quality.
+				// Realistically I don't see people going below 60.
+				SHORT jpeg_quality = vs.pic_save_quality;
+				if (soft_qreq_number(&jpeg_quality, 25, 100, "pic_opt_jpeg_quality")) {
+					vs.pic_save_quality = jpeg_quality;
+				}
+				break;
+
+			default:
+				goto OUT;
+		}
 	}
-	rfree_dir(&nl);
+OUT:
+	flx_draw_olays();
+	show_mp();
 }
-#endif /* TESTING */
-
 
 static void flix_first_frame(void)
 {
 	mini_first_frame(&flxtime_data);
 }
 
-
 static void flix_next_frame(void)
 {
 	mini_next_frame(&flxtime_data);
 }
-
 
 static void flix_prev_frame(void)
 {
 	mini_prev_frame(&flxtime_data);
 }
 
-
 static void flix_playit(void)
 {
 	mini_playit(&flxtime_data);
 }
-
-#ifdef TESTING
-static void tog_debug()
-{
-	debug = !debug;
-	if (debug) {
-		boxf("Debug flag = TRUE");
-	} else {
-		boxf("Debug flag = FALSE");
-	}
-}
-#endif
 
 static void tog_zoom(void)
 {
@@ -313,19 +314,17 @@ static void tog_zoom(void)
 	show_mp();
 }
 
-
 static void toggle_render_under(void)
 {
 	toggle_cel_opt(2);
 }
-
 
 static void toggle_one_color(void)
 {
 	toggle_cel_opt(3);
 }
 
-
+// !TODO: remappable keys
 static Keyequiv header_keys[] = {
 	{"ztogl", tog_zoom, KE_NOHIDE, 'z'},
 	{"qpal", palette, KE_HIDE, '@'},
@@ -347,44 +346,10 @@ bool common_header_keys(void)
 	return (do_keyequiv(icb.inkey, header_keys, Array_els(header_keys)));
 }
 
-
-#ifdef TESTING
-static void eatk()
-{
-	static SHORT kb64 = 1;
-	static void* mem = NULL;
-
-	pj_gentle_free(mem);
-	mem = NULL;
-	while (!mem) {
-		if (qreq_number(&kb64, 1, 100, "How much mem times 64k to eat?")) {
-			mem = begmem(((LONG)kb64) * 0x0000FFFFL);
-		} else {
-			break;
-		}
-	}
-	return;
-}
-
-
-static void plus_trd()
-{
-	trd_compact(0L);
-}
-
-
-static void minus_trd()
-{
-	trd_compact(1024L * 1024L * 1024L);
-}
-#endif /* TESTING */
-
-
 static void tog_pen(void)
 {
 	toggle_pen(&sh1_brush_sel);
 }
-
 
 static void home_help(void)
 {
@@ -403,12 +368,10 @@ static void home_help(void)
 	}
 }
 
-
 static void toggle_dither(void)
 {
 	vl.ink->dither = !vl.ink->dither;
 }
-
 
 static void toggle_key_clear(void)
 {
@@ -416,13 +379,12 @@ static void toggle_key_clear(void)
 	do_rmode_redraw(RSTAT_ZCLEAR);
 }
 
-
 static void toggle_two_color(void)
 {
 	vs.color2 = !vs.color2;
 }
 
-
+// !TODO: remappable keys
 static Keyequiv home_keys[] = {
 #define UNDO_KE &home_keys[0]
 	{"help", home_help, KE_NOHIDE, FKEY1},
@@ -450,13 +412,6 @@ static Keyequiv home_keys[] = {
 	{"dither", toggle_dither, KE_HIDE, 'd'},
 	{"key_color", toggle_key_clear, KE_HIDE, 'k'},
 	{"two_color", toggle_two_color, KE_HIDE, '2'},
-#ifdef TESTING
-	{"test", test, KE_HIDE, '/'},
-	{"eatk", eatk, KE_NOHIDE, '\''},
-	{"trdp", plus_trd, KE_NOHIDE, '+'},
-	{"trdm", minus_trd, KE_NOHIDE, '-'},
-	{"rdir", tram_dir, KE_NOHIDE, '='},
-#endif /* TESTING */
 };
 
 
@@ -473,12 +428,10 @@ Errcode load_home_keys(void)
 	return load_key_equivs("home_keys", home_keys, Array_els(home_keys));
 }
 
-
 bool hit_undo_key(void)
 {
 	return hit_keyequiv(UNDO_KE, icb.inkey);
 }
-
 
 /* returns 0 if input unused 1 if used */
 bool home_dokeys(void)
@@ -493,7 +446,6 @@ bool home_dokeys(void)
 
 	return do_keyequiv(icb.inkey, home_keys, Array_els(home_keys));
 }
-
 
 static void pixel_menu(void)
 {
@@ -530,7 +482,6 @@ static void pixel_menu(void)
 	}
 }
 
-
 static void view_frame(void)
 {
 	hide_mp();
@@ -540,14 +491,12 @@ static void view_frame(void)
 	show_mp();
 }
 
-
 static void v12(void)
 {
 	swap_pencels(vb.pencel, vl.alt_cel);
 	see_cmap();
 	zoom_it();
 }
-
 
 static void view_alt(void)
 {
@@ -559,7 +508,6 @@ static void view_alt(void)
 		v12();
 	}
 }
-
 
 static char* unsaved_string(char* buf)
 {
@@ -575,7 +523,6 @@ static char* unsaved_string(char* buf)
 	return buf;
 }
 
-
 bool confirm_dirty_load(void)
 {
 	char buf[UNSAVE_BUFSIZ];
@@ -588,7 +535,6 @@ bool confirm_dirty_load(void)
 
 	return true;
 }
-
 
 static void qquit(void)
 {
@@ -606,7 +552,9 @@ static void qquit(void)
 	}
 }
 
-
+/*
+ * This responds to all the main menu choices.
+ */
 void main_selit(Menuhdr* mh, SHORT hitid)
 {
 	(void)mh;
@@ -696,6 +644,9 @@ void main_selit(Menuhdr* mh, SHORT hitid)
 				break;
 			case PIC_FIL_PUL: /* files */
 				go_files(FTP_PIC);
+				break;
+			case PIC_OPT_PUL: /* files */
+				go_pic_options();
 				break;
 			case CEL_CLI_PUL: /* clip */
 				clip_cel();

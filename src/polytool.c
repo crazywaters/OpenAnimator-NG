@@ -693,11 +693,13 @@ Errcode check_poly_file(char *filename)
 {
 Errcode err;
 Poly poly;
-
-if ((err = read_gulp(filename, &poly, sizeof(poly))) < Success)
+	err = read_gulp(filename, &poly, sizeof(poly));
+if (err < Success) {
 	return err;
-if (poly.polymagic != POLYMAGIC)
+}
+if (poly.polymagic != POLYMAGIC) {
 	return Err_bad_magic;
+}
 return Success;
 }
 
@@ -709,8 +711,10 @@ int count;
 LLpoint *this;
 
 	free_polypoints(poly);
-	if ((err = xffread(f, poly, sizeof(*poly))) < Success)
+	err = xffread(f, poly, sizeof(*poly));
+	if (err < Success) {
 		goto head_error;
+	}
 	if(poly->polymagic != POLYMAGIC)
 	{
 		err = Err_bad_magic;
@@ -721,10 +725,13 @@ LLpoint *this;
 	poly->clipped_list = NULL;
 	for (i=0; i<count; i++)
 	{
-		if ((this = new_poly_point(poly)) != NULL)
+		this = new_poly_point(poly);
+		if (this != NULL)
 		{
-			if ((err = xffread(f, &this->x, 3*sizeof(SHORT))) < Success)
+			err = xffread(f, &this->x, 3*sizeof(SHORT));
+			if (err < Success) {
 				goto error;
+			}
 		}
 		else
 		{
@@ -732,12 +739,14 @@ LLpoint *this;
 			goto error;
 		}
 	}
-	return(Success);
-error:
+	return Success;
+
+	error:
 	free_polypoints(poly);
+
 head_error:
 	clear_struct(poly);
-	return(err);
+	return err;
 }
 
 Errcode load_a_poly(char *name, Poly *poly)
@@ -745,10 +754,12 @@ Errcode load_a_poly(char *name, Poly *poly)
 Errcode err;
 XFILE *f;
 
-	if ((err = xffopen(name, &f, XREADONLY)) >= Success)
+	err = xffopen(name, &f, XREADONLY);
+	if (err >= Success) {
 		err = ld_poly(f, poly);
+	}
 	xffclose(&f);
-	return(err);
+	return err;
 }
 
 Errcode s_poly(XFILE *f, Poly *poly)
@@ -762,18 +773,21 @@ LLpoint *pt;
 	poly->clipped_list = NULL;
 	err = xffwrite(f, poly, sizeof(Poly));
 	poly->clipped_list = pt;
-	if(err < Success)
+	if(err < Success) {
 		goto error;
+	}
 	i = poly->pt_count;
 	while(--i >= 0)
 	{
-		if ((err = xffwrite(f, &pt->x, 3*sizeof(SHORT))) < Success)
+		err = xffwrite(f, &pt->x, 3*sizeof(SHORT));
+		if (err < Success) {
 			goto error;
+		}
 		pt = pt->next;
 	}
-	return(Success);
+	return Success;
 error:
-	return(err);
+	return err;
 }
 
 int save_poly(char *name, Poly *poly)
@@ -781,14 +795,18 @@ int save_poly(char *name, Poly *poly)
 Errcode err;
 XFILE *f;
 
-	if ((err = xffopen(name, &f, XWRITEONLY)) < Success)
+	err = xffopen(name, &f, XWRITEONLY);
+	if (err < Success) {
 		goto error;
+	}
 	err = s_poly(f, poly);
+
 error:
 	xffclose(&f);
-	if(err < Success)
+	if(err < Success) {
 		pj_delete(name);
-	return(err);
+	}
+	return err;
 }
 
 LLpoint *closest_point(Poly *p, int x, int y, long *dsquared)

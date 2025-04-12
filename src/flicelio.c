@@ -1,18 +1,17 @@
+#include <stdio.h>
+#include <string.h>
+
 #include "animinfo.h"
-#include "commonst.h"
 #include "errcodes.h"
 #include "flicel.h"
 #include "flipath.h"
 #include "jimk.h"
-#include "menus.h"
 #include "picdrive.h"
 #include "picfile.h"
-#include "softmenu.h"
+#include "pj_sdl.h"
 #include "unchunk.h"
 #include "util.h"
 #include "zoom.h"
-#include <string.h>
-
 
 /* (re)creates and writes out a .tmp file for a flicel if cel
  * has a temp name a cel with FCEL_RAMONLY flag set cnat have a temp file
@@ -35,9 +34,10 @@ Errcode save_fcel_temp(Flicel* fc)
 		goto error;
 	}
 
-	flif.hdr.width		  = fc->flif.hdr.width;
-	flif.hdr.height		  = fc->flif.hdr.height;
+	flif.hdr.width = fc->flif.hdr.width;
+	flif.hdr.height = fc->flif.hdr.height;
 	flif.hdr.bits_a_pixel = fc->flif.hdr.bits_a_pixel;
+
 	/* frame_count = 0 */
 
 	fchunk.size = sizeof(Celdata) + fc->cpath->id.size;
@@ -82,7 +82,7 @@ Errcode create_celfli_start(char* tempname, char* fliname, Flicel** pfcel, Rcel*
 		return err;
 	}
 
-	fc	   = *pfcel;
+	fc = *pfcel;
 	fc->rc = rc;
 	fc->flags |= FCEL_OWNS_RAST;
 
@@ -101,10 +101,10 @@ Errcode create_celfli_start(char* tempname, char* fliname, Flicel** pfcel, Rcel*
 		}
 	}
 
-	fc->flif.hdr.width		  = rc->width;
-	fc->flif.hdr.height		  = rc->height;
+	fc->flif.hdr.width = rc->width;
+	fc->flif.hdr.height = rc->height;
 	fc->flif.hdr.bits_a_pixel = 8; /* rc->pdepth; */
-	fc->flif.hdr.speed		  = 71;
+	fc->flif.hdr.speed = 71;
 
 	/* fudge for aspect ratio */
 	fc->flif.hdr.aspect_dx = vb.pencel->aspect_dx;
@@ -185,7 +185,7 @@ error:
 		pj_delete(tempname);
 		pj_delete(fliname);
 	}
-	return (err);
+	return err;
 }
 
 /* loads a fli file as a newly allocated flicel, if tempname is non-null
@@ -203,8 +203,10 @@ Errcode load_fli_fcel(char* flipath, char* tempname, char* celfli_name, Flicel**
 	bool found_celdata;
 	char device[DEV_NAME_LEN];
 
-	if ((err = alloc_fcel(pfc)) < Success)
-		return (err);
+	err = alloc_fcel(pfc);
+	if (err < Success) {
+		return err;
+	}
 	fc = *pfc;
 
 	if (tempname) {
@@ -216,27 +218,32 @@ Errcode load_fli_fcel(char* flipath, char* tempname, char* celfli_name, Flicel**
 
 	clear_struct(&flif);
 
-	if ((err = get_path_device(flipath, device)) < Success)
+	err = get_path_device(flipath, device);
+	if (err < Success) {
 		goto error;
+	}
 
 	/* if allowed make sure cel fli file is not on removable drive */
-	make_flicopy = (tempname != NULL && celfli_name != NULL && !pj_is_fixed(device));
+	make_flicopy = tempname != NULL && celfli_name != NULL && !pj_is_fixed(device);
 
-	/* attempth to open fli requested as cel */
-
+	/* attempt to open fli requested as cel */
 	if (make_flicopy) {
 		err = pj_fli_open(flipath, &flif, XREADONLY);
-		if (err < Success)
+		if (err < Success) {
 			goto error;
+		}
 	} else {
 		err = pj_fli_open(flipath, &flif, XREADWRITE_OPEN);
-		if (err < Success)
+		if (err < Success) {
 			goto error;
+		}
 
 		/* we've got to have a valid update time ! */
 		if (flif.hdr.id.update_time == 0) {
-			if ((err = pj_i_flush_head(&flif)) < Success)
+			err = pj_i_flush_head(&flif);
+			if (err < Success) {
 				goto error;
+			}
 		}
 	}
 
@@ -246,7 +253,7 @@ Errcode load_fli_fcel(char* flipath, char* tempname, char* celfli_name, Flicel**
 		if (pd.type == FP_CELDATA) {
 			if (pd.fchunk.size == sizeof(Celdata)) {
 				/* try to read it */
-				pd.error	  = read_parsed_chunk(&pd, &fc->cd, -1);
+				pd.error = read_parsed_chunk(&pd, &fc->cd, -1);
 				found_celdata = true;
 			}
 			break;
@@ -265,17 +272,20 @@ Errcode load_fli_fcel(char* flipath, char* tempname, char* celfli_name, Flicel**
 	}
 
 	/* load fli dimensions and alloc raster for fli frames */
-
-	fc->flif.hdr.width	= flif.hdr.width;
+	fc->flif.hdr.width = flif.hdr.width;
 	fc->flif.hdr.height = flif.hdr.height;
-	if ((err = alloc_fcel_raster(fc)) < Success)
+	err = alloc_fcel_raster(fc);
+	if (err < Success) {
 		goto error;
+	}
 
 	refresh_flicel_pos(fc);
 
 	if (make_flicopy) {
-		if ((err = pj_fli_create(cel_fli_name, &fc->flif)) < Success)
+		err = pj_fli_create(cel_fli_name, &fc->flif);
+		if (err < Success) {
 			goto error;
+		}
 
 		fc->flif.hdr = flif.hdr;
 
@@ -284,8 +294,8 @@ Errcode load_fli_fcel(char* flipath, char* tempname, char* celfli_name, Flicel**
 
 		chunksize = flif.hdr.size - flif.hdr.frame1_oset;
 
-		err = pj_copydata_oset(
-		  flif.xf, fc->flif.xf, flif.hdr.frame1_oset, fc->flif.hdr.frame1_oset, chunksize);
+		err = pj_copydata_oset(flif.xf, fc->flif.xf, flif.hdr.frame1_oset, fc->flif.hdr.frame1_oset,
+							   chunksize);
 		if (err < Success) {
 			softerr(err, "first_ok");
 			err = 0;
@@ -297,37 +307,42 @@ Errcode load_fli_fcel(char* flipath, char* tempname, char* celfli_name, Flicel**
 			goto error;
 		}
 		/* flush final version of header */
-
-		if ((err = pj_i_flush_head(&fc->flif)) < Success)
+		err = pj_i_flush_head(&fc->flif);
+		if (err < Success) {
 			goto error;
+		}
 
 		pj_fli_close(&flif); /* close source file */
 		flipath = cel_fli_name;
 	} else {
-		fc->flif = flif;	 /* source file is cel fli */
+		fc->flif = flif;     /* source file is cel fli */
 		clear_struct(&flif); /* so won't close twice */
 	}
 
 	/* make path record */
-
-	if ((alloc_flipath(flipath, &fc->flif, &fc->cpath)) < Success)
+	if (alloc_flipath(flipath, &fc->flif, &fc->cpath) < Success) {
 		goto error;
+	}
 
 	/* load image and seek to current frame */
-
-	if ((err = seek_fcel_frame(fc, fc->cd.cur_frame)) < Success)
+	err = seek_fcel_frame(fc, fc->cd.cur_frame);
+	if (err < Success) {
 		goto error;
+	}
 
 	pj_fli_close(&fc->flif);
-	return (Success);
+	return Success;
+
 error:
 	pj_fli_close(&flif);
 	free_fcel(pfc);
-	if (tempname)
+	if (tempname) {
 		pj_delete(tempname);
-	if (celfli_name)
+	}
+	if (celfli_name) {
 		pj_delete(celfli_name);
-	return (err);
+	}
+	return err;
 }
 
 void close_fcelio(Flicel* fc)
@@ -343,21 +358,25 @@ Errcode reopen_fcelio(Flicel* fc, enum XReadWriteMode mode)
 	Flifile flif;
 	Fli_id oid;
 
-	if (fc->flags & FCEL_RAMONLY)
+	if (fc->flags & FCEL_RAMONLY) {
 		return Success;
+	}
 
-	if (fc->flif.xf != NULL)
+	if (fc->flif.xf != NULL) {
 		pj_fli_close(&fc->flif);
+	}
 
-	if (!fc->cpath)
-		return (Err_bad_input);
+	if (!fc->cpath) {
+		return Err_bad_input;
+	}
 
 	path = fc->cpath->path;
-	oid	 = fc->cpath->fid;
+	oid = fc->cpath->fid;
 
 	err = pj_fli_open(path, &flif, mode);
-	if (err < Success)
+	if (err < Success) {
 		goto error;
+	}
 
 	if (memcmp(&oid, &flif.hdr.id, sizeof(Fli_id)) || flif.hdr.width != fc->rc->width ||
 		flif.hdr.height != fc->rc->height) {
@@ -365,11 +384,12 @@ Errcode reopen_fcelio(Flicel* fc, enum XReadWriteMode mode)
 		goto error;
 	}
 	fc->flif = flif;
-	return (Success);
+	return Success;
+
 error:
 	pj_fli_close(&flif);
 	err = softerr(err, "!%s", "fcel_reopen", path);
-	return (err);
+	return err;
 }
 
 /* if cbuf is null it will allocate one! */
@@ -382,15 +402,18 @@ Errcode gb_seek_fcel_frame(Flicel* fc, SHORT frame, Fli_frame* cbuf, bool force_
 	bool was_closed;
 	bool allocd = false;
 
-	if (fc->flags & FCEL_RAMONLY) /* no seeking on ram cel frames */
-		return (Success);
+	if (fc->flags & FCEL_RAMONLY) {
+		/* no seeking on ram cel frames */
+		return Success;
+	}
 
 	was_closed = (fc->flif.xf == NULL);
 	if (was_closed) {
 		/* note that this reports errors */
 		err = reopen_fcelio(fc, XREADONLY);
-		if (err < Success)
+		if (err < Success) {
 			goto error;
+		}
 	}
 
 	rc = fc->rc;
@@ -401,31 +424,34 @@ Errcode gb_seek_fcel_frame(Flicel* fc, SHORT frame, Fli_frame* cbuf, bool force_
 	if (fc->frame_loaded != fc->cd.cur_frame) {
 		/* re-seek from start of fli */
 		frame_oset = fc->flif.hdr.frame1_oset;
-		i		   = -1;
+		i = -1;
 	} else if (frame > fc->cd.cur_frame) {
 		frame_oset = fc->cd.next_frame_oset;
-		i		   = fc->cd.cur_frame;
+		i = fc->cd.cur_frame;
 	} else if (frame < fc->cd.cur_frame) {
 		if (fc->cd.cur_frame == fc->flif.hdr.frame_count - 1) {
 			frame_oset = fc->cd.next_frame_oset;
-			i		   = fc->cd.cur_frame;
+			i = fc->cd.cur_frame;
 		} else /* re seek from start */
 		{
 			frame_oset = fc->flif.hdr.frame1_oset;
-			i		   = -1;
+			i = -1;
 		}
 	} else if (force_read) /* frame == cur_frame */
 	{
 		/* re-seek from start of fli */
-		rc		   = NULL; /* no need to unfli it */
+		rc = NULL; /* no need to unfli it */
 		frame_oset = fc->flif.hdr.frame1_oset;
-		i		   = -1;
-	} else
+		i = -1;
+	} else {
 		goto done;
+	}
 
 	if (cbuf == NULL) {
-		if ((err = pj_fli_cel_alloc_cbuf(&cbuf, fc->rc)) < Success)
+		err = pj_fli_cel_alloc_cbuf(&cbuf, fc->rc);
+		if (err < Success) {
 			goto error;
+		}
 		allocd = true;
 	}
 
@@ -436,8 +462,10 @@ Errcode gb_seek_fcel_frame(Flicel* fc, SHORT frame, Fli_frame* cbuf, bool force_
 	}
 
 	while (i++ != frame) {
-		if ((err = pj_fli_read_uncomp(NULL, &fc->flif, rc, cbuf, true)) < Success)
+		err = pj_fli_read_uncomp(NULL, &fc->flif, rc, cbuf, true);
+		if (err < Success) {
 			goto error;
+		}
 
 		if (i >= fc->flif.hdr.frame_count) {
 			frame_oset = xffseek_tell(fc->flif.xf, fc->flif.hdr.frame2_oset, XSEEK_SET);
@@ -451,45 +479,49 @@ Errcode gb_seek_fcel_frame(Flicel* fc, SHORT frame, Fli_frame* cbuf, bool force_
 		}
 	}
 
-	if (frame == 0)
+	if (frame == 0) {
 		fc->cd.next_frame_oset = fc->flif.hdr.frame2_oset;
-	else
+	} else {
 		fc->cd.next_frame_oset = frame_oset;
+	}
 
 done:
 	fc->frame_loaded = fc->cd.cur_frame = frame;
-	err									= Success;
+	err = Success;
+
 error:
-	if (allocd)
+	if (allocd) {
 		pj_freez(&cbuf);
-	if (was_closed)
+	}
+	if (was_closed) {
 		close_fcelio(fc);
-	return (err);
+	}
+	return err;
 }
 
 LONG fcel_cbuf_size(Flicel* fc)
 {
-	return (pj_fli_cbuf_size(fc->rc->width, fc->rc->height, fc->rc->cmap->num_colors));
+	return pj_fli_cbuf_size(fc->rc->width, fc->rc->height, fc->rc->cmap->num_colors);
 }
 
 bool fcel_needs_seekbuf(Flicel* fc)
 {
 	if ((fc->flags & FCEL_RAMONLY) ||
 		(fc->frame_loaded == fc->cd.cur_frame && fc->flif.hdr.frame_count <= 1)) {
-		return (false);
+		return false;
 	}
-	return (true);
+	return true;
 }
 
 Errcode seek_fcel_frame(Flicel* fc, SHORT frame)
 {
-	return (gb_seek_fcel_frame(fc, frame, NULL, false));
+	return gb_seek_fcel_frame(fc, frame, NULL, false);
 }
 
 /* increment flicel frame */
 Errcode inc_fcel_frame(Flicel* fc)
 {
-	return (seek_fcel_frame(fc, fc->cd.cur_frame + 1));
+	return seek_fcel_frame(fc, fc->cd.cur_frame + 1);
 }
 
 /* loads a cel stored away with a temp file extant as a newly allocated
@@ -501,8 +533,9 @@ Errcode load_temp_fcel(char* tempname, Flicel** pfc)
 	Flicel* fc;
 
 	err = alloc_fcel(pfc);
-	if (err < Success)
+	if (err < Success) {
 		return err;
+	}
 
 	fc = *pfc;
 
@@ -582,7 +615,7 @@ Errcode load_temp_fcel(char* tempname, Flicel** pfc)
 	return Success;
 
 error:
-//	softerr(err, "!%s", "fcel_temp", tempname);
+	//	softerr(err, "!%s", "fcel_temp", tempname);
 	free_fcel(pfc);
 	return err;
 }
@@ -590,37 +623,42 @@ error:
 /* attempts to load a pic file as a flicel with one frame putting pic
  * image in celfli_name and tempfile in tempname (if both are non NULL)
  * otherwise it makes a cel with the FCEL_RAMONLY flag set and no files */
-static Errcode load_pic_fcel(char* pdr_name,
-							 Anim_info* ainfo,
-							 char* picpath,
-							 char* tempname,
-							 char* celfli_name,
-							 Flicel** pfcel)
+static Errcode load_pic_fcel(char* pdr_name, Anim_info* ainfo, char* picpath, char* tempname,
+							 char* celfli_name, Flicel** pfcel)
 {
 	Errcode err;
 	Rcel* rc = NULL;
 
-	if ((err = valloc_ramcel(&rc, ainfo->width, ainfo->height)) < Success)
+	if ((err = valloc_ramcel(&rc, ainfo->width, ainfo->height)) < Success) {
 		goto error;
+	}
 
 	rc->x = ainfo->x;
 	rc->y = ainfo->y;
 
-	if ((err = pdr_load_picture(pdr_name, picpath, rc)) < Success)
+	err = pdr_load_picture(pdr_name, picpath, rc);
+	if (err < Success) {
 		goto error;
-
-	if ((err = make1_flicel(tempname, celfli_name, pfcel, rc)) < Success)
-		goto error;
-
-	if (celfli_name == NULL) {
-		if ((err = alloc_flipath(picpath, NULL, &(*pfcel)->cpath)) < Success)
-			goto error;
 	}
 
-	return (Success);
+	err = make1_flicel(tempname, celfli_name, pfcel, rc);
+	if (err < Success)
+	{
+		goto error;
+	}
+
+	if (celfli_name == NULL) {
+		err = alloc_flipath(picpath, NULL, &(*pfcel)->cpath);
+		if (err < Success) {
+			goto error;
+		}
+	}
+
+	return Success;
+
 error:
 	pj_rcel_free(rc);
-	return (err);
+	return err;
 }
 
 /***** specific stuff to "thecel" *****/
@@ -638,8 +676,10 @@ Errcode pdr_load_any_flicel(char* path, char* tempname, char* fliname, Flicel** 
 	Anim_info ainfo;
 	char pdr_name[PATH_SIZE];
 
-	if ((err = find_pdr_loader(path, true, &ainfo, pdr_name, vb.pencel)) < Success)
+	err = find_pdr_loader(path, true, &ainfo, pdr_name, vb.pencel);
+	if (err < Success) {
 		goto error;
+	}
 
 	if (is_fli_pdr_name(pdr_name)) {
 		free_fcel(pfcel);
@@ -657,7 +697,7 @@ Errcode pdr_load_any_flicel(char* path, char* tempname, char* fliname, Flicel** 
 
 done:
 error:
-	return (err);
+	return err;
 }
 
 Errcode load_the_cel(char* path)
@@ -665,26 +705,36 @@ Errcode load_the_cel(char* path)
 	Errcode err;
 
 	err = pdr_load_any_flicel(path, cel_name, cel_fli_name, &thecel);
-	return (cant_load(err, path));
+	return cant_load(err, path);
 }
 
 Errcode go_load_the_cel(void)
 {
-	Errcode err;
-	char suffi[PDR_SUFFI_SIZE * 2 + 10];
-	char* title;
-	char sbuf[50];
+	Errcode err = Success;
+	char sph_buf[50];
 
-	get_celload_suffi(suffi);
+	if (thecel == NULL) {
+		fprintf(stderr, "Attempted to save NULL 'thecel'.\n");
+		return Err_bad_address;
+	}
 
-	if ((title = vset_get_filename(
-		   stack_string("load_cel", sbuf), suffi, load_str, CEL_PATH, NULL, 0)) != NULL) {
+	static char last_path[PATH_MAX] = "";
+
+	hide_mp();
+
+	char* file_path = pj_dialog_file_open(sph_buf, "cel", last_path);
+
+	if (file_path != NULL) {
 		unzoom();
-		err = load_the_cel(title);
+		soft_put_wait_box("!%s", "wait_load", file_path);
+		err = load_the_cel(file_path);
+		softerr(err, "!%s", "cant_load", file_path);
 		rezoom();
-	} else
-		err = Err_abort;
-	return (err);
+		strncpy(last_path, file_path, PATH_MAX);
+	}
+
+	show_mp();
+	return err;
 }
 
 void qload_the_cel(void)
@@ -704,24 +754,29 @@ static Errcode save_the_cel(char* path)
 	LONG rootsize;
 	LONG chunksize;
 
+	assert(thecel);
+
 	clear_struct(&oflif);
 	pj_fli_close(&thecel->flif);
-	if (!thecel->cpath)
-		return (Err_bad_input);
+	if (!thecel->cpath) {
+		return Err_bad_input;
+	}
 
 	if (!strcmp(path, cel_name) /* no saving here */
 		|| !strcmp(path, cel_fli_name)) {
 		err = Err_in_use;
 		goto error;
 	}
+
 	celpath = thecel->cpath->path;
 
 	if (!strcmp(path, celpath)) {
 		/* we are re-writing (updating only the cel chunk)
 		 * in a file pointed to */
 		err = pj_fli_open(celpath, &oflif, XREADWRITE_OPEN);
-		if (err < Success)
+		if (err < Success) {
 			goto error;
+		}
 
 		if (memcmp(&oflif.hdr.id, &thecel->cpath->fid, sizeof(Fli_id))) {
 			/* if ids dont match we overwrite file */
@@ -739,14 +794,17 @@ static Errcode save_the_cel(char* path)
 					pd.fchunk.type = FP_FREE; /* declare it empty */
 
 					err = xffwriteoset(pd.xf, &pd.fchunk, pd.chunk_offset, sizeof(Chunk_id));
-					if (err < Success)
+					if (err < Success) {
 						goto error;
+					}
 
 					pd.error = Success; /* Oh well, we put in a new one */
 					break;
 				}
-				if ((err = update_parsed_chunk(&pd, &thecel->cd)) < Success)
+				err = update_parsed_chunk(&pd, &thecel->cd);
+				if (err < Success) {
 					goto error;
+				}
 				pd.error = 1;
 				break;
 			}
@@ -758,7 +816,7 @@ static Errcode save_the_cel(char* path)
 			case Err_no_chunk: /* no prefix chunk */
 			{
 				/* we gotta install a new prefix chunk */
-				added_size	   = sizeof(Celdata) + sizeof(Chunk_id);
+				added_size = sizeof(Celdata) + sizeof(Chunk_id);
 				pd.fchunk.size = 0;
 				goto insert_celchunk;
 			}
@@ -771,24 +829,27 @@ static Errcode save_the_cel(char* path)
 				 * overwritten by the new celdata */
 
 				pd.fchunk.size = rootsize;
-				added_size	   = sizeof(Celdata);
+				added_size = sizeof(Celdata);
 
-			insert_celchunk:
+insert_celchunk:
 				err = pj_insert_space(oflif.xf, sizeof(Fli_head), added_size);
-				if (err < Success)
+				if (err < Success) {
 					goto error;
+				}
 
 				/* write or rewrite PREFIX fchunk */
 				pd.fchunk.size += added_size;
 				pd.fchunk.type = FCID_PREFIX;
-				err			   = xffwrite(oflif.xf, &pd.fchunk, sizeof(Chunk_id));
-				if (err < Success)
+				err = xffwrite(oflif.xf, &pd.fchunk, sizeof(Chunk_id));
+				if (err < Success) {
 					goto error;
+				}
 
 				/* write cel chunk */
 				err = xffwrite(oflif.xf, &thecel->cd, sizeof(Celdata));
-				if (err < Success)
+				if (err < Success) {
 					goto error;
+				}
 
 				break;
 			}
@@ -803,10 +864,12 @@ static Errcode save_the_cel(char* path)
 		oflif.hdr.frame2_oset += added_size;
 		oflif.hdr.size += added_size;
 
-		if ((err = pj_i_flush_head(&oflif)) < Success)
+		err = pj_i_flush_head(&oflif);
+		if (err < Success) {
 			goto error;
+		}
 		pj_fli_close(&oflif);
-		thecel->cpath->fid = oflif.hdr.id;		  /* update pointer to it */
+		thecel->cpath->fid = oflif.hdr.id;        /* update pointer to it */
 		thecel->cd.next_frame_oset += added_size; /* adjust pointer to next
 												   * frame for changes */
 		goto done;
@@ -815,75 +878,79 @@ static Errcode save_the_cel(char* path)
 overwrite_it:
 	/* not the same file */
 	err = pj_fli_open(celpath, &thecel->flif, XREADONLY);
-	if (err < Success)
+	if (err < Success) {
 		goto error;
+	}
 
 	err = pj_fli_create(path, &oflif);
-	if (err < Success)
+	if (err < Success) {
 		goto error;
+	}
 
 	/* fudge to save out cel aspect the same as current screen window */
 
 	thecel->flif.hdr.aspect_dx = vb.pencel->aspect_dx;
 	thecel->flif.hdr.aspect_dy = vb.pencel->aspect_dy;
-	oflif.hdr				   = thecel->flif.hdr;
+	oflif.hdr = thecel->flif.hdr;
 
 	err = jwrite_chunk(oflif.xf, &thecel->cd, sizeof(Celdata), FCID_PREFIX);
-	if (err < Success)
-		goto error;
-
-	oflif.hdr.frame1_oset = xfftell(oflif.xf);
 	if (err < Success) {
-		err = oflif.hdr.frame1_oset;
 		goto error;
 	}
 
+	oflif.hdr.frame1_oset = xfftell(oflif.xf);
 	oflif.hdr.frame2_oset =
-	  oflif.hdr.frame1_oset + thecel->flif.hdr.frame2_oset - thecel->flif.hdr.frame1_oset;
+		oflif.hdr.frame1_oset + thecel->flif.hdr.frame2_oset - thecel->flif.hdr.frame1_oset;
 
 	chunksize = thecel->flif.hdr.size - thecel->flif.hdr.frame1_oset;
 
 	/* copy all frames to output fli file */
-	err = pj_copydata_oset(
-	  thecel->flif.xf, oflif.xf, thecel->flif.hdr.frame1_oset, oflif.hdr.frame1_oset, chunksize);
-	if (err < Success)
+	err = pj_copydata_oset(thecel->flif.xf, oflif.xf, thecel->flif.hdr.frame1_oset,
+						   oflif.hdr.frame1_oset, chunksize);
+	if (err < Success) {
 		goto error;
+	}
 
 	oflif.hdr.size = oflif.hdr.frame1_oset + chunksize;
-	if ((err = pj_i_flush_head(&oflif)) < Success) {
+	err = pj_i_flush_head(&oflif);
+	if (err < Success) {
 		goto error;
 	}
 	goto done;
 
 error:
-	return (softerr(err, "!%s", "cant_save", path));
+	return softerr(err, "!%s", "cant_save", path);
 
 done:
 	pj_fli_close(&oflif);
 	pj_fli_close(&thecel->flif);
-	return (err);
+	return err;
 }
 
 void qsave_the_cel(void)
 {
-	char* title;
-	char sbuf[50];
+	Errcode err;
+	char sph_buf[50];
 
-	if (thecel == NULL)
+	if (thecel == NULL) {
+		fprintf(stderr, "Attempted to save NULL 'thecel'.\n");
 		return;
-	hide_mp();
-	if ((title = vset_get_filename(
-		   stack_string("save_cel", sbuf), ".CEL", save_str, CEL_PATH, NULL, 1)) == NULL) {
-		goto out;
 	}
 
-	if (!overwrite_old(title))
-		goto out;
+	static char last_path[PATH_MAX] = "";
 
-	unzoom();
-	save_the_cel(title);
-	rezoom();
+	hide_mp();
 
-out:
+	char* file_path = pj_dialog_file_save(sph_buf, "cel", last_path);
+
+	if (file_path != NULL) {
+		unzoom();
+		soft_put_wait_box("!%s", "wait_save", file_path);
+		err = save_the_cel(file_path);
+		softerr(err, "!%s", "cant_save", file_path);
+		rezoom();
+		strncpy(last_path, file_path, PATH_MAX);
+	}
+
 	show_mp();
 }

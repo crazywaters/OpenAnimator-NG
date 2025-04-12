@@ -19,8 +19,6 @@
 #include "pj_sdl.h"
 #include "resource.h"
 
-short pj_crit_errval = 1 - 19;
-
 char pj_mcga_name[] = "=SDL.DRV";
 
 // from xfile.c
@@ -88,7 +86,8 @@ Errcode init_pj_startup(Argparse_list *more_args, Do_aparse do_others, int argc,
 			snprintf(resource_dir, PATH_MAX, resource_paths[i]);
 			err = init_menu_resource(menufile_name);
 			if (err == Success) {
-				fprintf(stderr, "+ Resources folder: %s\n", resource_dir);
+				fprintf(stdout, "+ Resources folder:  %s\n", resource_dir);
+				fflush(stdout);
 				break;
 			}
 		}

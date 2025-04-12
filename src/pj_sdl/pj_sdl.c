@@ -188,6 +188,7 @@ const char* pj_sdl_preferences_path() {
 		// eat the last separator
 		preferences_path[SDL_strlen(preferences_path)-1] = '\0';
 	}
+
 	return preferences_path;
 }
 
@@ -357,8 +358,7 @@ char* pj_dialog_file_open(const char* type_name,
 /*--------------------------------------------------------------*/
 char* pj_dialog_file_save(const char* type_name,
 						  const char* extensions,
-						  const char* default_path,
-						  const char* default_name) {
+						  const char* default_path) {
 	const SDL_DialogFileFilter filters[] = {
 		{type_name, extensions}
 	};

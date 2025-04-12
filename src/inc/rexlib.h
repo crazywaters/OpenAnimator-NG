@@ -75,26 +75,26 @@ typedef struct hostlib {
 #define AA_MATHLIB_VERSION	0
 
 
-/********** aa rexlib code rondevous with host provided librarys **********
+/********** aa rexlib code rendezvous with host provided libraries **********
  *
- *    In order to use host provided librarys a "Hostlib" header must be
+ *    In order to use host provided libraries a "Hostlib" header must be
  * initialized and put in a linked list of hostlibs that has it's head 
  * address put in the field "first_hostlib" of the rexlib_header in the 
- * loaded code.  The first_hostlib should be set to NULL if no librarys are
+ * loaded code.  The first_hostlib should be set to NULL if no libraries are
  * needed.  
  * 
  *    Do not declare libraries that are not needed by your application
  * so the resources will not be allocated by the host. 
  * 
- *    A sample declaration is below here three librarys are linked 
- * _a_a_loadpath is the last one with it's next field set to NULL. 
- * _a_a_syslib is the first library in the list and it's address is placed in 
+ *    A sample declaration is below here three libraries are linked
+ * _a_a_loadpath is the last one with its next field set to NULL.
+ * _a_a_syslib is the first library in the list and its address is placed in
  * the header's first_hostlib field. The _a_a_gfxlib is optional in that the
  * host will load your code anyway even if it can't provide the library 
  * requested.
  *
  *    It is up to the application to check the _a_a_gfxlib.nex field for
- * non NULL before attmpting to use any calls found in the _a_a_gfxlib.
+ * non NULL before attempting to use any calls found in the _a_a_gfxlib.
  * 
  * 
  * Hostlib _a_a_loadpath = { NULL, AA_LOADPATH, AA_LOADPATH_VERSION};
@@ -108,7 +108,7 @@ typedef struct hostlib {
  * Rexlib rexlib_header = { rextype, rexversion, init, cleanup, &_a_a_syslib};
  * 
  * 
- *     If you are unsure of what librarys you need,
+ *     If you are unsure of what libraries you need,
  * link your rex code without declaring any and you'll find out.
  * 
  *****************************************/
@@ -133,7 +133,7 @@ typedef struct rexlib {
 					   * for use in library specific protocall */
 
 	EFUNC init;	  	  /* pointer to init vector pre-initialized in rex code
-					   * called after code is loaded and host librarys
+					   * called after code is loaded and host libraries
 					   * initialized may be altered by rexlib code but
 					   * with Caution: it is not called by the loader and 
 					   * must match library specific host protocall may be
@@ -144,11 +144,11 @@ typedef struct rexlib {
 					   * may be altered by rexlib code at any time 
 					   * may be NULL if not desired */
 
-	void *first_hostlib; /* list of Hostlib areas for host loaded librarys, 
+	void *first_hostlib; /* list of Hostlib areas for host loaded libraries,
 						  * staticly pre-initialized in rex code,
 						  * list not valid after rexlib is loaded. Not to 
 						  * be altered by rex code. It is used by the host
-						  * loader code. May be set NULL if no librarys 
+						  * loader code. May be set NULL if no libraries
 						  * are needed */
 
 	char *id_string; /* initialized by rexlib code to point to the id 
@@ -178,7 +178,7 @@ typedef struct rexlib {
 Errcode pj_rex_load(char *fname, void **entry,void **prexlib);
 void pj_rex_free(void **entry);
 
-/* open-load, init, and close animator format rex librarys using rexentry.obj
+/* open-load, init, and close animator format rex libraries using rexentry.obj
  * and declaring a rexlib_header */
 
 Errcode pj_rexlib_load(char *name, USHORT type, Rexlib **prl,

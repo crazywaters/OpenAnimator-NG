@@ -3,9 +3,9 @@ cmake_minimum_required(VERSION 3.25 FATAL_ERROR)
 project(animator-pro)
 
 cmake_policy(SET CMP0114 NEW)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 if(APPLE)
-	## fixes issues with nativefiledialogextended
 	enable_language(OBJC)
 endif()
 
@@ -54,9 +54,20 @@ endif()
 ## thirdparty dependencies
 option(SDL_STATIC "" ON)
 option(SDL_SHARED "" OFF)
+option(BUILD_SHARED_LIBS "" OFF)
+
+set(SDLIMAGE_VENDORED ON CACHE BOOL "" FORCE)
+set(SDLIMAGE_AVIF OFF CACHE BOOL "" FORCE)
+set(SDLIMAGE_WEBP OFF CACHE BOOL "" FORCE)
 
 add_subdirectory(thirdparty/sdl3)
 include_directories(thirdparty/sdl3/include)
+add_subdirectory(thirdparty/sdl3_image)
+include_directories(thirdparty/sdl3_image/include)
+add_subdirectory(thirdparty/miniz)
+include_directories(thirdparty/miniz)
+add_subdirectory(thirdparty/giflib)
+include_directories(thirdparty/giflib)
 
 
 if (WITH_POCO)

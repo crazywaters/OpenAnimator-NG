@@ -136,13 +136,14 @@
 #define Err_no_renderer (VDERR-21) /* Unable to create renderer for window */
 #define Err_no_surface (VDERR-22) /* Unable to allocate the surface we draw to from PJ */
 #define Err_no_render_target (VDERR-23) /* Unable to make a matching texture for the render target */
-#define Err_no_palette (VDERR-24) /* Unable allocate 256 color palette */
+#define Err_no_palette (VDERR-24) /* Unable to allocate 256 color palette */
+#define Err_no_lock (VDERR-25) /* Unable to lock a surface or GPU texture */
 
 /* end VDERR */
 #endif
 
 /* window errors */
-#define WERR -220
+#define WERR -250
 #ifdef WERR
 #define Err_tomany_wins (WERR -0) /* to many windows requested */
 /* end WERR */

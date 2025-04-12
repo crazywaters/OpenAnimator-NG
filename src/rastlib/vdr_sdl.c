@@ -251,13 +251,13 @@ static Errcode sdl_close_rast(Raster *r)
 static void sdl_set_colors(Raster *r, LONG start, LONG count, void *cbuf)
 {
 	(void)r;
-	(void)start;
 
 	const uint8_t *cmap = cbuf;
 	SDL_Color colors[256];
 	int c;
 
 	assert(0 < count && count <= 256);
+	assert(start >= 0 && start + count <= 256);
 
 	for (c = 0; c < count; c++) {
 		colors[c].r = cmap[3 * c + 0];
@@ -266,7 +266,7 @@ static void sdl_set_colors(Raster *r, LONG start, LONG count, void *cbuf)
 		colors[c].a = SDL_ALPHA_OPAQUE;
 	}
 
-	if (!SDL_SetPaletteColors(vga_palette, colors, 0, 256)) {
+	if (!SDL_SetPaletteColors(vga_palette, colors, start, count)) {
 		SDL_Log("Failed to set palette: %s", SDL_GetError());
 	}
 

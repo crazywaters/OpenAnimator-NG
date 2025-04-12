@@ -350,22 +350,27 @@ static Errcode get_rest_of_command_line(Argparse_list *ap,int argc,
 
 static void add_local_pdrs(void)
 {
-	extern Local_pdr bmp_local_pdr;
 	extern Local_pdr flilo_local_pdr;
-	extern Local_pdr gif_local_pdr;
-	extern Local_pdr pcx_local_pdr;
-	extern Local_pdr rif_local_pdr;
-	extern Local_pdr targa_local_pdr;
 
 	add_local_pdr(&fli_local_pdr);
 	add_local_pdr(&pic_local_pdr);
 
-	add_local_pdr(&bmp_local_pdr);
 	add_local_pdr(&flilo_local_pdr);
-	add_local_pdr(&gif_local_pdr);
-	add_local_pdr(&pcx_local_pdr);
-	add_local_pdr(&rif_local_pdr);
-	add_local_pdr(&targa_local_pdr);
+
+	// SDL_PDR drivers
+	extern Local_pdr BMP_local_pdr;
+	extern Local_pdr GIF_local_pdr;
+	extern Local_pdr PCX_local_pdr;
+	extern Local_pdr JPEG_local_pdr;
+	extern Local_pdr PNG_local_pdr;
+
+	add_local_pdr(&BMP_local_pdr);
+	add_local_pdr(&GIF_local_pdr);
+	add_local_pdr(&PCX_local_pdr);
+	add_local_pdr(&JPEG_local_pdr);
+	add_local_pdr(&PNG_local_pdr);
+
+	// add_local_pdr(&skeleton_local_pdr);
 }
 
 static void delete_file_list(char **list)
@@ -416,7 +421,6 @@ static void outofhere(bool save_state)
 int main(int argc, char** argv)
 {
 	Errcode err;
-	UBYTE oldconfig;
 	static Argparse_list apl[] = {
 		ARGP(apl, 0, "-flic", get_flic_arg),
 		ARGP(apl, APLAST, "-poc", get_poco_arg),
@@ -428,7 +432,6 @@ int main(int argc, char** argv)
 	{
 		goto error;
 	}
-	oldconfig = err;
 
 	add_local_pdrs();
 	set_hotkey_func(do_pj_hotkey); /* set input hot key function */
@@ -470,11 +473,6 @@ int main(int argc, char** argv)
 	if(err < Success) {
 		goto error;
 	}
-
-	// kiki note: don't need this any more
-//	if(!oldconfig) {
-//		soft_continu_box("newconfig");
-//	}
 
 	if (cl_flic_name != NULL) {
 		pj_delete(tflxname); /* Delete old tempflx */

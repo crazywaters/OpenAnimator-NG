@@ -297,6 +297,7 @@ Pull home_with_poco
 	"Apply Ink",303
 	"Separate",304
 	"View",305
+	"Options",308
 	"Files...",306
 	}
 "Cel",400
@@ -388,6 +389,7 @@ Pull home
 	"Apply Ink",303
 	"Separate",304
 	"View",305
+    "Options",308
 	"Files...",306
 	}
 "Cel",400
@@ -725,6 +727,15 @@ Qchoice record
 "Realtime Record"
 "Files..."
 "Cancel"
+}
+
+Qchoice pic_options_menu
+{
+"Pic Options",
+"Overwrite Palette on Load?"
+"Write alpha channel (PNG, GIF)?"
+"JPEG Export Quality..."
+"Exit Menu"
 }
 
 
@@ -1363,7 +1374,7 @@ Pull palette
 }
 
 
-Text color_fit {"Color fit screen?"}
+Text color_fit {"Color fit screen to new palette?"}
 Text use_mc {"Use this color set for menus?"}
 Text bad_colors {"Sorry, menus wouldn't be visible...."}
 Text one_palette {
@@ -1626,6 +1637,13 @@ Text newconfig {
 	"Assuming defaults."
 }
 
+// SDL Picdriver messages
+Text sdl_did_write {"Wrote image successfully:\n![1]"}
+Text sdl_cant_write {"Unable to write image!"}
+Text sdl_did_read {"Read image successfully:\n![1]"}
+Text sdl_cant_read {"Unable to read image!"}
+
+
 // qreq number texts
 
 Text rot_grid {"Rotational constraint in degrees"}
@@ -1639,6 +1657,7 @@ Text boxil_wid { "Set \"boxil\" width" }
 Text slatsize { "Set mask \"slat\" spacing" }
 Text quant_wid {"Width of quantization unit?"}
 Text quant_hgt {"Height of quantization unit?"}
+Text pic_opt_jpeg_quality {"JPEG Export Quality"}
 
 // yes no box texts
 
@@ -1733,6 +1752,7 @@ Text wait_reorder {"re-ordering flic frames..."}
 Text wait_ringing {"couldn't load entire flic.\nCalculating ring frame..."}
 Text olay_cleanup {"cleaning up fli overlays ..."}
 Text wait_save {"saving ![1]"}
+Text wait_load {"loading ![1]"}
 Text wait_fdread {"Reading floppy ![1]:"}
 
 

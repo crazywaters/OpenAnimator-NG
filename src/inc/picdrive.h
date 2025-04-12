@@ -13,7 +13,12 @@ struct anim_info;
 struct rgb3;
 
 #define PDR_VERSION 0
-#define PDR_SUFFI_SIZE 15
+#define PDR_SUFFI_SIZE 64
+
+// ----------------------------------------------------------------------------
+// forward declarations for the SDL picdrivers
+typedef struct SDL_Surface SDL_Surface;
+
 
 /*----------------------------------------------------------------------------
  * structure used by PDR to specify that the CONVERT program is to conduct
@@ -26,11 +31,11 @@ typedef struct pdr_options {
 	char	*choicelst2;
 	char	*choicelst3;
 	char	*choicelst4;
-	UBYTE	options_valid;
 	UBYTE	option1;
 	UBYTE	option2;
 	UBYTE	option3;
 	UBYTE	option4;
+	bool	options_valid;
 	} Pdroptions;
 
 /*----------------------------------------------------------------------------
@@ -272,11 +277,15 @@ struct pdr {
 	 * one line of data.
 	 *************************************************************************/
 
+	// SDL picdriver specific functions
+	SDL_Surface*  (*sdl_load_image)(char* path);
+	bool (*sdl_save_image)(SDL_Surface* surface, char* path);
+
 	long reserved[4];	/* PDR should init these fields to NULL */
-
 };
-#define Pdr struct pdr
 
+
+#define Pdr struct pdr
 
 #ifndef REXLIB_CODE
 
