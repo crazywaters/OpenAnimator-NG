@@ -1,6 +1,6 @@
 .PHONY: all release debug run poco clean
 
-all: debug run
+all: debug
 
 debug:
 	rm -rf build && \
