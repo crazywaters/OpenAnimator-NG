@@ -80,13 +80,6 @@ pj__get_hseg(Raster *r, Pixel *pixbuf, Coor x, Coor y, Ucoor w)
 void
 pj_put_vseg(Raster *r, Pixel *pixbuf, Coor x, Coor y, Ucoor h);
 
-#ifdef SLUFFED
-void
-pj__put_vseg(Raster *r, Pixel *pixbuf, Coor x, Coor y, Ucoor h)
-{
-	PUT_VSEG(r, pixbuf, x, y, h);
-}
-#endif /* SLUFFED */
 
 /* Function: pj_get_vseg
  *
@@ -97,13 +90,6 @@ pj__put_vseg(Raster *r, Pixel *pixbuf, Coor x, Coor y, Ucoor h)
 void
 pj_get_vseg(Raster *r, Pixel *pixbuf, Coor x, Coor y, Ucoor h);
 
-#ifdef SLUFFED
-void
-pj__get_vseg(Raster *r, Pixel *pixbuf, Coor x, Coor y, Ucoor h)
-{
-	GET_VSEG(r, pixbuf, x, y, h);
-}
-#endif /* SLUFFED */
 
 /* Function: _pj_put_rectpix
  *
@@ -142,13 +128,6 @@ pj_get_rectpix(Raster *r, Pixel *pixbuf, Coor x, Coor y, Ucoor w, Ucoor h);
 void
 pj_set_hline(Raster *r, Pixel col, Coor x, Coor y, Ucoor w);
 
-#ifdef SLUFFED
-void
-pj__set_hline(Raster *r, Pixel col, Coor x, Coor y, Ucoor w)
-{
-	SET_HLINE(r, col, x, y, w);
-}
-#endif /* SLUFFED */
 
 /* Function: pj_set_vline
  *
@@ -159,14 +138,6 @@ pj__set_hline(Raster *r, Pixel col, Coor x, Coor y, Ucoor w)
  */
 void
 pj_set_vline(Raster *r, Pixel col, Coor x, Coor y, Ucoor h);
-
-#ifdef SLUFFED
-void
-pj__set_vline(Raster *r, Pixel col, Coor x, Coor y, Ucoor h)
-{
-	SET_VLINE(r, col, x, y, h);
-}
-#endif /* SLUFFED */
 
 /* Function: pj_set_rect
  *
@@ -207,14 +178,6 @@ pj_set_rast(Raster *r, Pixel col)
 void
 pj_xor_rect(Raster *r, Pixel col, Coor x, Coor y, Ucoor w, Ucoor h);
 
-#ifdef SLUFFED
-void
-pj__xor_rect(Raster *r, Pixel col, Coor x, Coor y, Ucoor w, Ucoor h)
-{
-	XOR_RECT(r, col, x, y, w, h);
-}
-#endif /* SLUFFED */
-
 /* Function: pj_mask1blit
  *
  *  Sets rectangle of raster rectangle of mask.
@@ -227,15 +190,6 @@ pj_mask1blit(UBYTE *mbytes, Coor mbpr, Coor mx, Coor my,
 		Raster *r, Coor rx, Coor ry, Ucoor w, Ucoor h,
 		Pixel oncol);
 
-#ifdef SLUFFED
-void
-pj__mask1blit(UBYTE *mbytes, Coor mbpr, Coor mx, Coor my,
-		Raster *r, Coor rx, Coor ry, Ucoor w, Ucoor h,
-		Pixel oncol)
-{
-	MASK1BLIT(mbytes, mbpr, mx, my, r, rx, ry, w, h, oncol);
-}
-#endif /* SLUFFED */
 
 /* Function: pj_mask2blit
  *
@@ -247,22 +201,13 @@ pj_mask2blit(UBYTE *mbytes, Coor mbpr, Coor mx, Coor my,
 		Raster *r, Coor rx, Coor ry, Ucoor w, Ucoor h,
 		Pixel oncol, Pixel offcol);
 
-#ifdef SLUFFED
-void
-pj__mask2blit(UBYTE *mbytes, Coor mbpr, Coor mx, Coor my,
-		Raster *r, Coor rx, Coor ry, Ucoor w, Ucoor h,
-		Pixel oncol, Pixel offcol)
-{
-	MASK2BLIT(mbytes, mbpr, mx, my, r, rx, ry, w, h, oncol, offcol);
-}
-#endif /* SLUFFED */
 
 /* Function: pj_unbrun_rect */
 void
 pj_unbrun_rect(Raster *r, void *ucbuf, LONG pixsize,
 		Coor x, Coor y, Ucoor w, Ucoor h)
 {
-	(r->lib->unbrun_rect)(r, ucbuf, pixsize, x, y, w, h);
+	r->lib->unbrun_rect(r, ucbuf, pixsize, x, y, w, h);
 }
 
 /* Function: pj_unlccomp_rect */
@@ -270,7 +215,7 @@ void
 pj_unlccomp_rect(Raster *r, void *ucbuf, LONG pixsize,
 		Coor x, Coor y, Ucoor w, Ucoor h)
 {
-	(r->lib->unlccomp_rect)(r, ucbuf, pixsize, x, y, w, h);
+	r->lib->unlccomp_rect(r, ucbuf, pixsize, x, y, w, h);
 }
 
 /* Function: pj_unss2_rect */
@@ -278,7 +223,7 @@ void
 pj_unss2_rect(Raster *r, void *ucbuf, LONG pixsize,
 		Coor x, Coor y, Ucoor w, Ucoor h)
 {
-	(r->lib->unss2_rect)(r, ucbuf, pixsize, x, y, w, h);
+	r->lib->unss2_rect(r, ucbuf, pixsize, x, y, w, h);
 }
 
 /* Function: pj_diag_to_ptable */
@@ -286,7 +231,7 @@ void
 pj_diag_to_ptable(Raster *r, Pixel *ptable, Ucoor ptsize,
 		Coor x0, Coor y0, Coor x1, Coor y1)
 {
-	(r->lib->diag_to_ptable)(r, ptable, ptsize, x0, y0, x1, y1);
+	r->lib->diag_to_ptable(r, ptable, ptsize, x0, y0, x1, y1);
 }
 
 /* Function: pj_set_colors */
