@@ -68,6 +68,7 @@ add_subdirectory(thirdparty/miniz)
 include_directories(thirdparty/miniz)
 add_subdirectory(thirdparty/giflib)
 include_directories(thirdparty/giflib)
+include_directories(thirdparty/stb)
 
 
 if (WITH_POCO)
