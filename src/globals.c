@@ -22,206 +22,207 @@
    is where we start 1st time program's run.  */
 
 Vsettings default_vs = {
-	{sizeof(Vsettings), VSET_VS_ID, VSET_VS_VERS}, /* id for settings */
-	0,                                             /* frame_ix - frame index */
-	250,                                           /* ccolor - pen color */
-	2,                                             /* zoomscale */
-	false,                                         /* zoom_open */
-	false,                                         /* use_brush */
-	true,                                          /* dcoor */
+	.id = {sizeof(Vsettings), VSET_VS_ID, VSET_VS_VERS}, /* id for settings */
+	.frame_ix = 0,                                       /* frame_ix - frame index */
+	.ccolor = 250,                                       /* ccolor - pen color */
+	.zoomscale = 2,                                      /* zoomscale */
+	.zoom_open = false,                                  /* zoom_open */
+	.use_brush = false,                                  /* use_brush */
+	.dcoor = true,                                       /* dcoor */
 
-	true,                                   /* fillp  - fill polygons? */
-	false,                                  /* color2 - 2 color polygons? */
-	true,                                   /* closed_curve */
-	false,                                  /* multi */
-	true,                                   /* clear_moveout - (move tool clears old area) */
-	true,                                   /* zero_clear - color zero transparent in cel */
-	false,                                  /* render_under */
-	false,                                  /* render_one_color */
-	true,                                   /* fit_colors */
-	false,                                  /* make_mask */
-	false,                                  /* use_mask */
-	true,                                   /* pal_fit */
-	FTP_FLIC,                               /* file_type */
-	{0, 138, 192, 131, 248, 249, 250, 247}, /* inks wells */
+	.fillp = true,             /* fillp  - fill polygons? */
+	.color2 = false,           /* color2 - 2 color polygons? */
+	.closed_curve = true,      /* closed_curve */
+	.multi = false,            /* multi */
+	.clear_moveout = true,     /* clear_moveout - (move tool clears old area) */
+	.zero_clear = true,        /* zero_clear - color zero transparent in cel */
+	.render_under = false,     /* render_under */
+	.render_one_color = false, /* render_one_color */
+	.fit_colors = true,        /* fit_colors */
+	.make_mask = false,        /* make_mask */
+	.use_mask = false,         /* use_mask */
+	.pal_fit = true,           /* pal_fit */
+	.file_type = FTP_FLIC,     /* file_type */
+	.inks = {0, 138, 192, 131, 248, 249, 250, 247}, /* inks wells */
 
-	opq_INKID, /* initial selected ink */
-	{opq_INKID, vsp_INKID, tsp_INKID, rvl_INKID, soft_INKID, celt_INKID, anti_INKID,
-	 jmb_INKID}, /* initial inks */
+	.ink_id = opq_INKID, /* initial selected ink */
+	.ink_slots = {opq_INKID, vsp_INKID, tsp_INKID, rvl_INKID, soft_INKID, celt_INKID, anti_INKID,
+				  jmb_INKID}, /* initial inks */
 
-	DRAW_PTOOL,             /* ptool_id - which drawing tool is active */
-	{DRAW_PTOOL, BOX_PTOOL, /* initial pen tools */
-	 POLYF_PTOOL, TEXT_PTOOL, SPRAY_PTOOL, FILL_PTOOL, LINE_PTOOL, MOVE_PTOOL},
+	.ptool_id = DRAW_PTOOL,               /* ptool_id - which drawing tool is active */
+	.tool_slots = {DRAW_PTOOL, BOX_PTOOL, /* initial pen tools */
+				   POLYF_PTOOL, TEXT_PTOOL, SPRAY_PTOOL, FILL_PTOOL, LINE_PTOOL, MOVE_PTOOL},
 
-	0,
-	0, /* flicentx, flicenty */
-	0,
-	VS_MAXCOOR, /* quickcentx, quickcenty */
-	VS_MAXCOOR / 2,
-	VS_MAXCOOR / 2, /* zcentx, zcenty */
-	VS_MAXCOOR / 4 * 3,
-	(VS_MAXCOOR / 20) * 6, /* zwincentx zwincenty */
-	VS_MAXCOOR / 2,
-	VS_MAXCOOR / 2,     /* zwin width zwin height */
-	50,                 /* tint percent */
-	{220, 140, 50, 30}, /* text window rectangle */
-	0,
-	0, /* text yoffset and text cursor position */
-	0,
-	0, /* top_tool, top_ink - initial scroller_tops */
-	6,
-	33, /* star points , star ratio */
-	0,
-	0,
-	VS_MAXCOOR / (320 / 8),
-	VS_MAXCOOR / (200 / 8), /* grid x y w h */
-	false,                  /* use_grid */
-	50,                     /* dither threshold */
-	60,
-	32, /* air_speed, air_spread */
-	4,
-	4, /* quantization x and y */
-	VS_MAXCOOR / 2,
-	VS_MAXCOOR / 2,                   /* radial gradient center */
-	(SHORT)((FLOAT)VS_MAXCOOR / 5.5), /* radial gradient radious rel (h+w)*2 */
-	VS_MAXCOOR / 2,
-	VS_MAXCOOR / 2, /* marked point mkx mky */
-	16,             /* transition frames */
-	0,
-	9,     /* start and stop of time segment */
-	0,     /* browse_action (0 = load) */
-	false, /* sep_rgb - by rgb if 1, by color ix if 0 */
-	10,    /* sep_threshold */
-	true,  /* ado tween */
-	false, /* ado ease */
-	false, /* ease out */
-	false, /* ado pong */
-	false, /* ado reverse */
-	true,  /* ado complete */
-	0,     /* ado source */
-	false, /* ado outline */
+	.flicentx = 0,
+	.flicenty = 0, /* flicentx, flicenty */
+	.quickcentx = 0,
+	.quickcenty = VS_MAXCOOR, /* quickcentx, quickcenty */
+	.zcentx = VS_MAXCOOR / 2,
+	.zcenty = VS_MAXCOOR / 2, /* zcentx, zcenty */
+	.zwincentx = VS_MAXCOOR / 4 * 3,
+	.zwincenty = (VS_MAXCOOR / 20) * 6, /* zwincentx zwincenty */
+	.zwinw = VS_MAXCOOR / 2,
+	.zwinh = VS_MAXCOOR / 2,    /* zwin width zwin height */
+	.tint_percent = 50,         /* tint percent */
+	.twin = {220, 140, 50, 30}, /* text window rectangle */
+	.text_yoff = 0,
+	.tcursor_p = 0, /* text yoffset and text cursor position */
+	.top_tool = 0,
+	.top_ink = 0, /* top_tool, top_ink - initial scroller_tops */
+	.star_points = 6,
+	.star_ratio = 33, /* star points , star ratio */
+	.gridx = 0,
+	.gridy = 0,
+	.gridw = VS_MAXCOOR / (320 / 8),
+	.gridh = VS_MAXCOOR / (200 / 8), /* grid x y w h */
+	.use_grid = false,               /* use_grid */
+	.dthresh = 50,                   /* dither threshold */
+	.air_speed = 60,
+	.air_spread = 32, /* air_speed, air_spread */
+	.qdx = 4,
+	.qdy = 4, /* quantization x and y */
+	.rgcx = VS_MAXCOOR / 2,
+	.rgcy = VS_MAXCOOR / 2,                  /* radial gradient center */
+	.rgr = (SHORT)((FLOAT)VS_MAXCOOR / 5.5), /* radial gradient radious rel (h+w)*2 */
+	.mkx = VS_MAXCOOR / 2,
+	.mky = VS_MAXCOOR / 2,   /* marked point mkx mky */
+	.transition_frames = 16, /* transition frames */
+	.start_seg = 0,
+	.stop_seg = 9,         /* start and stop of time segment */
+	.browse_action = 0,    /* browse_action (0 = load) */
+	.sep_rgb = false,      /* sep_rgb - by rgb if 1, by color ix if 0 */
+	.sep_threshold = 10,   /* sep_threshold */
+	.ado_tween = true,     /* ado tween */
+	.ado_ease = false,     /* ado ease */
+	.ado_ease_out = false, /* ease out */
+	.ado_pong = false,     /* ado pong */
+	.ado_reverse = false,  /* ado reverse */
+	.ado_complete = true,  /* ado complete */
+	.ado_source = 0,       /* ado source */
+	.ado_outline = false,  /* ado outline */
 
-	0,   /* ado_mode == spin */
-	2,   /* ado_spin == turns */
-	3,   /* ado_size == both */
-	0,   /* ado_path == spline */
-	0,   /* ado_mouse == xy */
-	0,   /* ado_szmouse == proportional */
-	360, /* ado_turn == 360 degrees */
+	.ado_mode = 0,    /* ado_mode == spin */
+	.ado_spin = 2,    /* ado_spin == turns */
+	.ado_size = 3,    /* ado_size == both */
+	.ado_path = 0,    /* ado_path == spline */
+	.ado_mouse = 0,   /* ado_mouse == xy */
+	.ado_szmouse = 0, /* ado_szmouse == proportional */
+	.ado_turn = 360,  /* ado_turn == 360 degrees */
 
 #define WIDTH 320
 #define HEIGHT 200
-	{
-		/* move3 - top of the optics motion stack */
-		NULL,
-		{WIDTH / 2, HEIGHT / 2, 0},
-		{0, 0, 100},
-		{0, 0, 0},
-		0,
-		0,
-		{WIDTH / 2, HEIGHT / 2, 0},
-		100,
-		100,
-		100,
-		100,
-		100,
-		100,
-		{0, 0, 0},
-	},
+	.move3 =
+		{
+			/* move3 - top of the optics motion stack */
+			NULL,
+			{WIDTH / 2, HEIGHT / 2, 0},
+			{0, 0, 100},
+			{0, 0, 0},
+			0,
+			0,
+			{WIDTH / 2, HEIGHT / 2, 0},
+			100,
+			100,
+			100,
+			100,
+			100,
+			100,
+			{0, 0, 0},
+		},
 #undef WIDTH
 #undef HEIGHT
 
-	0, /* sp_tens */
-	0, /* sp_cont */
-	0, /* sp_bias */
-	2, /* time_mode == 2 == to all */
+	.sp_tens = 0,   /* sp_tens */
+	.sp_cont = 0,   /* sp_cont */
+	.sp_bias = 0,   /* sp_bias */
+	.time_mode = 2, /* time_mode == 2 == to all */
 
-	0,               /* sep box */
-	{0, 9, 99, 999}, /* time markers */
-	{0, 10, 20, 30}, /* start of ranges */
-	{9, 19, 29, 39}, /* stop of ranges */
-	0,               /* bframe_ix */
-	0,               /* pal to - what portion of palette effected by remap */
-	false,           /* hls or rgb mode */
-	1,               /* use_bun */
-	{
-		{31, /* bundle1 count */
-		 {
-			 1,  2,  3,  4,  5,  6,  7,  8,  9,  10, 11, 12, 13, 14, 15, 16,
-			 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31,
-		 }},
+	.sep_box = 0,               /* sep box */
+	.marks = {0, 9, 99, 999},   /* time markers */
+	.starttr = {0, 10, 20, 30}, /* start of ranges */
+	.stoptr = {9, 19, 29, 39},  /* stop of ranges */
+	.bframe_ix = 0,             /* bframe_ix */
+	.pal_to = 0,                /* pal to - what portion of palette effected by remap */
+	.hls = false,               /* hls or rgb mode */
+	.use_bun = 1,               /* use_bun */
+	.buns =
 		{
-			30, /* bundle2 count */
+			{31, /* bundle1 count */
+			 {
+				 1,  2,  3,  4,  5,  6,  7,  8,  9,  10, 11, 12, 13, 14, 15, 16,
+				 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31,
+			 }},
 			{
-				92,  93,  94,  95,  96,  97,  98,  99,  100, 101, 102, 103, 104, 105, 106,
-				107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121,
+				30, /* bundle2 count */
+				{
+					92,  93,  94,  95,  96,  97,  98,  99,  100, 101, 102, 103, 104, 105, 106,
+					107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121,
+				},
 			},
 		},
-	},
-	20,       /* cclose - closeness threshold */
-	50,       /* ctint - strength of tinting in palette */
-	0,        /* cdraw_ix */
-	false,    /* cycle_draw */
-	0,        /* tit_just */
-	0,        /* tit_scroll */
-	0,        /* tit_move */
-	0,        /* pa_tens */
-	0,        /* pa_cont */
-	0,        /* pa_bias */
-	0,        /* pa_closed */
-	50,       /* cblend */
-	30,       /* font_height */
-	0,        /* box_bevel */
-	{0, {0}}, /* redo - Empty record */
-	0,        /* font_type */
-	0,        /* ped_yoff - poco editor cursor position */
-	0,        /* ped_cursor_p - poco editor window y start */
+	.cclose = 20,        /* cclose - closeness threshold */
+	.ctint = 50,         /* ctint - strength of tinting in palette */
+	.cdraw_ix = 0,       /* cdraw_ix */
+	.cycle_draw = false, /* cycle_draw */
+	.tit_just = 0,       /* tit_just */
+	.tit_scroll = 0,     /* tit_scroll */
+	.tit_move = 0,       /* tit_move */
+	.pa_tens = 0,        /* pa_tens */
+	.pa_cont = 0,        /* pa_cont */
+	.pa_bias = 0,        /* pa_bias */
+	.pa_closed = 0,      /* pa_closed */
+	.cblend = 50,        /* cblend */
+	.font_height = 30,   /* font_height */
+	.box_bevel = 0,      /* box_bevel */
+	.redo = {0, {0}},    /* redo - Empty record */
+	.font_type = 0,      /* font_type */
+	.ped_yoff = 0,       /* ped_yoff - poco editor cursor position */
+	.ped_cursor_p = 0,   /* ped_cursor_p - poco editor window y start */
 
-	CELPT_MOVE, /* cur_cel_tool */
-	true,       /* paste_inc_cel */
-	false,      /* cm_blue_last */
-	false,      /* cm_move_to_cursor */
-	false,      /* cm_streamdraw */
-	0,          /* rot_grid */
-	0,          /* tween_end */
-	0,          /* tween_tool */
-	50,         /* tween_magnet */
-	false,      /* tween_spline */
+	.cur_cel_tool = CELPT_MOVE, /* cur_cel_tool */
+	.paste_inc_cel = true,      /* paste_inc_cel */
+	.cm_blue_last = false,      /* cm_blue_last */
+	.cm_move_to_cursor = false, /* cm_move_to_cursor */
+	.cm_streamdraw = false,     /* cm_streamdraw */
+	.rot_grid = 0,              /* rot_grid */
+	.tween_end = 0,             /* tween_end */
+	.tween_tool = 0,            /* tween_tool */
+	.tween_magnet = 50,         /* tween_magnet */
+	.tween_spline = false,      /* tween_spline */
 
-	CIRCLE_BRUSH, /* pen_brush_type */
-	4,            /* circle_brush_size */
-	4,            /* square_brush_size */
-	4,            /* line_brush_size */
-	0,            /* line_brush_angle */
-	5,            /* gel_brush_size */
-	1,            /* randseed */
+	.pen_brush_type = CIRCLE_BRUSH, /* pen_brush_type */
+	.circle_brush_size = 4,         /* circle_brush_size */
+	.square_brush_size = 4,         /* square_brush_size */
+	.line_brush_size = 4,           /* line_brush_size */
+	.line_brush_angle = 0,          /* line_brush_angle */
+	.gel_brush_size = 5,            /* gel_brush_size */
+	.randseed = 1,                  /* randseed */
 
-	COMP_CUT, /* co_type */
-	false,    /* co_still */
-	FIT_TOA,  /*  co_cfit */
-	false,    /* co_reverse */
-	true,     /* co_matchsize */
-	false,    /* co_b_first */
-	0,        /* co_olap_frames */
-	20,       /* co_venetian_height */
-	20,       /* co_louver_width */
-	20,       /* co_boxil_width */
-	20,       /* co_boxil_height */
+	.co_type = COMP_CUT,      /* co_type */
+	.co_still = false,        /* co_still */
+	.co_cfit = FIT_TOA,       /*  co_cfit */
+	.co_reverse = false,      /* co_reverse */
+	.co_matchsize = true,     /* co_matchsize */
+	.co_b_first = false,      /* co_b_first */
+	.co_olap_frames = 0,      /* co_olap_frames */
+	.co_venetian_height = 20, /* co_venetian_height */
+	.co_louver_width = 20,    /* co_louver_width */
+	.co_boxil_width = 20,     /* co_boxil_width */
+	.co_boxil_height = 20,    /* co_boxil_height */
 
 	/* expand settings */
-	0, /* expand_x */
-	0, /* expand_y */
+	.expand_x = 0, /* expand_x */
+	.expand_y = 0, /* expand_y */
 
 	/* font spacing stuff */
-	0, /* font_spacing */
-	0, /* font_leading */
-	1, /* font_unzag */
+	.font_spacing = 0, /* font_spacing */
+	.font_leading = 0, /* font_leading */
+	.font_unzag = 1,   /* font_unzag */
 
 	/* pic file IO settings */
-	PIC_IO_PAL_FIT,  /* on load, don't auto-fit palette; overwrite */
-	PIC_IO_NO_ALPHA, /* by default, don't write alpha channel */
-	100,             /* on save, save with this quality */
-
+	.pic_auto_fit_palette = PIC_IO_PAL_FIT, /* on load, don't auto-fit palette; overwrite */
+	.pic_write_alpha = PIC_IO_NO_ALPHA,     /* by default, don't write alpha channel */
+	.pic_save_quality = 100,                /* on save, save with this quality */
 };
 
 
@@ -230,13 +231,18 @@ Vsettings vs; /* The settings used by program.  Default_vs gets copied
 
 Vbcb vb = /* yep, this is where it is */
 	{
-		-1,             /* video mode at -1  */
-		"",             /* init_drawer. */
-		NULL, NULL,     /* vd, ram_vd. */
-		NULL, NULL,     /* cel_a, cel_b. */
-		NULL, {0, 0},   /* screen, scrcent */
-		NULL,           /* pencel. */
-		NULL, NULL,   0 /* config_name, vdriver_name, vdriver_mode. */
+		.ivmode = -1,         /* video mode at -1  */
+		.init_drawer = "",    /* init_drawer. */
+		.vd = NULL,           /* vd */
+		.ram_vd = NULL,       /* ram_vd. */
+		.cel_a = NULL,        /* cel_a */
+		.cel_b = NULL,        /* cel_b. */
+		.screen = NULL,       /* screen */
+		.scrcent = {0, 0},    /* scrcent */
+		.pencel = NULL,       /* pencel. */
+		.config_name = NULL,  /* config_name */
+		.vdriver_name = NULL, /* vdriver_name */
+		.vdriver_mode = 0     /* vdriver_mode. */
 };
 
 Vlcb vl; /* local control block data, all zeros, see jimk.h */
@@ -258,21 +264,21 @@ char under_flag;
 /* control block for time oriented menus */
 
 Minitime_data flxtime_data = {
-	first_frame,        /* first frame */
-	prev_frame,         /* prev */
-	go_time_menu,       /* feel ix */
-	next_frame,         /* next */
-	mplayit,            /* play it */
-	last_frame,         /* last frame */
-	go_time_menu,       /* opt_all */
-	qset_first_frame,   /* opt_tsl_first */
-	flx_get_frameix,    /* get_frame_ix */
-	flx_get_framecount, /* get_frame_count */
-	NULL,               /* clear_overlays used to clean up frame before seeking etc */
-	NULL,               /* draw_overlays used to restore overlays after seeking etc */
-	flx_seek_frame_with_data,
-	0,    /* start with a clear stack */
-	NULL, /* data */
+	.first_frame = first_frame,           /* first frame */
+	.prev_frame = prev_frame,             /* prev */
+	.feel_ix = go_time_menu,              /* feel ix */
+	.next_frame = next_frame,             /* next */
+	.play_it = mplayit,                   /* play it */
+	.last_frame = last_frame,             /* last frame */
+	.opt_all = go_time_menu,              /* opt_all */
+	.opt_tsl_first = qset_first_frame,    /* opt_tsl_first */
+	.get_frameix = flx_get_frameix,       /* get_frame_ix */
+	.get_framecount = flx_get_framecount, /* get_frame_count */
+	.clear_overlays = NULL, /* clear_overlays used to clean up frame before seeking etc */
+	.draw_overlays = NULL,  /* draw_overlays used to restore overlays after seeking etc */
+	.seek_frame = flx_seek_frame_with_data,
+	.olay_stack = 0, /* start with a clear stack */
+	.data = NULL,    /* data */
 };
 
 /* these bracket scrub_cur_frame() and user flx seeks */
@@ -288,5 +294,5 @@ void flx_draw_olays(void)
 
 bool flx_olays_hidden(void)
 {
-	return (flxtime_data.olay_stack != 0);
+	return flxtime_data.olay_stack != 0;
 }
