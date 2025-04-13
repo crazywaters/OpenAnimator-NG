@@ -2,9 +2,9 @@
 #ifndef REDO_H
 #define REDO_H
 
-#ifndef VERTICES_H
 #include "vertices.h"
-#endif /*VERTICES_H*/
+#include "raster.h"
+#include "rectang.h"
 
 struct button;
 
