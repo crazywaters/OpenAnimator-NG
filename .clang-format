@@ -172,10 +172,12 @@ PenaltyExcessCharacter: 1000000
 PenaltyIndentedWhitespace: 0
 PenaltyReturnTypeOnItsOwnLine: 200
 PointerAlignment: Left
+DerivePointerAlignment: false
 QualifierAlignment: Leave
 RawStringFormats:
   - Language: Cpp
     Delimiters:
+      - c
       - cc
       - CC
       - cpp
