@@ -7,6 +7,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 if(APPLE)
 	enable_language(OBJC)
+	add_compile_definitions(-DSDL_PLATFORM_APPLE=1)
 endif()
 
 if (PLATFORM STREQUAL "OS64")
@@ -65,7 +66,8 @@ include_directories(thirdparty/sdl3/include)
 add_subdirectory(thirdparty/sdl3_image)
 include_directories(thirdparty/sdl3_image/include)
 add_subdirectory(thirdparty/miniz)
-include_directories(thirdparty/miniz)
+include_directories(thirdparty/miniz
+)
 add_subdirectory(thirdparty/giflib)
 include_directories(thirdparty/giflib)
 include_directories(thirdparty/stb)
@@ -76,11 +78,13 @@ if (WITH_POCO)
 	add_subdirectory(thirdparty/libffi)
 	add_subdirectory(thirdparty/hashmap)
 	add_subdirectory(thirdparty/imgui/imgui)
-	add_subdirectory(thirdparty/imgui/ImGuiColorTextEdit)
 	include_directories(thirdparty/imgui/imgui)
 	include_directories(thirdparty/imgui/imgui/backends)
 	include_directories(thirdparty/imgui/imgui_club/imgui_memory_editor)
-	include_directories(thirdparty/imgui/ImGuiColorTextEdit)
+
+	##!TODO: Fix this extension
+	# add_subdirectory(thirdparty/imgui/ImGuiColorTextEdit)
+	# include_directories(thirdparty/imgui/ImGuiColorTextEdit)
 endif()
 
 

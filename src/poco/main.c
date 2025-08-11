@@ -19,6 +19,9 @@
 #include <string.h>
 
 #include "aaconfig.h"
+#include "commonst.h"
+#include "errcodes.h"
+#include "jimk.h"
 #include "poco.h"
 #include "pocoface.h"
 #include "ptrmacro.h"
@@ -35,17 +38,17 @@ static void _fpreset() {}
 
 #if defined(IAN) /* Where Ian keeps poco source */
 Names incdirs[] = {
-	{ &incdirs[1], "" },
-	{ NULL, "\\paa\\resource\\" },
+	{&incdirs[1], ""},
+	{NULL, "\\paa\\resource\\"},
 };
 #elif defined(JIM) /* Where Jim keeps poco source */
 Names incdirs[] = {
-	{ &incdirs[1], "" },
-	{ &incdirs[2], "\\paa\\resource\\" },
-	{ NULL, "c:\\tc\\include\\" },
+	{&incdirs[1], ""},
+	{&incdirs[2], "\\paa\\resource\\"},
+	{NULL, "c:\\tc\\include\\"},
 };
 #else
-Names incdirs[] = { { &incdirs[1], "" }, { NULL, "\\paa\\resource\\" } };
+Names incdirs[] = {{&incdirs[1], ""}, {NULL, "\\paa\\resource\\"}};
 #endif
 
 /*
@@ -72,7 +75,6 @@ void po_qtext(long vargcount, long vargsize, Popot åformat, ...);
 
 char* ido_type_to_str(IdoType ido_type);
 void dump_func_frame(const char* name, const Func_frame* frame_in);
-
 
 /****************************************************************************
  *
@@ -130,8 +132,9 @@ void pj_free(void* v)
  ***************************************************************************/
 void pj_gentle_free(void* p)
 {
-	if (p != NULL)
+	if (p != NULL) {
 		pj_free(p);
+	}
 }
 
 /****************************************************************************
@@ -175,10 +178,10 @@ static int fpe_handler(int signum)
 {
 	(void)signum;
 
-	_fpreset();					 /* clear status & re-init chip/emulator */
-	builtin_err = Err_float;	 /* remember error for poco interpreter */
+	_fpreset();                  /* clear status & re-init chip/emulator */
+	builtin_err = Err_float;     /* remember error for poco interpreter */
 	signal(SIGFPE, fpe_handler); /* re-install self */
-	return (0);					 /* don't know who looks at this... */
+	return (0);                  /* don't know who looks at this... */
 }
 
 /*****************************************************************************
@@ -189,18 +192,6 @@ int matherr()
 	_fpreset();
 	builtin_err = Err_float;
 	return 1;
-}
-
-/****************************************************************************
- *
- ***************************************************************************/
-Errcode pj_delete(char* name)
-{
-	if (remove(name) < 0) {
-		return Err_nogood;
-	}
-
-	return Success;
 }
 
 /****************************************************************************
@@ -218,7 +209,6 @@ Errcode boxf(char* fmt, ...)
 	return (err);
 }
 
-
 /****************************************************************************
  *
  ***************************************************************************/
@@ -229,11 +219,10 @@ bool check_abort(void* nobody)
 	return false;
 }
 
-
 /****************************************************************************
  *
  ***************************************************************************/
-void errline(int err, char* fmt, ...)
+Errcode errline(int err, char* fmt, ...)
 {
 	va_list argptr;
 
@@ -242,7 +231,6 @@ void errline(int err, char* fmt, ...)
 	va_end(argptr);
 	fprintf(stdout, "\nerr code %d", err);
 }
-
 
 /****************************************************************************
  *
@@ -308,7 +296,6 @@ size_t get_errtext(Errcode err, char* buf)
 	return strlen(buf);
 }
 
-
 /****************************************************************************
  *
  ***************************************************************************/
@@ -323,7 +310,6 @@ int po_puts(Popot s)
 	result = fputs("\n", stdout);
 	return result;
 }
-
 
 /****************************************************************************
  *
@@ -345,7 +331,6 @@ int po_printf(long vargcount, long vargsize, char* format, ...)
 	va_end(args);
 	return result;
 }
-
 
 /****************************************************************************
  *
@@ -371,25 +356,24 @@ void po_qtext(long vargcount, long vargsize, Popot format, ...)
 	getch();
 }
 
-
 /****************************************************************************/
 static Lib_proto proto_lines[] = {
 	/*	{tryme, 	"int ptryme(int (*v)(long a, long b, long c));"}, */
-	{ po_puts,   "int puts(char *s);" },
-	{ printf, "int printf(char *format, ...);" },
-	{ po_qtext,  "int Qtext(char *format, ...);" },
+	{po_puts, "int puts(char *s);"},
+	{printf, "int printf(char *format, ...);"},
+	{po_qtext, "int Qtext(char *format, ...);"},
 };
 
-Poco_lib po_main_lib = { .next		 = NULL,
-						 .name		 = "Poco Library",
-						 .lib		 = proto_lines,
-						 .count		 = Array_els(proto_lines),
-						 .init		 = NULL,
-						 .cleanup	 = NULL,
-						 .local_data = NULL,
-						 .resources	 = { NULL, NULL, NULL },
-						 .rexhead	 = NULL,
-						 { 0 } };
+Poco_lib po_main_lib = {.next = NULL,
+						.name = "Poco Library",
+						.lib = proto_lines,
+						.count = Array_els(proto_lines),
+						.init = NULL,
+						.cleanup = NULL,
+						.local_data = NULL,
+						.resources = {NULL, NULL, NULL},
+						.rexhead = NULL,
+						{0}};
 
 extern Poco_lib po_mem_lib;
 extern Poco_lib po_FILE_lib;
@@ -400,7 +384,6 @@ extern Poco_lib po_dummy_lib;
 static Poco_lib* poco_libs[] = {
 	&po_main_lib, &po_str_lib, &po_mem_lib, &po_FILE_lib, &po_math_lib, &po_dummy_lib,
 };
-
 
 /****************************************************************************
  *
@@ -413,12 +396,11 @@ static Poco_lib* get_poco_libs(void)
 	if (list == NULL) {
 		for (i = Array_els(poco_libs); --i >= 0;) {
 			poco_libs[i]->next = list;
-			list			   = poco_libs[i];
+			list = poco_libs[i];
 		}
 	}
 	return (list);
 }
-
 
 /*****************************************************************************
  * this routine fools the PJ lfile library into thinking it is writing to
@@ -429,26 +411,25 @@ FILE* f;
 
 static Errcode open_redirect_stdout(char* fname)
 {
-	if (NULL == (f = fopen(fname, "w"))) /* create the file */
+	if (NULL == (f = fopen(fname, "w"))) { /* create the file */
 		return Err_create;
+	}
 
 	redirection_save = *stdout; /* save state of stdout */
-	*stdout			 = *f;		/* redirect stdout to file */
+	*stdout = *f;               /* redirect stdout to file */
 
 	return Success;
 }
-
 
 /*****************************************************************************
  * this un-directs stdout from a file back to the screen.
  ****************************************************************************/
 static void close_redirect_stdout(void)
 {
-	*f = *stdout;				/* update buffer count, etc, in file */
-	fclose(f);					/* close file */
+	*f = *stdout;               /* update buffer count, etc, in file */
+	fclose(f);                  /* close file */
 	*stdout = redirection_save; /* restore stdout state */
 }
-
 
 Errcode builtin_err; /* Error status for libraries. */
 
@@ -490,9 +471,9 @@ char* ido_type_to_str(IdoType ido_type)
 	}
 }
 
-
 /****************************************************************************/
-void dump_func_frame(const char* name, const Func_frame* frame_in) {
+void dump_func_frame(const char* name, const Func_frame* frame_in)
+{
 	char msg[16];
 	Func_frame* frame = frame_in;
 
@@ -501,56 +482,48 @@ void dump_func_frame(const char* name, const Func_frame* frame_in) {
 	while (frame) {
 		if (frame->return_type) {
 			sprintf(msg, "%s", ido_type_to_str(frame->return_type->ido_type));
-		}
-		else {
+		} else {
 			sprintf(msg, "void");
 		}
 
-		printf("func: %s (%d params) -> %s\n",
-			   frame->name,
-			   frame->pcount,
-			   msg);
+		printf("func: %s (%d params) -> %s\n", frame->name, frame->pcount, msg);
 
 		frame = frame->next;
 	}
 }
 
-
 /****************************************************************************
  *
  ***************************************************************************/
-static void print_version() {
+static void print_version()
+{
 	printf("poco version %d\n", VRSN_NUM);
 }
 
-
 /****************************************************************************
  *
  ***************************************************************************/
-static void usage() {
-
+static void usage()
+{
 }
 
-
 /****************************************************************************
  *
  ***************************************************************************/
-static void replace_file_extension(char *dest, const char* buffer, 
-						   size_t max_len, const char* new_ext)
+static void replace_file_extension(char* dest, const char* buffer, size_t max_len,
+								   const char* new_ext)
 {
 	const char* dot = strrchr(buffer, '.');
 	if (dot == NULL) {
 		// No dot found-- assume file and add the dot at the end
 		snprintf(dest, max_len, "%s.%s", buffer, new_ext);
-	}
-	else {
+	} else {
 		// Dot found-- replace the extension
-		memcpy(dest, buffer, max(strlen(buffer), max_len-1));
-		dest[(size_t)(dot-buffer)] = '\0';
+		memcpy(dest, buffer, max(strlen(buffer), max_len - 1));
+		dest[(size_t)(dot - buffer)] = '\0';
 		snprintf(dest, max_len, "%s.%s", dest, new_ext);
 	}
 }
-
 
 /****************************************************************************
  *
@@ -563,9 +536,9 @@ int main(int argc, char* argv[])
 	int err;
 	int compile_status;
 	void* pexe;
-	char* efname	= NULL; /* Errors file name.	*/
-	char* sfname	= NULL; /* Source file name.	*/
-	char* dfname	= NULL; /* Dump file name.		*/
+	char* efname = NULL; /* Errors file name.	*/
+	char* sfname = NULL; /* Source file name.	*/
+	char* dfname = NULL; /* Dump file name.		*/
 	bool runflag = true;
 	char* argp;
 	int counter;
@@ -577,7 +550,7 @@ int main(int argc, char* argv[])
 
 	init_stdfiles(); /* initialize PJ stdin, stdout, etc */
 
-	signal(SIGFPE, fpe_handler); // install floating point error trapping
+	signal(SIGFPE, fpe_handler);  // install floating point error trapping
 
 	for (counter = 1; counter < argc; counter++) {
 		argp = argv[counter];
@@ -593,17 +566,18 @@ int main(int argc, char* argv[])
 					po_trace_flag = true;
 					po_trace_file = stdout;
 					break;
-#endif					  /* DEVELOPMENT */
+#endif                    /* DEVELOPMENT */
 				case 'd': /* Dump file name...        */
 				case 'D': /* Dump file name...        */
 					do_debug_dump = true;
 					break;
 				case 'o': /* Redirection file name... */
 				case 'O': /* Redirection file name... */
-					if (*++argp != 0)
+					if (*++argp != 0) {
 						efname = argp;
-					else
+					} else {
 						efname = "stdout.txt";
+					}
 					break;
 				case 'l': /* punt builtin libs...*/
 				case 'L': /* punt builtin libs...*/
@@ -626,7 +600,7 @@ int main(int argc, char* argv[])
 	}
 
 	if (sfname == NULL) {
-		//!TODO: Print usage instead of attempting to run this
+		//! TODO: Print usage instead of attempting to run this
 		sfname = "test.poc";
 	}
 
@@ -643,17 +617,17 @@ int main(int argc, char* argv[])
 		}
 	}
 
-//	if (gui_mode) {
-//		poco_gui();
-//	}
+	//	if (gui_mode) {
+	//		poco_gui();
+	//	}
 
-	compile_status = compile_poco(
-	  &pexe, sfname, NULL, dfname, builtin_libs, err_file, &err_line, &err_char, incdirs);
+	compile_status = compile_poco(&pexe, sfname, NULL, dfname, builtin_libs, err_file, &err_line,
+								  &err_char, incdirs);
 
 	if (compile_status == Success) {
-		#ifdef DEVELOPMENT
+#ifdef DEVELOPMENT
 		po_run_protos = (((Poco_run_env*)pexe)->protos); /* for trace */
-		#endif	/* DEVELOPMENT */
+#endif                                                   /* DEVELOPMENT */
 
 		if (do_debug_dump) {
 			po_disassemble_program((Poco_run_env*)pexe, stdout);
@@ -664,10 +638,8 @@ int main(int argc, char* argv[])
 			if (fp) {
 				po_disassemble_program((Poco_run_env*)pexe, fp);
 				fclose(fp);
-			}
-			else {
-				fprintf(stderr, "-- Unable to open dump file for writing: %s\n",
-						dump_file_name);
+			} else {
+				fprintf(stderr, "-- Unable to open dump file for writing: %s\n", dump_file_name);
 			}
 		}
 
@@ -707,8 +679,9 @@ int main(int argc, char* argv[])
 		fprintf(stdout, "Error code %d\n", err);
 	}
 
-	if (efname != NULL)
+	if (efname != NULL) {
 		close_redirect_stdout();
+	}
 
 	cleanup_lfiles(); /* cleanup PJ stdin, stdout, etc */
 
