@@ -236,28 +236,28 @@ static void mk_function_call(Poco_cb* pcb, Exp_frame* e, Func_frame* fff, SHORT 
 		po_code_op(pcb, &e->ecd, OP_FFI_POP_ALL);
 
 		//		for (int i = parameter_index - 1; i >= 0; i--) {
-		for (int i = 0; i < parameter_index; i++) {
-			const ffi_type* type = parameter_types[i];
-			int op = 0;
+        for (int i = 0; i < parameter_index; i++) {
+            const ffi_type* type = parameter_types[i];
+            int op = 0;
 
-			if (type == &ffi_type_sint32) {
-				op = OP_FFI_PUSH_SINT32;
-			} else if (type == &ffi_type_double) {
-				op = OP_FFI_PUSH_DOUBLE;
-			} else if (type == &ffi_type_pointer) {
-				op = OP_FFI_PUSH_POINTER;
-			} else {
-				fprintf(stderr,
-						"-- Invalid CFFI variadic argument type (%s: %s --> bad %s)!\n",
-						fff->name,
-						param->name,
-						po_ffi_name_for_type(type));
-			}
+            if (type == &ffi_type_sint32 || type == &ffi_type_sint) {
+                op = OP_FFI_PUSH_SINT32;
+            } else if (type == &ffi_type_double) {
+                op = OP_FFI_PUSH_DOUBLE;
+            } else if (type == &ffi_type_pointer) {
+                op = OP_FFI_PUSH_POINTER;
+            } else {
+                fprintf(stderr,
+                        "-- Invalid CFFI variadic argument type (%s: %s --> bad %s)!\n",
+                        fff->name,
+                        param->name,
+                        po_ffi_name_for_type(type));
+            }
 
-			if (op) {
-				po_code_op(pcb, &e->ecd, op);
-			}
-		}
+            if (op) {
+                po_code_op(pcb, &e->ecd, op);
+            }
+        }
 
 		// finish off the list with a NULL pointer
 		po_code_op(pcb, &e->ecd, OP_FFI_PUSH_NULL);

@@ -219,9 +219,25 @@ bool check_abort(void* nobody)
 	return false;
 }
 
-/****************************************************************************
+/**
+ * Logs an error message and an error code to the standard output.
  *
- ***************************************************************************/
+ * This function uses a formatted string with variable arguments to construct
+ * the message to be logged. It appends the provided error code to the output
+ * and ensures proper formatting with line breaks.
+ *
+ * IMPORTANT NOTES:
+ * - Ensure the provided format string (`fmt`) is accurate and accommodates
+ *   the variable arguments appropriately to avoid runtime errors.
+ * - The function outputs messages to `stdout`. If output redirection
+ *   or different logging behavior is required, adapt the function accordingly.
+ *
+ * @param err The error code that will be appended to the message.
+ * @param fmt A formatted string specifying how subsequent arguments are
+ *            interpreted and output.
+ * @param ... Additional arguments to match format specifiers in `fmt`.
+ * @return Always returns the error code passed as `err`.
+ */
 Errcode errline(int err, char* fmt, ...)
 {
 	va_list argptr;
