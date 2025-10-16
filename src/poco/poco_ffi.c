@@ -17,8 +17,8 @@
 
 #include <assert.h>
 #include <errno.h>
-#include <hashmap.h>
 #include <stdbool.h>
+#include <hashmap.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -35,8 +35,7 @@
 #define assertm(exp, msg) assert(((void)msg, exp))
 
 
-extern void* malloc();
-extern void free();
+ 
 
 
 typedef HASHMAP(void, Po_FFI) _func_hash_map;
