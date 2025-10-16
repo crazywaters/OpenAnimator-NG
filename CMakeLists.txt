@@ -5,6 +5,9 @@ project(animator-pro)
 cmake_policy(SET CMP0114 NEW)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+# Enable testing
+enable_testing()
+
 if(APPLE)
 	enable_language(OBJC)
 	add_compile_definitions(-DSDL_PLATFORM_APPLE=1)

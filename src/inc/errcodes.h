@@ -111,6 +111,7 @@
 #define Err_no_record	(FERR-48)	 /* Data record not found */
 #define Err_end_of_record	(FERR-49)	 /* End of data record */
 #define Err_no_temp_space	(FERR-50) /* out of space writing to temp device */
+#define Err_not_implemented	(FERR-51) /* feature not implemented yet */
 /* end FERR */
 #endif
 

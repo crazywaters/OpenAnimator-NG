@@ -315,42 +315,6 @@ size_t get_errtext(Errcode err, char* buf)
 /****************************************************************************
  *
  ***************************************************************************/
-int po_puts(Popot s)
-{
-	int result;
-
-	if (s.pt == NULL) {
-		return builtin_err = Err_null_ref;
-	}
-	fputs(s.pt, stdout);
-	result = fputs("\n", stdout);
-	return result;
-}
-
-/****************************************************************************
- *
- ***************************************************************************/
-int po_printf(long vargcount, long vargsize, char* format, ...)
-{
-	va_list args;
-	int result;
-
-	(void)vargcount;
-	(void)vargsize;
-
-	if (format == NULL) {
-		return builtin_err = Err_null_ref;
-	}
-
-	va_start(args, format);
-	result = vfprintf(stdout, format, args);
-	va_end(args);
-	return result;
-}
-
-/****************************************************************************
- *
- ***************************************************************************/
 void po_qtext(long vargcount, long vargsize, Popot format, ...)
 {
 	va_list args;
@@ -375,7 +339,7 @@ void po_qtext(long vargcount, long vargsize, Popot format, ...)
 /****************************************************************************/
 static Lib_proto proto_lines[] = {
 	/*	{tryme, 	"int ptryme(int (*v)(long a, long b, long c));"}, */
-	{po_puts, "int puts(char *s);"},
+	{puts, "int puts(char *s);"},
 	{printf, "int printf(char *format, ...);"},
 	{po_qtext, "int Qtext(char *format, ...);"},
 };
@@ -521,6 +485,19 @@ static void print_version()
  ***************************************************************************/
 static void usage()
 {
+	fprintf(stdout, "Usage: poco [options] <file.poc>\n");
+	fprintf(stdout, "\nOptions:\n");
+	fprintf(stdout, "  -c            Compile only; do not run.\n");
+	fprintf(stdout, "  -d            Dump disassembly to <file.dump>.\n");
+	fprintf(stdout, "  -o<file>      Redirect stdout to file.\n");
+	fprintf(stdout, "  -l            Disable builtin libraries.\n");
+#ifdef DEVELOPMENT
+	fprintf(stdout, "  -t            Enable instruction trace (development).\n");
+#endif
+	fprintf(stdout, "  -v            Print version and exit.\n");
+	fprintf(stdout, "  -g            Launch Poco GUI (if available).\n");
+
+	fflush(stdout);
 }
 
 /****************************************************************************
@@ -549,8 +526,8 @@ int main(int argc, char* argv[])
 	char err_file[100];
 	long err_line;
 	int err_char;
-	int err;
-	int compile_status;
+	int err = Success;
+
 	void* pexe;
 	char* efname = NULL; /* Errors file name.	*/
 	char* sfname = NULL; /* Source file name.	*/
@@ -601,12 +578,14 @@ int main(int argc, char* argv[])
 					break;
 				case 'v':
 				case 'V':
-					fprintf(stdout, "poco version %d\n", VRSN_NUM);
-					break;
+					print_version();
+					return 0;
 				case 'g':
 				case 'G':
 					gui_mode = true;
-					fprintf(stdout, "Launching Poco GUI...\n");
+					// fprintf(stdout, "Launching Poco GUI...\n");
+					fprintf(stdout, "Poco GUI not yet implemented\n");
+					return Err_not_implemented;
 				default: /* Fat-finger case...		*/
 					break;
 			}
@@ -615,10 +594,10 @@ int main(int argc, char* argv[])
 		}
 	}
 
-	if (sfname == NULL) {
-		//! TODO: Print usage instead of attempting to run this
-		sfname = "test.poc";
-	}
+    if (sfname == NULL) {
+        usage();
+        return 0;
+    }
 
 	if (strchr(sfname, '.') == NULL) {
 		/* If no '.' in name, tack on .POC */
@@ -637,8 +616,9 @@ int main(int argc, char* argv[])
 	//		poco_gui();
 	//	}
 
-	compile_status = compile_poco(&pexe, sfname, NULL, dfname, builtin_libs, err_file, &err_line,
-								  &err_char, incdirs);
+	const int compile_status = compile_poco(&pexe, sfname, NULL,
+									dfname, builtin_libs, err_file, &err_line,
+											&err_char, incdirs);
 
 	if (compile_status == Success) {
 #ifdef DEVELOPMENT
@@ -665,6 +645,10 @@ int main(int argc, char* argv[])
 
 		fprintf(stderr, "Return value: %d\n", ((Poco_run_env*)pexe)->result.i);
 		free_poco(&pexe);
+	}
+	else {
+		/* Propagate compile error to process exit code for test harnesses */
+		err = compile_status;
 	}
 
 	if (err < Success) {
