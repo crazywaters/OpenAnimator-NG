@@ -273,15 +273,19 @@ void po_code_long(Poco_cb* pcb, Code_buf* cbuf, int op, long val)
  ****************************************************************************/
 void po_code_address(Poco_cb* pcb, Code_buf* cbuf, int op, int doff, long dsize)
 {
-	struct int_long
-	{
-		int i;
-		long l;
-	} il;
+	/*
+	 * IMPORTANT: Do NOT pack these into a struct. On LP64 platforms a
+	 * struct { int; long; } may contain padding, which would make the
+	 * encoded operand larger than ADDRSZ (sizeof(int)+sizeof(long)).
+	 * That would desynchronize the interpreter/disassembler and lead
+	 * to an OP_BAD (invalid opcode) on the very next instruction.
+	 */
 
-	il.i = doff;
-	il.l = dsize;
-	po_add_op(pcb, cbuf, op, &il, sizeof(il));
+	/* write opcode first */
+	po_add_op(pcb, cbuf, op, NULL, 0);
+	/* then write tightly-packed int followed by long */
+	add_code(pcb, cbuf, &doff, (SHORT)sizeof(doff));
+	add_code(pcb, cbuf, &dsize, (SHORT)sizeof(dsize));
 }
 
 /*****************************************************************************
