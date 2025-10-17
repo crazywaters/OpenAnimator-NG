@@ -35,12 +35,6 @@ add_subdirectory(wndo)
 
 if (WITH_POCO)
 	add_subdirectory(poco)
-	set(PJ_POCO_FILES
-		pocodraw.c
-		pocotur.c
-		qpoco.c
-		qpocoed.c
-	)
 else()
 	## files still needed for softmenu parsing
 	set(PJ_POCO_FILES

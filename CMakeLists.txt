@@ -85,6 +85,9 @@ if (WITH_POCO)
 	include_directories(thirdparty/imgui/imgui/backends)
 	include_directories(thirdparty/imgui/imgui_club/imgui_memory_editor)
 
+	# Add new standalone poco subproject
+	add_subdirectory(poco)
+
 	##!TODO: Fix this extension
 	# add_subdirectory(thirdparty/imgui/ImGuiColorTextEdit)
 	# include_directories(thirdparty/imgui/ImGuiColorTextEdit)
