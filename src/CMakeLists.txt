@@ -38,9 +38,10 @@ if (WITH_POCO)
     
 else()
 	## files still needed for softmenu parsing
+	include_directories("${CMAKE_SOURCE_DIR}/poco/include")
 	set(PJ_POCO_FILES
-		poco/token.c
-		poco/bcutil.c
+		"${CMAKE_SOURCE_DIR}/poco/src/token.c"
+		"${CMAKE_SOURCE_DIR}/poco/src/bcutil.c"
 	)
 endif()
 
