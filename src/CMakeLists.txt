@@ -34,7 +34,8 @@ add_subdirectory(util)
 add_subdirectory(wndo)
 
 if (WITH_POCO)
-	add_subdirectory(poco)
+    # poco is now a top-level subproject; include only minimal files needed when disabled
+    
 else()
 	## files still needed for softmenu parsing
 	set(PJ_POCO_FILES

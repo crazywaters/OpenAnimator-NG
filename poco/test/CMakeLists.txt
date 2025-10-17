@@ -6,7 +6,7 @@ function(add_poco_pos_test TEST_NAME POC_FILE)
     set(TEST_FILE "${CMAKE_CURRENT_SOURCE_DIR}/${POC_FILE}")
     add_test(
         NAME "poco_pos_${TEST_NAME}"
-        COMMAND poco "${TEST_FILE}"
+        COMMAND $<TARGET_FILE:poco> "${TEST_FILE}"
         WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
     )
     # Positive tests should succeed (return 0)
@@ -22,7 +22,7 @@ function(add_poco_neg_test TEST_NAME POC_FILE)
     set(TEST_FILE "${CMAKE_CURRENT_SOURCE_DIR}/${POC_FILE}")
     add_test(
         NAME "poco_neg_${TEST_NAME}"
-        COMMAND poco "${TEST_FILE}"
+        COMMAND $<TARGET_FILE:poco> "${TEST_FILE}"
         WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
     )
     # Negative tests should fail (non-zero return code or error message)
@@ -38,7 +38,7 @@ function(add_poco_test TEST_NAME POC_FILE)
     set(TEST_FILE "${CMAKE_CURRENT_SOURCE_DIR}/${POC_FILE}")
     add_test(
         NAME "poco_${TEST_NAME}"
-        COMMAND poco "${TEST_FILE}"
+        COMMAND $<TARGET_FILE:poco> "${TEST_FILE}"
         WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
     )
     set_tests_properties("poco_${TEST_NAME}" PROPERTIES
