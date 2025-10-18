@@ -1,4 +1,4 @@
-.PHONY: all release debug run poco clean
+.PHONY: all release debug run_poco clean
 
 all: debug
 
@@ -28,8 +28,8 @@ lldb:
 		 --one-line-on-crash 'bt' \
 	     --one-line-on-crash 'quit'
 
-poco:
-	_build/bin/poco
+run_poco:
+	lldb -o run -o bt -o exit _build/bin/poco poco/test/po_ffi_01.poc
 
 clean:
 	rm -rf _build && \

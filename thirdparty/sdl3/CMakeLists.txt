@@ -5,7 +5,7 @@ if(NOT DEFINED CMAKE_BUILD_TYPE)
 endif()
 
 # See docs/release_checklist.md
-project(SDL3 LANGUAGES C VERSION "3.2.8")
+project(SDL3 LANGUAGES C VERSION "3.2.20")
 
 if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
   set(SDL3_MAINPROJECT ON)
@@ -188,9 +188,12 @@ if(MSVC)
     # Make sure /RTC1 is disabled, otherwise it will use functions from the CRT
     foreach(flag_var
         CMAKE_C_FLAGS CMAKE_C_FLAGS_DEBUG CMAKE_C_FLAGS_RELEASE
-        CMAKE_C_FLAGS_MINSIZEREL CMAKE_C_FLAGS_RELWITHDEBINFO)
+        CMAKE_C_FLAGS_MINSIZEREL CMAKE_C_FLAGS_RELWITHDEBINFO
+        CMAKE_CXX_FLAGS CMAKE_CXX_FLAGS_DEBUG CMAKE_CXX_FLAGS_RELEASE
+        CMAKE_CXX_FLAGS_MINSIZEREL CMAKE_CXX_FLAGS_RELWITHDEBINFO)
       string(REGEX REPLACE "/RTC(su|[1su])" "" ${flag_var} "${${flag_var}}")
     endforeach(flag_var)
+    set(CMAKE_MSVC_RUNTIME_CHECKS "")
   endif()
 
   if(MSVC_CLANG)
@@ -633,6 +636,11 @@ if(MSVC)
   if(MSVC_VERSION GREATER 1926 AND CMAKE_GENERATOR_PLATFORM MATCHES "Win32|x64")
     # Mark SDL3.dll as compatible with Control-flow Enforcement Technology (CET)
     sdl_shared_link_options("-CETCOMPAT")
+  endif()
+
+  # for VS >= 17.14 targeting ARM64: inline the Interlocked funcs
+  if(MSVC_VERSION GREATER 1943 AND SDL_CPU_ARM64 AND NOT SDL_LIBC)
+    sdl_compile_options(PRIVATE "/forceInterlockedFunctions-")
   endif()
 endif()
 
@@ -1291,8 +1299,8 @@ if(ANDROID)
   list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake/android")
 
   sdl_glob_sources("${SDL3_SOURCE_DIR}/src/core/android/*.c")
-  sdl_sources("${ANDROID_NDK}/sources/android/cpufeatures/cpu-features.c")
-  set_property(SOURCE "${ANDROID_NDK}/sources/android/cpufeatures/cpu-features.c" APPEND_STRING PROPERTY COMPILE_FLAGS " -Wno-declaration-after-statement")
+  sdl_sources("${CMAKE_ANDROID_NDK}/sources/android/cpufeatures/cpu-features.c")
+  set_property(SOURCE "${CMAKE_ANDROID_NDK}/sources/android/cpufeatures/cpu-features.c" APPEND_STRING PROPERTY COMPILE_FLAGS " -Wno-declaration-after-statement")
 
   sdl_glob_sources("${SDL3_SOURCE_DIR}/src/misc/android/*.c")
   set(HAVE_SDL_MISC TRUE)
@@ -1336,9 +1344,7 @@ if(ANDROID)
     set(HAVE_SDL_HAPTIC TRUE)
   endif()
 
-  if(SDL_HIDAPI)
-    CheckHIDAPI()
-  endif()
+  CheckHIDAPI()
 
   if(SDL_JOYSTICK)
     set(SDL_JOYSTICK_ANDROID 1)
@@ -1480,6 +1486,11 @@ if(ANDROID)
       endif()
     endif()
   endif()
+
+if(TARGET SDL3-shared)
+  target_link_options(SDL3-shared PRIVATE "-Wl,-z,max-page-size=16384")
+  target_link_options(SDL3-shared PRIVATE "-Wl,-z,common-page-size=16384")
+endif()
 
 elseif(EMSCRIPTEN)
   # Hide noisy warnings that intend to aid mostly during initial stages of porting a new
@@ -2188,6 +2199,7 @@ elseif(APPLE)
       set(SDL_CAMERA_DRIVER_COREMEDIA 1)
       set(HAVE_CAMERA TRUE)
       sdl_glob_sources("${SDL3_SOURCE_DIR}/src/camera/coremedia/*.m")
+      set(SDL_FRAMEWORK_AVFOUNDATION 1)
     endif()
   endif()
 
@@ -3016,7 +3028,7 @@ if(SDL_GPU)
     set(SDL_GPU_D3D11 1)
     set(HAVE_SDL_GPU TRUE)
   endif()
-  if(SDL_RENDER_D3D12)
+  if(WINDOWS)
     sdl_glob_sources("${SDL3_SOURCE_DIR}/src/gpu/d3d12/*.c")
     set(SDL_GPU_D3D12 1)
     set(HAVE_SDL_GPU TRUE)
@@ -3287,7 +3299,7 @@ else()
 endif()
 
 if(ANDROID)
-  sdl_include_directories(PRIVATE SYSTEM "${ANDROID_NDK}/sources/android/cpufeatures")
+  sdl_include_directories(PRIVATE SYSTEM "${CMAKE_ANDROID_NDK}/sources/android/cpufeatures")
 endif()
 
 if(APPLE)

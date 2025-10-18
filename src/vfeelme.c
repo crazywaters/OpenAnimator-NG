@@ -1,7 +1,6 @@
 /* vfeelme.c - some input handling routines for Buttons. */
 
 #include "jimk.h"
-#include "errcodes.h"
 #include "menus.h"
 #include "pentools.h"
 

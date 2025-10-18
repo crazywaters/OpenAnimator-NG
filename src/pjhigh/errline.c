@@ -1,22 +1,24 @@
 #include <stdarg.h>
-#include "jimk.h"
+
 #include "commonst.h"
 #include "errcodes.h"
-
-Errcode errline(Errcode err, char *fmt,...)
+#include "jimk.h"
 
 /* note, will not report if Successful or Err_aborted or Err_reported */
+Errcode errline(Errcode err, char* fmt, ...)
 {
 	char etext[ERRTEXT_SIZE];
 	va_list args;
 
-	if(!get_errtext(err,etext))
-		return(err);
+	if (!get_errtext(err, etext)) {
+		return err;
+	}
 
-	va_start(args,fmt);
-	if(!fmt)
+	va_start(args, fmt);
+	if (!fmt) {
 		fmt = empty_str;
-	varg_continu_box(NULL,fmt,args,etext);
+	}
+	varg_continu_box(NULL, fmt, args, etext);
 	va_end(args);
-	return(Err_reported);
+	return Err_reported;
 }

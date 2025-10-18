@@ -34,18 +34,14 @@ add_subdirectory(util)
 add_subdirectory(wndo)
 
 if (WITH_POCO)
-	add_subdirectory(poco)
-	set(PJ_POCO_FILES
-		pocodraw.c
-		pocotur.c
-		qpoco.c
-		qpocoed.c
-	)
+    # poco is now a top-level subproject; include only minimal files needed when disabled
+    
 else()
 	## files still needed for softmenu parsing
+	include_directories("${CMAKE_SOURCE_DIR}/poco/include")
 	set(PJ_POCO_FILES
-		poco/token.c
-		poco/bcutil.c
+		"${CMAKE_SOURCE_DIR}/poco/src/token.c"
+		"${CMAKE_SOURCE_DIR}/poco/src/bcutil.c"
 	)
 endif()
 
@@ -130,6 +126,7 @@ set(PJMAIN_SRC_FILES
 	sizemenu.c
 	spiral.c
 	spline.c
+	stb_impl.c
 	about_box.c
 	tempflx.c
 	tempname.c

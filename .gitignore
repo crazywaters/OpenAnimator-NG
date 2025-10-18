@@ -1,3 +1,4 @@
+pixi.lock
 cmake-build-*
 build
 *.o
@@ -10,11 +11,13 @@ xcode
 .DS_Store
 .vscode
 build_debug
-_build
-_output
+_*
 *~
 .__idea
 
 # pixi environments
 .pixi
 *.egg-info
+# pixi environments
+.pixi/*
+!.pixi/config.toml
