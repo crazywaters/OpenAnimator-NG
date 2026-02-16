@@ -96,7 +96,7 @@ void free_the_cel(void)
 	free_fcel(&thecel);
 }
 
-static void noask_delete_the_cel(void)
+void noask_delete_the_cel(void)
 {
 	free_the_cel();
 	pj_delete(cel_name);
@@ -687,7 +687,7 @@ void clip_cel1(void)
 	clip_cel();
 }
 
-static Errcode cel_from_rect(Rectangle* rect, bool render_only)
+Errcode cel_from_rect(Rectangle* rect, bool render_only)
 {
 	Errcode err;
 

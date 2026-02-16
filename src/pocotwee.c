@@ -4,6 +4,7 @@
 #include "pocolib.h"
 #include "tween.h"
 #include "auto.h"
+#include "render.h"
 
 #define POCO_TWEEN_INTERNALS
 #include "poco_tween.h"
@@ -13,9 +14,11 @@
 
 extern Errcode po_poly_to_arrays(Poly *p, Popot *x, Popot *y);
 extern Errcode po_arrays_to_poly(Poly *p, int ptcount, Popot *px, Popot *py);
-extern ErrCode po_arrays_to_ll_poly(Poly *poly
-,  int ptcount, Popot *px, Popot *py);
+extern ErrCode po_arrays_to_ll_poly(Poly *poly, int ptcount, Popot *px, Popot *py);
 extern Errcode po_2_arrays_check(int ptcount, Popot *px, Popot *py);
+
+extern void init_tw_list(Tw_tlist *twl); // from tweenlo.c
+extern Errcode tween1(void *tween1_data, int ix, int intween, int scale, Autoarg *aa); // from tweenhi.c
 
 static Tween_state poco_tween_state;
 
@@ -262,7 +265,7 @@ static Errcode po_lmalloc_2(Popot *x, Popot *y, int size)
 	*y = poco_lmalloc(size);
 	if ((y->pt) == NULL)
 		{
-		po_free(*x);
+		po_free(x->pt);
 		Popot_make_null(x);
 		return Err_no_memory;
 		}
@@ -449,8 +452,9 @@ static ErrCode po_tween_render(void)
 	Autoarg aa;
 	Errcode err;
 
-	if (!tween_has_data(&poco_tween_state))
+	if (!tween_has_data(&poco_tween_state)) {
 		return Err_not_found;
+	}
 	twda.is_spline = vs.tween_spline;
 	twda.ts = &poco_tween_state;
 	clear_struct(&aa);

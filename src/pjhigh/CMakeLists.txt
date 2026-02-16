@@ -43,6 +43,8 @@ set(PJHIGH_SRC_FILES
 	picsave.c
 	qchoice.c
 	qscroll.c
+	qreqnum.c
+	qreqstr.c
 	rastcurs.c
 	resexist.c
 	resource.c

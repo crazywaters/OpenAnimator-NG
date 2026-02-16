@@ -1,107 +1,118 @@
-/* This is just a little program to exercise colorutl.poe. */
+/* Headless test for colorutl.poe — exercises pure-computation functions
+ * that don't require the Animator runtime.
+ *
+ * Tests: ColorDifference, ClosestColor (local table), RgbToHls
+ */
 
 #pragma poco library "colorutl.poe"
 
 #ifndef __POCO__
   int  ColorDifference(int *pcolor1, int *pcolor2);
   int  ClosestColor(int *pcolor, int *ptab, int tabcount);
-  void GetMenuRGB(int *current, int *preferred);
-  void GetMenuIndexes(int *indexes);
   void RgbToHls(int r, int g, int b, int *h, int *l, int *s);
 #endif /* __POCO__ */
 
+int errors = 0;
 
-void test_ColorDifference(int *a, int *b)
+void check_int(char *label, int expected, int actual)
 {
-	Qtext(
-	"Color difference between (%03d %03d %03d)\n"
-	"and (%03d %03d %03d) is %d.\n"
-	, a[0], a[1], a[2], b[0], b[1], b[2]
-	, ColorDifference(a,b)
-	);
+	if (expected != actual) {
+		printf("FAIL %s: expected %d, got %d\n", label, expected, actual);
+		errors += 1;
+	} else {
+		printf("  ok %s = %d\n", label, actual);
+	}
 }
 
-void debug_ClosestColor()
+void test_ColorDifference()
 {
-	static int table[] = {0,0,0, 111,111,111, 255,255,255};
-	static int color[] = {255,255,255};
-	Qtext("Closest color is %d.", ClosestColor(color,table,3));
+	int black[3];
+	int white[3];
+	int red[3];
+	int dif;
+
+	black[0] = 0;   black[1] = 0;   black[2] = 0;
+	white[0] = 255; white[1] = 255; white[2] = 255;
+	red[0]   = 255; red[1]   = 0;   red[2]   = 0;
+
+	printf("-- ColorDifference --\n");
+
+	/* black vs black should be 0 */
+	dif = ColorDifference(black, black);
+	check_int("black-black", 0, dif);
+
+	/* black vs white = 255^2 * 3 = 195075 */
+	dif = ColorDifference(black, white);
+	check_int("black-white", 195075, dif);
+
+	/* red vs black = 255^2 = 65025 */
+	dif = ColorDifference(red, black);
+	check_int("red-black", 65025, dif);
 }
 
-void test_ClosestColor(int *col)
+void test_ClosestColor()
 {
-	int screen_map[256*3];
-	int close_ix;
-	int *close_rgb;
+	/* Small color table: black, mid-grey, white */
+	int table[9];
+	int query[3];
+	int idx;
 
-	GetScreenColorMap(GetPicScreen(), screen_map);
-	close_ix = ClosestColor(col, screen_map, 256);
-	close_rgb = screen_map + 3*close_ix;
-	Qtext("Closest color to (%03d %03d %03d) is\n"
-	      "color register %d (%03d %03d %03d)\n"
-		  "with a difference of %d.\n"
-		  , col[0], col[1], col[2]
-		  , close_ix, close_rgb[0], close_rgb[1], close_rgb[2]
-		  , ColorDifference(col, close_rgb));
+	table[0] = 0;   table[1] = 0;   table[2] = 0;     /* 0: black  */
+	table[3] = 128; table[4] = 128; table[5] = 128;    /* 1: grey   */
+	table[6] = 255; table[7] = 255; table[8] = 255;    /* 2: white  */
+
+	printf("-- ClosestColor --\n");
+
+	/* Query white — should match index 2 */
+	query[0] = 255; query[1] = 255; query[2] = 255;
+	idx = ClosestColor(query, table, 3);
+	check_int("closest-to-white", 2, idx);
+
+	/* Query black — should match index 0 */
+	query[0] = 0; query[1] = 0; query[2] = 0;
+	idx = ClosestColor(query, table, 3);
+	check_int("closest-to-black", 0, idx);
+
+	/* Query near-grey (120,120,120) — should match index 1 */
+	query[0] = 120; query[1] = 120; query[2] = 120;
+	idx = ClosestColor(query, table, 3);
+	check_int("closest-to-grey", 1, idx);
 }
 
-void test_MenuColors()
-{
-	int current[5*3];
-	int preferred[5*3];
-	int index[5];
-
-	GetMenuRGB(current, preferred);
-	GetMenuIndexes(index);
-	Qtext(
-	"Here is a list of the current menu colors in the format\n"
-	"(preferred RGB value) (current RGB value) (color index).\n"
-	"(%03d %03d %03d) (%03d %03d %03d) (%03d)\n"
-	"(%03d %03d %03d) (%03d %03d %03d) (%03d)\n"
-	"(%03d %03d %03d) (%03d %03d %03d) (%03d)\n"
-	"(%03d %03d %03d) (%03d %03d %03d) (%03d)\n"
-	"(%03d %03d %03d) (%03d %03d %03d) (%03d)\n"
-	, current[0*3+0], current[0*3+1], current[0*3+2]
-	, preferred[0*3+0], preferred[0*3+1], preferred[0*3+2], index[0]
-	, current[1*3+0], current[1*3+1], current[1*3+2]
-	, preferred[1*3+0], preferred[1*3+1], preferred[1*3+2], index[1]
-	, current[2*3+0], current[2*3+1], current[2*3+2]
-	, preferred[2*3+0], preferred[2*3+1], preferred[2*3+2], index[2]
-	, current[3*3+0], current[3*3+1], current[3*3+2]
-	, preferred[3*3+0], preferred[3*3+1], preferred[3*3+2], index[3]
-	, current[4*3+0], current[4*3+1], current[4*3+2]
-	, preferred[4*3+0], preferred[4*3+1], preferred[4*3+2], index[4]
-	);
-}
-
-void test_rgb2hls(int *col)
+void test_RgbToHls()
 {
 	int h, l, s;
 
-	RgbToHls(col[0], col[1], col[2], &h, &l, &s);
-	Qtext("RGB (%03d %03d %03d) is equivalent to HLS (%03d %03d %03d)."
-	, 	col[0], col[1], col[2]
-	,	h, l, s);
-}
+	printf("-- RgbToHls --\n");
 
-int blue[3] = {100, 100, 255};
-int green[3] = {255, 100, 100};
+	/* Pure red (255,0,0) */
+	RgbToHls(255, 0, 0, &h, &l, &s);
+	printf("  RGB(255,0,0) -> HLS(%d,%d,%d)\n", h, l, s);
+	check_int("red-L", 127, l);
 
-void test_colorutl()
-{
-	test_ColorDifference(blue, green);
-	test_ClosestColor(blue);
-	test_MenuColors();
-	test_rgb2hls(blue);
+	/* Pure white (255,255,255) — saturation should be 0 */
+	RgbToHls(255, 255, 255, &h, &l, &s);
+	printf("  RGB(255,255,255) -> HLS(%d,%d,%d)\n", h, l, s);
+	check_int("white-S", 0, s);
+	check_int("white-L", 255, l);
+
+	/* Pure black (0,0,0) — saturation should be 0 */
+	RgbToHls(0, 0, 0, &h, &l, &s);
+	printf("  RGB(0,0,0) -> HLS(%d,%d,%d)\n", h, l, s);
+	check_int("black-S", 0, s);
+	check_int("black-L", 0, l);
 }
 
 void main()
 {
-//	debug_ClosestColor();	
-	if (Qquestion(
-	"Would you like to test the functions contained in colorutl.poe?"))
-		test_colorutl();
+	printf("colorutl.poe headless test\n\n");
+	test_ColorDifference();
+	test_ClosestColor();
+	test_RgbToHls();
+
+	if (errors == 0) {
+		printf("\nAll tests passed.\n");
+	} else {
+		printf("\n%d test(s) FAILED.\n", errors);
+	}
 }
-
-
-

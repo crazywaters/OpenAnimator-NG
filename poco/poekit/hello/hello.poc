@@ -1,0 +1,8 @@
+#pragma poco library "hello.poe"
+
+main()
+{
+	HelloFunc();
+	puts("Test completed successfully!");
+}
+

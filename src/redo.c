@@ -18,8 +18,6 @@
 /* stuff to deal with redo-draw */
 static XFILE *rbf;
 
-static Errcode _redo_draw(Redo_rec *r);
-
 Errcode start_save_redo_points(void)
 {
 	Errcode err;
@@ -368,9 +366,8 @@ static Errcode _redo_edit(Redo_rec *r)
 	return Success + 1;
 }
 
-static Errcode _redo_draw(Redo_rec *r)
-
 /* actually draws a redo record onto the screen */
+Errcode _redo_draw(Redo_rec *r)
 {
 	Errcode err;
 	Errcode (*rfunc)(Redo_rec *r);

@@ -36,12 +36,41 @@ set(CMAKE_C_STANDARD 11)
 # )
 
 
-## ffi test
-if (WITH_POCO)
-	set(FFI_TEST_SOURCES
-            ffi_test.cc
-    )
+## ffi test (disabled; ffi_test.cc kept for reference)
+# if (WITH_POCO)
+# 	set(FFI_TEST_SOURCES
+#             ffi_test.cc
+#     )
+#
+# 	add_executable(ffi_test "${FFI_TEST_SOURCES}")
+# 	target_link_libraries(ffi_test ffi_static)
+# endif()
 
-	add_executable(ffi_test "${FFI_TEST_SOURCES}")
-	target_link_libraries(ffi_test ffi_static)
+###############################################################################
+# Minunit C unit tests for Poco library functions
+# Runs only when WITH_POCO=ON (consistent with "Poco library testing" scope)
+###############################################################################
+if (WITH_POCO)
+	# Minunit is header-only
+	set(MINUNIT_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/thirdparty/minunit")
+
+	# --- fnsplit tests ---
+	add_executable(test_fnsplit test_fnsplit.c)
+	target_include_directories(test_fnsplit PRIVATE
+		${MINUNIT_INCLUDE_DIR}
+		${CMAKE_SOURCE_DIR}/src/inc
+	)
+	target_link_libraries(test_fnsplit PRIVATE trdfile)
+	add_test(NAME test_fnsplit COMMAND test_fnsplit)
+	set_tests_properties(test_fnsplit PROPERTIES TIMEOUT 30)
+
+	# --- color HLS tests ---
+	add_executable(test_color_hls test_color_hls.c)
+	target_include_directories(test_color_hls PRIVATE
+		${MINUNIT_INCLUDE_DIR}
+		${CMAKE_SOURCE_DIR}/src/inc
+	)
+	target_link_libraries(test_color_hls PRIVATE gfxlib trdutil)
+	add_test(NAME test_color_hls COMMAND test_color_hls)
+	set_tests_properties(test_color_hls PROPERTIES TIMEOUT 30)
 endif()

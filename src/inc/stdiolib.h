@@ -6,6 +6,8 @@
  * since different hosts may have different definitions of standard io 
  * functions */
 
+#include <stdio.h>
+
 #ifndef STDTYPES_H
 	#include "stdtypes.h"
 #endif

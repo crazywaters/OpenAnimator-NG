@@ -26,16 +26,6 @@ static Idr_library sdl_idr_library = {
 
 /*--------------------------------------------------------------*/
 
-/* Function: pj_clock_1000
- *
- *  Return the number of elapsed milliseconds since the program was started.
- */
-
-uint32_t pj_clock_1000(void)
-{
-	return SDL_GetTicks();
-}
-
 static int16_t sdl_key_event_to_ascii(const SDL_Event* ev)
 {
 	static const int16_t fnkey[12] = {FKEY1, FKEY2, FKEY3, FKEY4,  FKEY5,  FKEY6,

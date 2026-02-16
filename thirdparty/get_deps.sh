@@ -2,6 +2,8 @@
 [ ! -d stb ]        && git clone https://github.com/nothings/stb.git                      ./stb
 [ ! -d miniz ]      && git clone https://github.com/richgel999/miniz.git                  ./miniz
 
+[ ! -d minunit ]      && git clone https://github.com/kattkieru/minunit.git               ./minunit
+
 #[ ! -d mathc ]      && git clone https://github.com/kattkieru/mathc.git                   ./mathc
 #[ ! -d sdl3 ]       && git clone https://github.com/libsdl-org/SDL.git                    ./sdl3        && git checkout release-3.2.2
 

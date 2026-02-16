@@ -252,7 +252,7 @@ void separate(void)
 	from_menu = false;
 }
 
-static Errcode csd_edge1(Pixel ecolor)
+Errcode csd_edge1(Pixel ecolor)
 {
 Errcode err;
 UBYTE *linebufs;

@@ -2,13 +2,14 @@
 authors = ["kiki <charles@skeletalstudios.com>"]
 channels = ["conda-forge"]
 name = "animator-pro"
-platforms = ["osx-64"]
-version = "0.1.0"
+platforms = ["osx-64", "osx-arm64"]
+version = "1.4"
 
 [tasks]
-configure = { cmd="cmake -B _build -S . -G Ninja -DCMAKE_INSTALL_PREFIX=_install -DWITH_ANI=0 -DWITH_POCO=1" }
+configure = { cmd="cmake -B _build -S . -G Ninja -DCMAKE_INSTALL_PREFIX=_install -DWITH_ANI=1 -DWITH_POCO=1" }
 build = { cmd="cmake --build _build --config debug --target install", depends-on=["configure"] }
 test = { cmd="ctest --test-dir _build --output-on-failure", depends-on=["build"] }
+ani = { cmd="./ani", cwd="_install", depends-on=["build"] }
 clean = "rm -rf _*"
 
 [dependencies]

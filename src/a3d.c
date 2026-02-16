@@ -29,7 +29,6 @@
 static Errcode ado_mouse_ptfunc(Pentool *pt, Wndo *w);
 static Errcode eload_a3d(char *name);
 static Errcode save_a3d(char *title);
-static Errcode do_move_along(void);
 
 /************** Stuff for 2-Dimensional point-lists *****************/
 typedef struct poly2 {
@@ -366,7 +365,7 @@ void default_center(Short_xyz *v)
 	}
 }
 
-static void a3d_default_centers(void)
+void a3d_default_centers(void)
 {
 	default_center(&vs.move3.spin_center);
 	pj_copy_structure(&vs.move3.spin_center, &vs.move3.size_center, sizeof(&vs.move3.size_center));
@@ -470,7 +469,7 @@ static Errcode rado_poly(Short_xy *ado_s, int ptcount, int curved)
 }
 
 /* This is the 'auto vec' to render optics on one frame */
-static Errcode twirl1(void *celcfit, int ix, int frames, int scale, Autoarg *aa)
+Errcode twirl1(void *celcfit, int ix, int frames, int scale, Autoarg *aa)
 {
 	Celcfit *cfit = celcfit;
 	Rcel *tf = NULL;
@@ -651,7 +650,7 @@ void xyz_zero_sl(Button *m)
    it's inverse.  Given the axis this guy figures out what
    bracketing rotations are necessary. (Boy, it's a good thing
    I know Linear Algebra.) */
-static void make_rot_op(void)
+void make_rot_op(void)
 {
 	find_conjugates(&vs.move3);
 }
@@ -814,7 +813,7 @@ void mado_view(void)
 	show_mp();
 }
 
-static int a3d_get_auto_flags(void)
+int a3d_get_auto_flags(void)
 {
 	int autoflags;
 
@@ -881,7 +880,7 @@ static void ado_clear(void)
 }
 
 /* Clear all optics motion */
-static void ado_clear_all(void)
+void ado_clear_all(void)
 {
 	ado_clear_stack();
 	pj_delete(ppoly_name);
@@ -1432,7 +1431,7 @@ static Errcode ado_mouse_ptfunc(Pentool *pt, Wndo *w)
 }
 
 /* retrieve optics state from temp file */
-static Errcode get_a3d_state(void)
+Errcode get_a3d_state(void)
 {
 	ado_clear();
 	if (pj_exists(optics_name)) {
@@ -1442,7 +1441,7 @@ static Errcode get_a3d_state(void)
 }
 
 /* save optics state to temp file */
-static Errcode set_a3d_state(void)
+Errcode set_a3d_state(void)
 {
 	Errcode err;
 
@@ -1668,7 +1667,7 @@ void edit_path(void)
 }
 
 /* Duplicate top of transformation stack. */
-static Errcode do_move_along(void)
+Errcode do_move_along(void)
 {
 	make_rot_op();
 
@@ -1683,7 +1682,7 @@ static Errcode do_move_along(void)
 
 /* make sure that the optics element exists.  If it doesn't set it to
  * the Flic */
-static void a3d_check_el(bool *no_poly, bool *no_tween)
+void a3d_check_el(bool *no_poly, bool *no_tween)
 {
 	bool np, nt;
 

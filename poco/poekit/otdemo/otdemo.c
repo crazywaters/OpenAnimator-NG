@@ -60,8 +60,8 @@
  * include the usual header files...
  *--------------------------------------------------------------------------*/
 
+#include "errcodes.h"   /* host error codes (must precede pocorex.h)     */
 #include "pocorex.h"    /* required header file, also includes pocolib.h */
-#include "errcodes.h"   /* most POE programs will need error codes info  */
 
 /*----------------------------------------------------------------------------
  * set up the host libraries we need...
@@ -137,9 +137,9 @@ void make_circle_flic(void)
 
 	changes = poeGetChangeCount();
 	if (changes != 0) {
-		if (!poeQquestion(1,sizeof(int),
-				str2ppt("You have %d unsaved changes.\n\n"
-						"Okay to discard changes and create new flic?"),
+		if (!poeQquestion(
+				"You have %d unsaved changes.\n\n"
+				"Okay to discard changes and create new flic?",
 				changes)
 			)
 			return;  // user said no, just punt.

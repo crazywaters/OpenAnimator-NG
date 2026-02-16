@@ -9,7 +9,7 @@
 
 static int get_rub_spiral(void);
 
-static int make_spiral_poly(int x0, int y0, int rad, int itheta, long ttheta)
+int make_spiral_poly(int x0, int y0, int rad, int itheta, long ttheta)
 {
 int i;
 register int ppoints;

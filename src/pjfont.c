@@ -32,10 +32,10 @@ void get_uvfont_name(char *buf)
 	vset_get_path(FONT_PATH,buf);
 }
 
-static Errcode load_the_font(char *path)
 /* returns error code and will reset name in settings file to match
  * current font. If the path is NULL it will load the one in the settings
  * file path */
+Errcode load_the_font(char *path)
 {
 Errcode err;
 Vset_path pinfo;

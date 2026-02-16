@@ -1,0 +1,53 @@
+/*
+ * Test fnsplit/fnmerge roundtrip.
+ * Splits a path, merges components back, verifies result matches.
+ */
+#pragma poco echo "expect>Success"
+
+char path[256];
+char device[16];
+char dir[128];
+char file[32];
+char suffix[16];
+char merged[256];
+
+main()
+{
+	/* Unix/macOS style path */
+	strcpy(path, "/usr/local/bin/foo.txt");
+	if (fnsplit(path, device, dir, file, suffix) != 0)
+	{
+		printf("fnsplit failed");
+		return;
+	}
+	if (fnmerge(merged, device, dir, file, suffix) != 0)
+	{
+		printf("fnmerge failed");
+		return;
+	}
+	if (strcmp(path, merged) != 0)
+	{
+		printf("roundtrip mismatch: '%s' vs '%s'", path, merged);
+		return;
+	}
+
+	/* Simple filename */
+	strcpy(path, "bar.gif");
+	if (fnsplit(path, device, dir, file, suffix) != 0)
+	{
+		printf("fnsplit bar failed");
+		return;
+	}
+	if (fnmerge(merged, device, dir, file, suffix) != 0)
+	{
+		printf("fnmerge bar failed");
+		return;
+	}
+	if (strcmp(path, merged) != 0)
+	{
+		printf("roundtrip bar mismatch");
+		return;
+	}
+
+	printf("Success");
+}

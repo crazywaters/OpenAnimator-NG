@@ -3,18 +3,22 @@
 
 #include "jimk.h"
 #include "errcodes.h"
+#include <stdio.h>
 #include "pocoface.h"
 #include "pocolib.h"
 #include "auto.h"
+#include "flx.h"
+#include "render.h"
 
 extern Errcode builtin_err;
 
-ULONG pj_clock_1000();
 void next_frame();
 void prev_frame();
-void flx_seek_frame(int frame);
 void set_flx_length(int frames);
 Errcode delete_some(int x);
+
+extern Errcode insert_frames(int count, int where); // from time.c
+
 
 static void po_sleep(double seconds)
 /*****************************************************************************
@@ -117,7 +121,7 @@ return(insert_frames(count, vs.frame_ix));
 typedef struct poco1_dat
 	{
 	void *code;
-	Popot *pdata;
+	Popot pdata;  /* Popot reconstructed from raw void* for poco_cont_ops callback */
 	} Poco1_dat;
 
 Errcode poco1(Poco1_dat *pd, int ix, int total, int scale)
@@ -132,7 +136,7 @@ Pt_num ret;
 time = 1.0 * scale / SCALE_ONE;
 
 err = poco_cont_ops(pd->code, &ret,
-			(sizeof(Popot)+sizeof(time)), time, *pd->pdata);
+			(sizeof(Popot)+sizeof(time)), time, pd->pdata);
 
 if ((builtin_err = err) >= Success)
 	{
@@ -141,44 +145,42 @@ if ((builtin_err = err) >= Success)
 return(err);
 }
 
-static Errcode po_over_time(Popot effect, Popot data)
+static Errcode po_over_time(void* effect, void* data)
 /*****************************************************************************
  * ErrCode OverTime(ErrCode (*effect)(double time, void *data), void *data)
  ****************************************************************************/
 {
-	void *fuf;
 	Poco1_dat pd;
 	Errcode err;
 	int omulti;
 
-	if ((fuf = effect.pt) == NULL)
+	if (effect == NULL)
 		return(builtin_err = Err_null_ref);
-	pd.pdata = &data;
-	if ((pd.code = po_fuf_code(fuf)) == NULL)
+	pd.pdata = (Popot){data, NULL, NULL};
+	if ((pd.code = po_fuf_code(effect)) == NULL)
 		return(Err_function_not_found);
 	free_render_cashes();
 	omulti = vs.multi;
-	vs.multi = TRUE;
+	vs.multi = true;
 	err = do_autodraw(poco1,&pd);
 	vs.multi = omulti;
 	make_render_cashes();
 	return(err);
 }
 
-static Errcode po_over_some(Popot *effect, Popot *data, enum automodes tmode)
+static Errcode po_over_some(void* effect, void* data, enum automodes tmode)
 /*****************************************************************************
  * This does a function over time without bringing up the Time Select panel.
  ****************************************************************************/
 {
-	void *fuf;
 	Poco1_dat pd;
 	Errcode err;
 	Autoarg aa;
 
-	if ((fuf = effect->pt) == NULL)
+	if (effect == NULL)
 		return(builtin_err = Err_null_ref);
-	pd.pdata = data;
-	if ((pd.code = po_fuf_code(fuf)) == NULL)
+	pd.pdata = (Popot){data, NULL, NULL};
+	if ((pd.code = po_fuf_code(effect)) == NULL)
 		return(Err_function_not_found);
 	free_render_cashes();
 	clear_struct(&aa);
@@ -190,20 +192,20 @@ static Errcode po_over_some(Popot *effect, Popot *data, enum automodes tmode)
 	return(err);
 }
 
-static Errcode po_over_segment(Popot effect, Popot data)
+static Errcode po_over_segment(void* effect, void* data)
 /*****************************************************************************
  * ErrCode OverSegment(ErrCode (*effect)(double time, void *data), void *data)
  ****************************************************************************/
 {
-return(po_over_some(&effect,&data,DOAUTO_SEGMENT));
+return(po_over_some(effect, data, DOAUTO_SEGMENT));
 }
 
-static Errcode po_over_all(Popot effect, Popot data)
+static Errcode po_over_all(void* effect, void* data)
 /*****************************************************************************
  * ErrCode OverAll(ErrCode (*effect)(double time, void *data), void *data)
  ****************************************************************************/
 {
-return(po_over_some(&effect,&data,DOAUTO_ALL));
+return(po_over_some(effect, data, DOAUTO_ALL));
 }
 
 Errcode po_poe_overtime(void *effect, void *data)
@@ -220,7 +222,7 @@ Errcode po_poe_overtime(void *effect, void *data)
 
 	free_render_cashes();	/* no bills larger than $20 accepted after 5pm... */
 	omulti = vs.multi;
-	vs.multi = TRUE;
+	vs.multi = true;
 	err = do_autodraw(effect,data);
 	vs.multi = omulti;
 	make_render_cashes();
@@ -262,12 +264,12 @@ Errcode po_poe_overall(void *effect, void *data)
 	return po_poe_over_some(effect, data, DOAUTO_ALL);
 }
 
-static void po_set_time_mode(Boolean is_multi)
+static void po_set_time_mode(bool is_multi)
 {
 vs.multi = is_multi;
 }
 
-static Boolean po_get_time_mode(void)
+static bool po_get_time_mode(void)
 {
 return(vs.multi);
 }
@@ -315,62 +317,62 @@ static int po_get_seg_end(void)
 return(vs.stop_seg);
 }
 
-static void set_still(Boolean still)
+static void set_still(bool still)
 {
 vs.ado_tween = !still;
 }
 
-static Boolean get_still(void)
+static bool get_still(void)
 {
 return(!vs.ado_tween);
 }
 
-static void set_in_slow(Boolean in_slow)
+static void set_in_slow(bool in_slow)
 {
 vs.ado_ease = in_slow;
 }
 
-static Boolean get_in_slow(void)
+static bool get_in_slow(void)
 {
 return(vs.ado_ease);
 }
 
-static void set_out_slow(Boolean out_slow)
+static void set_out_slow(bool out_slow)
 {
 vs.ado_ease_out = out_slow;
 }
 
-static Boolean get_out_slow(void)
+static bool get_out_slow(void)
 {
 return(vs.ado_ease_out);
 }
 
-static void set_ping_pong(Boolean ping_pong)
+static void set_ping_pong(bool ping_pong)
 {
 vs.ado_pong = ping_pong;
 }
 
-static Boolean get_ping_pong(void)
+static bool get_ping_pong(void)
 {
 return(vs.ado_pong);
 }
 
-static void set_reverse(Boolean reverse)
+static void set_reverse(bool reverse)
 {
 vs.ado_reverse = reverse;
 }
 
-static Boolean get_reverse(void)
+static bool get_reverse(void)
 {
 return(vs.ado_reverse);
 }
 
-static void set_complete(Boolean complete)
+static void set_complete(bool complete)
 {
 vs.ado_complete = complete;
 }
 
-static Boolean get_complete(void)
+static bool get_complete(void)
 {
 return(vs.ado_complete);
 }

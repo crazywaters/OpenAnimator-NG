@@ -74,7 +74,9 @@ typedef struct poco_lib /* Poco library main control structure */
 	void (*cleanup)(struct poco_lib* lib);
 	void* local_data;
 	Dlheader resources;
-	void* rexhead;
+	void* rexhead;		/* For loaded POE modules: points to internal structure containing
+				 * the library handle and Pocorex* pointer. Used for cleanup
+				 * when unloading the library. Set to NULL for builtin libraries. */
 	char reserved[12];
 } Poco_lib;
 
@@ -116,16 +118,19 @@ extern Errcode po_init_libs(Poco_lib* lib);
 extern void po_cleanup_libs(Poco_lib* lib);
 extern Errcode poco_cont_ops(void* code_pt, Pt_num* pret, int argslen, ...);
 extern Errcode po_check_formatf(int maxlen, int vargcount, int vargsize, char* fmt, va_list pargs);
-extern void po_free(Popot ppt);
-extern Popot po_malloc(int size);
+extern void po_free(void* pt);
+extern void* po_malloc(int size);
 extern Popot poco_lmalloc(long size);
-extern Popot po_calloc(int size_el, int el_count);
+extern void* po_calloc(int size_el, int el_count);
 extern void poco_freez(Popot* pt);
 extern char* po_fuf_name(void* fuf);
 extern void* po_fuf_code(void* fuf);
 extern Rnode* po_in_rlist(Dlheader* sfi, void* f);
-extern Errcode pj_load_pocorex(Poco_lib** lib, char* name, char* id_str);
+extern Errcode pj_load_pocorex(Poco_lib** lib, const char* script_path, char* name, char* id_str, bool verbose);
 extern void pj_free_pocorexes(Poco_lib** libs);
+extern void format_poco_lib_error(Errcode err, const char* libname, const char* lib_path,
+                                  const char* sys_error, int expected_version, 
+                                  int actual_version, int count, bool verbose);
 extern int po_findpoe(char* libname, Lib_proto** plibreturn);
 extern Errcode po_poe_overtime(void* effect, void* data);
 extern Errcode po_poe_oversegment(void* effect, void* data);
@@ -154,6 +159,7 @@ extern Poco_lib po_globalv_lib;
 extern Poco_lib po_title_lib;
 extern Poco_lib po_tween_lib;
 extern Poco_lib po_flicplay_lib;
+extern Poco_lib po_picdrive_lib;
 
 extern Errcode builtin_err;
 
@@ -240,69 +246,54 @@ typedef struct polib_swap
 
 typedef struct polib_screen
 {
-	Popot (*plGetPicScreen)(void);
+	void* (*plGetPicScreen)(void);
 	char* protostr1;
-	Popot (*plGetSwapScreen)(void);
+	void* (*plGetSwapScreen)(void);
 	char* protostr2;
-	Popot (*plGetUndoScreen)(void);
+	void* (*plGetUndoScreen)(void);
 	char* protostr3;
-	Popot (*plGetCelScreen)(void);
+	void* (*plGetCelScreen)(void);
 	char* protostr3a;
-	Errcode (*plAllocScreen)(Popot screen, int width, int height);
+	Errcode (*plAllocScreen)(Popot* screen, int width, int height);
 	char* protostr4;
-	void (*plFreeScreen)(Popot screen);
+	void (*plFreeScreen)(Popot* screen);
 	char* protostr5;
-	void (*plGetScreenSize)(Popot s, Popot x, Popot y);
+	void (*plGetScreenSize)(void* s, int* x, int* y);
 	char* protostr6;
-	void (*plSetPixel)(Popot s, int color, int x, int y);
+	void (*plSetPixel)(void* s, int color, int x, int y);
 	char* protostr7;
-	int (*plGetPixel)(Popot s, int x, int y);
+	int (*plGetPixel)(void* s, int x, int y);
 	char* protostr8;
-	void (*plSetBlock)(Popot s, Popot pixbuf, int x, int y, int width, int height);
+	void (*plSetBlock)(void* s, char* pixbuf, int x, int y, int width, int height);
 	char* protostr9;
-	void (*plGetBlock)(Popot s, Popot pixbuf, int x, int y, int width, int height);
+	void (*plGetBlock)(void* s, char* pixbuf, int x, int y, int width, int height);
 	char* protostr10;
-	void (*plIconBlit)(Popot source,
-					   int snext,
-					   int sx,
-					   int sy,
-					   int width,
-					   int height,
-					   Popot dest,
-					   int dx,
-					   int dy,
-					   int color);
+	void (*plIconBlit)(void* source, int snext, int sx, int sy,
+					   int width, int height, void* dest, int dx, int dy, int color);
 	char* protostr11;
-	void (*plBlit)(Popot source, int sx, int sy, int width, int height, Popot dest, int dx, int dy);
+	void (*plBlit)(void* source, int sx, int sy, int width, int height, void* dest, int dx, int dy);
 	char* protostr12;
-	void (*plKeyBlit)(Popot source,
-					  int sx,
-					  int sy,
-					  int width,
-					  int height,
-					  Popot dest,
-					  int dx,
-					  int dy,
-					  int key_color);
+	void (*plKeyBlit)(void* source, int sx, int sy, int width, int height,
+					  void* dest, int dx, int dy, int key_color);
 	char* protostr13;
-	void (*plCopyScreen)(Popot source, Popot dest);
+	void (*plCopyScreen)(void* source, void* dest);
 	char* protostr14;
-	void (*plTradeScreen)(Popot a, Popot b);
+	void (*plTradeScreen)(void* a, void* b);
 	char* protostr15;
 	void (*plPicDirtied)(void);
 	char* protostr16;
 	/* New with Ani Pro 1.5 */
-	Popot (*plGetPhysicalScreen)(void);
+	void* (*plGetPhysicalScreen)(void);
 	char* protostr17;
-	void (*plSetBox)(Popot screen, int color, int x, int y, int width, int height);
+	void (*plSetBox)(void* screen, int color, int x, int y, int width, int height);
 	char* protostr18;
-	void (*plMenuText)(Popot screen, int color, int x, int y, Popot text);
+	void (*plMenuText)(void* screen, int color, int x, int y, char* text);
 	char* protostr19;
-	int (*plMenuTextWidth)(Popot text);
+	int (*plMenuTextWidth)(char* text);
 	char* protostr20;
 	int (*plMenuTextHeight)(void);
 	char* protostr21;
-	void (*plGetMenuColors)(Popot black, Popot grey, Popot light, Popot bright, Popot red);
+	void (*plGetMenuColors)(int* black, int* grey, int* light, int* bright, int* red);
 	char* protostr22;
 } PolibScreen;
 
@@ -352,29 +343,29 @@ typedef struct polib_cel
 
 typedef struct polib_dos
 {
-	Errcode (*plfnsplit)(Popot path, Popot device, Popot dir, Popot file, Popot suf);
+	Errcode (*plfnsplit)(char* path, char* device, char* dir, char* file, char* suf);
 	char* protostr1;
-	Errcode (*plfnmerge)(Popot path, Popot device, Popot dir, Popot file, Popot suf);
+	Errcode (*plfnmerge)(char* path, char* device, char* dir, char* file, char* suf);
 	char* protostr2;
-	bool (*plDosExists)(Popot filename);
+	bool (*plDosExists)(char* filename);
 	char* protostr3;
-	Errcode (*plDosCopy)(Popot source, Popot dest);
+	Errcode (*plDosCopy)(char* source, char* dest);
 	char* protostr4;
-	Errcode (*plDosDelete)(Popot filename);
+	Errcode (*plDosDelete)(char* filename);
 	char* protostr5;
-	Errcode (*plDosRename)(Popot old, Popot new);
+	Errcode (*plDosRename)(char* oldname, char* newname);
 	char* protostr6;
-	Errcode (*plSetDir)(Popot dir);
+	Errcode (*plSetDir)(char* dir);
 	char* protostr7;
-	Errcode (*plGetDir)(Popot dir);
+	Errcode (*plGetDir)(char* dir);
 	char* protostr8;
-	int (*plDirList)(Popot list, Popot wild, bool get_dirs);
+	int (*plDirList)(Popot* list, char* wild, bool get_dirs);
 	char* protostr9;
-	void (*plFreeDirList)(Popot list);
+	void (*plFreeDirList)(Popot* list);
 	char* protostr10;
-	void (*plGetResourceDir)(Popot dir);
+	void (*plGetResourceDir)(char* dir);
 	char* protostr11;
-	void (*plGetProgramDir)(Popot dir);
+	void (*plGetProgramDir)(char* dir);
 	char* protostr12;
 } PolibDos;
 
@@ -760,7 +751,7 @@ typedef struct polib_turtle
 	char* protostr7;
 	void (*plMoveTo)(double x, double y, double angle);
 	char* protostr8;
-	void (*plWhere)(Popot x, Popot y, Popot angle);
+	void (*plWhere)(double* x, double* y, double* angle);
 	char* protostr9;
 	void (*plHome)(void);
 	char* protostr10;
@@ -772,51 +763,46 @@ typedef struct polib_turtle
 
 typedef struct polib_user
 {
-	int (*plprintf)(long vcount, long vsize, Popot format, ...);
+	int (*plprintf)(char* format, ...);
 	char* protostr1;
 	void (*plunprintf)(void);
 	char* protostr2;
-	void (*plQtext)(long vcount, long vsize, Popot format, ...);
+	void (*plQtext)(char* format, ...);
 	char* protostr3;
-	int (*plQchoice)(long vcount, long vsize, Popot buttons, int bcount, Popot header, ...);
+	int (*plQchoice)(Popot* buttons, int bcount, char* header, ...);
 	char* protostr4;
-	int (*plQmenu)(Popot choices, int ccount, Popot header);
+	int (*plQmenu)(Popot* choices, int ccount, char* header);
 	char* protostr5;
-	bool (*plQquestion)(long vcount, long vsize, Popot question, ...);
+	bool (*plQquestion)(char* question, ...);
 	char* protostr6;
-	bool (*plQnumber)(Popot num, int min, int max, Popot header);
+	bool (*plQnumber)(int* num, int min, int max, char* header);
 	char* protostr7;
-	bool (*plQstring)(Popot string, int size, Popot header);
+	bool (*plQstring)(char* string, int size, char* header);
 	char* protostr8;
-	bool (*plQfile)(Popot suffix,
-					   Popot button,
-					   Popot inpath,
-					   Popot outpath,
-					   bool force_suffix,
-					   Popot header);
+	bool (*plQfile)(char* suffix, char* button, char* inpath, char* outpath,
+					bool force_suffix, char* header);
 	char* protostr9;
-	bool (
-	  *plQlist)(Popot choicestr, Popot choice, Popot items, int icount, Popot ipos, Popot header);
+	bool (*plQlist)(char* choicestr, int* choice, Popot* items, int icount, int* ipos, char* header);
 	char* protostr10;
 	int (*plQcolor)(void);
 	char* protostr11;
-	Errcode (*plQerror)(long vcount, long vsize, Errcode err, Popot format, ...);
+	Errcode (*plQerror)(Errcode err, char* format, ...);
 	char* protostr12;
-	bool (*plRubBox)(Popot x, Popot y, Popot w, Popot h);
+	bool (*plRubBox)(int* x, int* y, int* w, int* h);
 	char* protostr13;
-	bool (*plRubCircle)(Popot x, Popot y, Popot rad);
+	bool (*plRubCircle)(int* x, int* y, int* rad);
 	char* protostr14;
-	bool (*plRubLine)(int x1, int y1, Popot x2, Popot y2);
+	bool (*plRubLine)(int x1, int y1, int* x2, int* y2);
 	char* protostr15;
-	int (*plRubPoly)(Popot x, Popot y);
+	int (*plRubPoly)(Popot* x, Popot* y);
 	char* protostr16;
-	bool (*plDragBox)(Popot x, Popot y, Popot w, Popot h);
+	bool (*plDragBox)(int* x, int* y, int* w, int* h);
 	char* protostr16a;
-	void (*plWaitClick)(Popot x, Popot y, Popot left, Popot right, Popot key);
+	void (*plWaitClick)(int* x, int* y, int* left, int* right, int* key);
 	char* protostr17;
-	void (*plPollInput)(Popot x, Popot y, Popot left, Popot right, Popot key);
+	void (*plPollInput)(int* x, int* y, int* left, int* right, int* key);
 	char* protostr18;
-	void (*plWaitInput)(Popot x, Popot y, Popot left, Popot right, Popot key);
+	void (*plWaitInput)(int* x, int* y, int* left, int* right, int* key);
 	char* protostr19;
 	bool (*plGetAbort)(void);
 	char* protostr20;
@@ -828,33 +814,24 @@ typedef struct polib_user
 	char* protostr23;
 	bool (*plShowCursor)(void);
 	char* protostr24;
-	bool (
-	  *plQscroll)(Popot choice, Popot items, int icount, Popot ipos, Popot button_texts, Popot hdr);
+	int (*plQscroll)(int* choice, Popot* items, int icount, int* ipos, Popot* button_texts, char* hdr);
 	char* protostr25;
-	bool (*plUdQnumber)(long vcount,
-						   long vsize,
-						   Popot inum,
-						   int min,
-						   int max,
-						   Popot update,
-						   Popot data,
-						   Popot pofmt,
-						   ...);
+	bool (*plUdQnumber)(int* inum, int min, int max, void* update,
+						void* data, char* fmt, ...);
 	char* protostr26;
-	int (*plQedit)(Popot ptext, int max_size, Popot cursor_position, Popot top_line);
+	int (*plQedit)(char* text, int max_size, int* cursor_position, int* top_line);
 	char* protostr27;
-	int (*plQeditFile)(Popot pop_file_name, Popot cursor_position, Popot top_line);
+	int (*plQeditFile)(char* file_name, int* cursor_position, int* top_line);
 	char* protostr28;
-	void (*plPhysicalWaitClick)(Popot x, Popot y, Popot left, Popot right, Popot key);
+	void (*plPhysicalWaitClick)(int* x, int* y, int* left, int* right, int* key);
 	char* protostr29;
-	void (*plPhysicalPollInput)(Popot x, Popot y, Popot left, Popot right, Popot key);
+	void (*plPhysicalPollInput)(int* x, int* y, int* left, int* right, int* key);
 	char* protostr30;
-	void (*plPhysicalWaitInput)(Popot x, Popot y, Popot left, Popot right, Popot key);
+	void (*plPhysicalWaitInput)(int* x, int* y, int* left, int* right, int* key);
 	char* protostr31;
-	bool (
-	  *plPhysicalRubMoveBox)(Popot x, Popot y, Popot width, Popot height, bool clip_to_screen);
+	bool (*plPhysicalRubMoveBox)(int* x, int* y, int* width, int* height, bool clip_to_screen);
 	char* protostr32;
-	int (*plQmenuWithFlags)(Popot pchoices, int ccount, Popot pflags, Popot header);
+	int (*plQmenuWithFlags)(Popot* pchoices, int ccount, short* pflags, char* header);
 	char* protostr33;
 } PolibUser;
 
@@ -864,17 +841,17 @@ typedef struct polib_user
 
 typedef struct polib_globalv
 {
-	Errcode (*plGlobalVarGet)(Popot name, Popot value);
+	Errcode (*plGlobalVarGet)(char* name, char* value);
 	char* protostr1;
-	Errcode (*plGlobalVarSet)(Popot name, Popot value);
+	Errcode (*plGlobalVarSet)(char* name, char* value);
 	char* protostr2;
-	Errcode (*plGlobalVarDelete)(Popot name);
+	Errcode (*plGlobalVarDelete)(char* name);
 	char* protostr3;
 	Errcode (*plGlobalVarFlush)(void);
 	char* protostr4;
-	Errcode (*plGlobalVarFirst)(Popot nameptr, Popot valueptr);
+	Errcode (*plGlobalVarFirst)(char** nameptr, char** valueptr);
 	char* protostr5;
-	Errcode (*plGlobalVarNext)(Popot nameptr, Popot valueptr);
+	Errcode (*plGlobalVarNext)(char** nameptr, char** valueptr);
 	char* protostr6;
 } PolibGlobalv;
 
@@ -1036,7 +1013,7 @@ typedef struct porexlib
 	int (*pl_getmucolors)(Pixel** indicies, struct rgb3** lastrgbs, struct rgb3** idealrgbs);
 	int (*pl_findpoe)(char* poename, Lib_proto** plibreturn);
 	Errcode (*pl_overtime)(OTFunc* effect, void* data);
-	Boolean (*pl_checkabort)(void* data);
+	bool (*pl_checkabort)(void* data);
 	Errcode (*pl_oversegment)(OTFunc* effect, void* data);
 	Errcode (*pl_overall)(OTFunc* effect, void* data);
 	char* vb; /* for internal bugfix/patch usage only! */
@@ -1071,6 +1048,55 @@ typedef struct porexlib
  *	 Prototypes for functions that live in rexlib\pocolib.lib...
  *	 Macros to provide a poe module indirect access to builtin poco libs...
  ****************************************************************************/
+
+#ifndef HOSTLIB_DEFINED
+#define HOSTLIB_DEFINED
+typedef struct hostlib {
+	void *next;
+	USHORT type;
+	USHORT version;
+} Hostlib;
+#endif
+
+#ifndef POREXLIB_PUBLIC_DEFINED
+#define POREXLIB_PUBLIC_DEFINED
+struct rgb3; /* forward */
+typedef Errcode OTFunc(void* data, int ix, int total, int scale);
+typedef struct porexlib {
+    Libhead hdr;
+    Errcode* pl_builtin_err;
+    void* (*pl_getpicscreen)(void);
+    void* (*pl_ppt2ptr)(Popot ppt);
+    Popot (*pl_ptr2ppt)(void* ptr, int bytes);
+    int (*pl_getmucolors)(Pixel** indicies, struct rgb3** lastrgbs, struct rgb3** idealrgbs);
+    int (*pl_findpoe)(char* poename, Lib_proto** plibreturn);
+    Errcode (*pl_overtime)(OTFunc* effect, void* data);
+    bool (*pl_checkabort)(void* data);
+    Errcode (*pl_oversegment)(OTFunc* effect, void* data);
+    Errcode (*pl_overall)(OTFunc* effect, void* data);
+    char* vb;
+    char* vs;
+    long reserved1[4];
+    PolibUser* pluser;
+    PolibOptics* ploptics;
+    PolibSwap* plswap;
+    PolibScreen* plscreen;
+    PolibCel* plcel;
+    PolibDos* pldos;
+    PolibDraw* pldraw;
+    PolibAAFile* plaafile;
+    PolibMisc* plmisc;
+    PolibMode* plmode;
+    PolibText* pltext;
+    PolibTime* pltime;
+    PolibTurtle* plturtle;
+    PolibGlobalv* plglobalv;
+    PolibTitle* pltitle;
+    PolibTween* pltween;
+    PolibFlicPlay* plflicplay;
+    long reserved2[1];
+} Porexlib;
+#endif
 
 #ifndef SCALE_ONE
 #define SCALE_ONE (1 << 14) /* used by overtime effects routines */
@@ -1432,6 +1458,7 @@ extern Hostlib _a_a_pocolib; /* this helps multi-source-module POE code */
 #define ptr2ppt _plptr->pl_ptr2ppt
 #define ppt2ptr _plptr->pl_ppt2ptr
 #define GetPicScreen _plptr->pl_getpicscreen
+#define GetScreenColorMap _plptr->pldraw->plGetScreenColorMap
 #define GetMenuColors _plptr->pl_getmucolors
 #define FindPoe _plptr->pl_findpoe
 #define OverTime _plptr->pl_overtime

@@ -29,7 +29,7 @@ typedef struct gfxlib
 	Errcode (*open_temprast)(Bytemap *r,SHORT width,SHORT height,
 						     SHORT pdepth);
 
-	Boolean (*pj_clipbox_make)(Clipbox *cb, RASType *r, 
+	bool (*pj_clipbox_make)(Clipbox *cb, RASType *r,
 					  	    Coor x,Coor y,Coor width,Coor height);
 
 	void (*close_raster)(RASType *r);
@@ -97,7 +97,7 @@ typedef struct gfxlib
 
 	Errcode (*pj_rcel_bytemap_open)(Rasthdr *spec,Rcel *cel,LONG num_colors);
 	Errcode (*pj_rcel_bytemap_alloc)(Rasthdr *spec,Rcel **pcel,LONG num_colors);
-	Boolean (*pj_rcel_make_virtual)(Rcel *rc, Rcel *root, Rectangle *toclip);
+	bool (*pj_rcel_make_virtual)(Rcel *rc, Rcel *root, Rectangle *toclip);
 
 	void (*pj_rcel_close)(Rcel *rc);
 	void (*pj_rcel_free)(Rcel *c);

@@ -6,6 +6,8 @@
 #include "pjbasics.h"
 #include "fli.h"
 #include "pocolib.h"
+#include "jimk.h"
+
 
 /*----------------------------------------------------------------------------
  * Local types and data...
@@ -27,8 +29,8 @@ typedef struct flic {				 /* this is a custom Flic type used only  */
 	Rcel		  *playback_raster;
 	void		  *framebuf;
 	int 		  speed;
-	Boolean 	  see_mouse;
-	Boolean 	  input_stops_playback;
+	bool 	  see_mouse;
+	bool 	  input_stops_playback;
 	int 		  frames_played;		/* a shortcut for play_count detector */
 	long		  eventdata;			/* event data for internal detectors  */
 	PocoEventData event_data;			/* event data for poco callback funcs */
@@ -38,7 +40,7 @@ typedef struct flic {				 /* this is a custom Flic type used only  */
 #define IANS_FLIC_MAGIC 	0x19040259	/* validates legal Flic structure	  */
 #define BEFORE_FIRST_FRAME	-1			/* indicates haven't started playback */
 
-typedef Boolean (EventFunc)(Flic *pflic);
+typedef bool (EventFunc)(Flic *pflic);
 
 static Flic *fliclist = NULL;	/* resource list for unload-time cleanup */
 
@@ -46,13 +48,14 @@ static Flic *fliclist = NULL;	/* resource list for unload-time cleanup */
  * a few basic service routines...
  *--------------------------------------------------------------------------*/
 
-static void free_playback_raster(Flic *pflic)
 /*****************************************************************************
  * free the playback raster, if it is a virtual raster built over the root.
  ****************************************************************************/
+static void free_playback_raster(Flic *pflic)
 {
-	if (NULL == pflic || NULL == pflic->playback_raster)
+	if (NULL == pflic || NULL == pflic->playback_raster) {
 		return;
+	}
 
 	if (pflic->playback_raster != pflic->root_raster) {
 		pj_free(pflic->playback_raster);
@@ -60,26 +63,30 @@ static void free_playback_raster(Flic *pflic)
 	}
 }
 
-static Errcode build_playback_raster(Flic *pflic, Rcel *root, int x, int y)
 /*****************************************************************************
  * make a playback raster.	vb.pencel is used unless the flic is a different
  * size, in which case a virtual raster is built over vb.pencel.
  ****************************************************************************/
+static Errcode build_playback_raster(Flic *pflic, Rcel *root, int x, int y)
 {
 	Flifile 	*flifile;
 	Rectangle	therect;
 
-	if (NULL == pflic)
+	if (NULL == pflic) {
 		return Err_null_ref;
+	}
 
-	if (NULL == (flifile = pflic->flifile))
+	flifile = pflic->flifile;
+	if (flifile == NULL) {
 		return Err_file_not_open;
+	}
 
 	free_playback_raster(pflic);	/* free current raster, if any */
 
 	if (NULL == root) {
-		if (NULL == pflic->root_raster)
+		if (NULL == pflic->root_raster) {
 			pflic->root_raster = vb.pencel;
+		}
 		root = pflic->root_raster;
 	} else {
 		pflic->root_raster = root;
@@ -100,7 +107,8 @@ static Errcode build_playback_raster(Flic *pflic, Rcel *root, int x, int y)
 		}
 		therect.width  = flifile->hdr.width;
 		therect.height = flifile->hdr.height;
-		if (NULL == (pflic->playback_raster = pj_malloc(sizeof(Rcel)))) {
+		pflic->playback_raster = pj_malloc(sizeof(Rcel));
+		if (pflic->playback_raster == NULL) {
 			return Err_no_memory;
 		}
 		pj_rcel_make_virtual(pflic->playback_raster, root, &therect);
@@ -109,16 +117,15 @@ static Errcode build_playback_raster(Flic *pflic, Rcel *root, int x, int y)
 	return Success;
 }
 
-static Boolean any_user_input(void)
 /*****************************************************************************
  * I'm not sure this is the best way to do this, but...
  ****************************************************************************/
+static bool any_user_input(void)
 {
 	wait_wndo_input(ANY_INPUT);
-	return (ISDOWN(MBPEN|MBRIGHT) || JSTHIT(KEYHIT));
+	return ISDOWN(MBPEN|MBRIGHT) || JSTHIT(KEYHIT);
 }
 
-static Errcode internal_error(Errcode err, char *fmt, ...)
 /*****************************************************************************
  * report a fatal internal error, and set builtin_err to Err_reported.
  *
@@ -126,12 +133,13 @@ static Errcode internal_error(Errcode err, char *fmt, ...)
  * sets the builtin error code, but punts the (hardcoded English-language)
  * extended error message.
  ****************************************************************************/
+static Errcode internal_error(Errcode err, char *fmt, ...)
 {
 #ifdef DEVELOPMENT
 
 	char etext[ERRTEXT_SIZE];
 	va_list args;
-	Boolean mouse_was_on;
+	bool mouse_was_on;
 
 	if (err >= Success)
 		return err;
@@ -149,38 +157,44 @@ static Errcode internal_error(Errcode err, char *fmt, ...)
 	return builtin_err = Err_reported;
 
 #else
-
+	(void)fmt;
 	return builtin_err = err;
 
 #endif /* DEVELOPMENT */
 
 }
 
-static Errcode flic_integrity_check(Flic *pflic)
 /*****************************************************************************
  * make sure the Flic* we got points to a valid Flic structure.
  * (ie, make sure we didn't get a recast pointer to some other datatype)
  ****************************************************************************/
+static Errcode flic_integrity_check(Flic *pflic)
 {
-	if (NULL == pflic)
+	if (NULL == pflic) {
 		return builtin_err = Err_null_ref;
+	}
 
-	if (IANS_FLIC_MAGIC != pflic->magic)
+	if (IANS_FLIC_MAGIC != pflic->magic) {
 		return internal_error(Err_wrong_type,
 			"Flic handle doesn't point to a valid Flic structure");
+	}
 
-	if (NULL == pflic->flifile)
+	if (NULL == pflic->flifile) {
 		return internal_error(Err_file_not_open,
 			"Flifile structure not attached to Flic structure");
+	}
 
-	if (NULL == pflic->root_raster)
+	if (NULL == pflic->root_raster) {
 		return internal_error(Err_null_ref, "NULL root_raster");
+	}
 
-	if (NULL == pflic->playback_raster)
+	if (NULL == pflic->playback_raster) {
 		return internal_error(Err_null_ref, "NULL playback_raster");
+	}
 
-	if (NULL == pflic->framebuf)
+	if (NULL == pflic->framebuf) {
 		return internal_error(Err_null_ref, "NULL framebuf pointer");
+	}
 
 	return Success;
 }
@@ -189,7 +203,6 @@ static Errcode flic_integrity_check(Flic *pflic)
  * the guts of the playback: event detectors and play_until()...
  *--------------------------------------------------------------------------*/
 
-static Boolean until_poco_event(Flic *pflic)
 /*****************************************************************************
  * call the Poco event detector routine, return its stop/continue status.
  *
@@ -201,6 +214,7 @@ static Boolean until_poco_event(Flic *pflic)
  *	But we get that effect from here by passing the pflic->event_data
  *	struct by value.
  ****************************************************************************/
+static bool until_poco_event(Flic *pflic)
 {
 	Errcode err;
 	Pt_num	ret;
@@ -210,61 +224,67 @@ static Boolean until_poco_event(Flic *pflic)
 
 	if (err != Success) {
 		builtin_err = err;
-		return FALSE;		/* stop playback on internal error */
+		return false;		/* stop playback on internal error */
 	} else {
 		return ret.i;		/* return status from poco routine */
 	}
 }
 
-static Boolean until_input(Flic *notused)
 /*****************************************************************************
  * event-detector for flic_play, ends playback when a key/mousebtn is hit.
  ****************************************************************************/
+static bool until_input(Flic *notused)
 {
-	if (any_user_input())
-		return FALSE;	/* stop playback */
-	else
-		return TRUE;	/* continue playback */
+	(void)notused;
+
+	if (any_user_input()) {
+		return false;	/* stop playback */
+	}
+	else {
+		return true;	/* continue playback */
+	}
 }
 
-static Boolean until_time_expires(Flic *pflic)
 /*****************************************************************************
  * event-detector for flic_play_timed, stops after timer exceeds expiry.
  ****************************************************************************/
+static bool until_time_expires(Flic *pflic)
 {
-	if (pflic->eventdata < pj_clock_1000())
-		return FALSE;	// clock exceeds expiry time, stop the flic
-	else
-		return TRUE;	// keep playing
+	if (pflic->eventdata < pj_clock_1000()){
+		return false;	// clock exceeds expiry time, stop the flic
+		}
+	else {
+		return true;	// keep playing
+		}
 }
 
-static Boolean until_once_through(Flic *pflic)
 /*****************************************************************************
  * event-detector for flic_play_once, stops after one time through flic.
  ****************************************************************************/
+static bool until_once_through(Flic *pflic)
 {
-	return (pflic->event_data.cur_frame < pflic->event_data.num_frames-1);
+	return pflic->event_data.cur_frame < pflic->event_data.num_frames-1;
 }
 
-static Boolean until_frame_count(Flic *pflic)
 /*****************************************************************************
  * event-detector for flic_play_count, stops after count is reached.
  ****************************************************************************/
+static bool until_frame_count(Flic *pflic)
 {
-	return (pflic->frames_played < pflic->eventdata);
+	return pflic->frames_played < pflic->eventdata;
 }
 
-static Errcode play_until(Flic *pflic, EventFunc *event_detect)
 /*****************************************************************************
- * play a flic until the caller-specified event routine returns FALSE to stop.
+ * play a flic until the caller-specified event routine returns false to stop.
  ****************************************************************************/
+static Errcode play_until(Flic *pflic, EventFunc *event_detect)
 {
 	Errcode 		err;
 	ULONG			clock;
 	Flifile 		*flif;
 	Fli_head		*flihdr;
-	Boolean 		stop_the_playback;
-	Boolean 		mouse_was_on;
+	bool 		stop_the_playback;
+	bool 		mouse_was_on;
 
 	/*------------------------------------------------------------------------
 	 * do some misc setup before starting the actual playback...
@@ -291,7 +311,7 @@ static Errcode play_until(Flic *pflic, EventFunc *event_detect)
 	 * do the playback...
 	 *----------------------------------------------------------------------*/
 
-	stop_the_playback = FALSE;
+	stop_the_playback = false;
 
 	do	{
 
@@ -301,10 +321,11 @@ static Errcode play_until(Flic *pflic, EventFunc *event_detect)
 		 * seek back to frame 1 (the brun frame).
 		 *------------------------------------------------------------------*/
 
-		if (pflic->event_data.cur_frame == BEFORE_FIRST_FRAME) {
-			pj_seek(flif->fd, flihdr->frame1_oset, JSEEK_START);
-			pflic->event_data.cur_frame = 0;
-		} else {
+        if (pflic->event_data.cur_frame == BEFORE_FIRST_FRAME) {
+            /* Seek to first frame using xfile API */
+            (void)xffseek_tell(flif->xf, flihdr->frame1_oset, XSEEK_SET);
+            pflic->event_data.cur_frame = 0;
+        } else {
 			++pflic->event_data.cur_frame;
 		}
 
@@ -316,8 +337,9 @@ static Errcode play_until(Flic *pflic, EventFunc *event_detect)
 
 		clock = pflic->speed + pj_clock_1000();
 
-		if(Success > (err = pj_fli_read_uncomp(NULL, flif,
-								pflic->playback_raster, pflic->framebuf,TRUE))) {
+		err = pj_fli_read_uncomp(NULL, flif,
+								pflic->playback_raster, pflic->framebuf,true);
+		if(Success > err) {
 			goto ERROR_EXIT;
 		}
 
@@ -332,11 +354,12 @@ static Errcode play_until(Flic *pflic, EventFunc *event_detect)
 
 		++pflic->frames_played;
 
-		if (pflic->event_data.cur_frame == pflic->event_data.num_frames) {
-			pj_seek(flif->fd, flihdr->frame2_oset, JSEEK_START);
-			++pflic->event_data.cur_loop;
-			pflic->event_data.cur_frame = 0;
-		}
+        if (pflic->event_data.cur_frame == pflic->event_data.num_frames) {
+            /* Seek to second frame using xfile API */
+            (void)xffseek_tell(flif->xf, flihdr->frame2_oset, XSEEK_SET);
+            ++pflic->event_data.cur_loop;
+            pflic->event_data.cur_frame = 0;
+        }
 
 		/*--------------------------------------------------------------------
 		 * call the event detector repeatedly, until it requests a stop, or
@@ -345,9 +368,9 @@ static Errcode play_until(Flic *pflic, EventFunc *event_detect)
 		 *------------------------------------------------------------------*/
 
 		do	{
-			if (FALSE == event_detect(pflic)
+			if (false == event_detect(pflic)
 			 || (pflic->input_stops_playback && any_user_input())) {
-				stop_the_playback = TRUE;
+				stop_the_playback = true;
 			}
 		} while (clock >= pj_clock_1000() && !stop_the_playback);
 
@@ -375,10 +398,10 @@ ERROR_EXIT:
  *	these are called after the parms passed in from Poco are validated.
  *--------------------------------------------------------------------------*/
 
-static void do_flic_close(Flic *pflic)
 /*****************************************************************************
  * close flic file, free all associated resources, remove from resource list.
  ****************************************************************************/
+static void do_flic_close(Flic *pflic)
 {
 	Flic *cur, **prev;
 
@@ -410,10 +433,10 @@ static void do_flic_close(Flic *pflic)
 	pj_free(pflic);
 }
 
-static void do_flic_close_all(void *unused)
 /*****************************************************************************
  * library-unload cleanup routine, close and free any open flics.
  ****************************************************************************/
+static void do_flic_close_all(void *unused)
 {
 	Flic	*cur, *next;
 
@@ -423,10 +446,10 @@ static void do_flic_close_all(void *unused)
 	}
 }
 
-static Errcode do_flic_open(char *path, Flic **ppflic)
 /*****************************************************************************
  * alloc flic control structures, open flic file, return status.
  ****************************************************************************/
+static Errcode do_flic_open(char *path, Flic **ppflic)
 {
 	Errcode err;
 	Flic	*pflic;
@@ -450,13 +473,16 @@ static Errcode do_flic_open(char *path, Flic **ppflic)
 		goto ERROR_EXIT;
 	}
 
-	if (Success > (err = pj_fli_alloc_cbuf(&pflic->framebuf,
-							flifile->hdr.width, flifile->hdr.height, COLORS))) {
+	err = pj_fli_alloc_cbuf(&pflic->framebuf,
+							flifile->hdr.width, flifile->hdr.height, COLORS);
+	if (Success > err) {
 		goto ERROR_EXIT;
 	}
 
-	if (Success > (err = build_playback_raster(pflic, NULL, 0, 0)))
+	err = build_playback_raster(pflic, NULL, 0, 0);
+	if (Success > err) {
 		goto ERROR_EXIT;
+	}
 
 	/* init things in Flic that don't start out as zero... */
 
@@ -479,16 +505,19 @@ ERROR_EXIT:
 
 }
 
-static void do_rewind(Flic *pflic)
 /*****************************************************************************
  * rewind flic; makes next playback call start at first frame.
  ****************************************************************************/
+static void do_rewind(Flic *pflic)
 {
 	pflic->event_data.cur_frame  = BEFORE_FIRST_FRAME;
 	pflic->event_data.cur_loop	 = 0;
 	pflic->frames_played		 = 0;
 }
 
+/*****************************************************************************
+ * change any or all of the playback options.
+ ****************************************************************************/
 static Errcode do_flic_options(Flic *pflic,
 							   int	speed,
 							   int	input_stops_playback,
@@ -496,26 +525,28 @@ static Errcode do_flic_options(Flic *pflic,
 							   Rcel *new_raster,
 							   int	x,
 							   int	y)
-/*****************************************************************************
- * change any or all of the playback options.
- ****************************************************************************/
 {
 	Errcode err;
 
-	if (NULL == pflic)
+	if (NULL == pflic) {
 		return Err_null_ref;
+	}
 
-	if (speed >= 0)
+	if (speed >= 0) {
 		pflic->speed = speed;
+	}
 
-	if (input_stops_playback >= 0)
+	if (input_stops_playback >= 0) {
 		pflic->input_stops_playback = input_stops_playback;
+	}
 
-	if (see_mouse >= 0)
+	if (see_mouse >= 0) {
 		pflic->see_mouse = see_mouse;
+	}
 
 	if (NULL != new_raster || x != 0 || y != 0) {
-		if (Success > (err = build_playback_raster(pflic, new_raster, x, y))) {
+		err = build_playback_raster(pflic, new_raster, x, y);
+		if (Success > err) {
 			return err;
 		}
 		do_rewind(pflic); /* force rewind if the raster moved/changed */
@@ -523,10 +554,10 @@ static Errcode do_flic_options(Flic *pflic,
 
 }
 
-static Errcode do_play_until(Flic *pflic, void *pocofunc, Popot userdata)
 /*****************************************************************************
  * play the named flic until the poco event detector says to stop.
  ****************************************************************************/
+static Errcode do_play_until(Flic *pflic, void *pocofunc, Popot userdata)
 {
 	pflic->poco_func		   = pocofunc;
 	pflic->event_data.pflic    = po_ptr2ppt(pflic, sizeof(Flic));
@@ -535,38 +566,39 @@ static Errcode do_play_until(Flic *pflic, void *pocofunc, Popot userdata)
 	return play_until(pflic, until_poco_event);
 }
 
-static Errcode do_play(Flic *pflic)
 /*****************************************************************************
  * play the named flic until a key is hit.
  ****************************************************************************/
+static Errcode do_play(Flic *pflic)
 {
 	return play_until(pflic, until_input);
 }
 
-static Errcode do_play_timed(Flic *pflic, ULONG for_milliseconds)
 /*****************************************************************************
  * play a flic for the specified length of time.
  ****************************************************************************/
+static Errcode do_play_timed(Flic *pflic, ULONG for_milliseconds)
 {
 	pflic->eventdata = for_milliseconds + pj_clock_1000();
 	return play_until(pflic, until_time_expires);
 }
 
-static Errcode do_play_once(Flic *pflic)
 /*****************************************************************************
  * play a flic once then stop.
  ****************************************************************************/
+static Errcode do_play_once(Flic *pflic)
 {
 	return play_until(pflic, until_once_through);
 }
 
-static Errcode do_play_count(Flic *pflic, int frames_to_play)
 /*****************************************************************************
  * play the specified number of frames.
  ****************************************************************************/
+static Errcode do_play_count(Flic *pflic, int frames_to_play)
 {
-	if (frames_to_play == 0)
+	if (frames_to_play == 0) {
 		return Success;
+	}
 
 	if (frames_to_play < 0) {
 		do_rewind(pflic);
@@ -578,17 +610,17 @@ static Errcode do_play_count(Flic *pflic, int frames_to_play)
 	return play_until(pflic, until_frame_count);
 }
 
-static void do_seek_frame(Flic *pflic, int the_frame)
 /*****************************************************************************
  * seek to the specified frame in the flic.  (yuck!  but it's really needed)
  ****************************************************************************/
+static void do_seek_frame(Flic *pflic, int the_frame)
 {
 	int 	play_count;
 	long	cur_frame;
 	int 	original_speed;
 	void	*original_raster;
 	Rcel	*seek_raster;
-	Boolean seek_raster_used;
+	bool seek_raster_used;
 
 	/*------------------------------------------------------------------------
 	 * zero out the cur_loop counter.  doing this here ensures it is
@@ -602,7 +634,8 @@ static void do_seek_frame(Flic *pflic, int the_frame)
 	 * if we're already at the requested frame, just punt.
 	 *----------------------------------------------------------------------*/
 
-	if (the_frame == (cur_frame = pflic->event_data.cur_frame)) {
+	cur_frame = pflic->event_data.cur_frame;
+	if (the_frame == cur_frame) {
 		return;
 	}
 
@@ -636,14 +669,14 @@ static void do_seek_frame(Flic *pflic, int the_frame)
 
 	original_speed	 = pflic->speed;
 	original_raster  = pflic->playback_raster;
-	seek_raster_used = FALSE;
+	seek_raster_used = false;
 	pflic->speed	 = 0;
 
 	if (pflic->root_raster->type != RT_BYTEMAP && play_count > 1) {
 		if (Success <= pj_rcel_bytemap_alloc(original_raster, &seek_raster, COLORS)) {
 			pj_rcel_copy(original_raster, seek_raster);
 			pflic->playback_raster = seek_raster;
-			seek_raster_used = TRUE;
+			seek_raster_used = true;
 		}
 	}
 
@@ -663,48 +696,39 @@ static void do_seek_frame(Flic *pflic, int the_frame)
 
 	pflic->speed		   = original_speed;
 	pflic->playback_raster = original_raster;
-
-	return;
 }
 
-static Errcode return_flic_info(Flic *pflic,
-								Popot pwidth, Popot pheight,
-								Popot pspeed, Popot pframes)
 /*****************************************************************************
  * return each of the flicinfo values for which we got a non-NULL pointer.
  *	(service routine for FlicInfo() and FlicOpenInfo())
  ****************************************************************************/
+static Errcode return_flic_info(Flic *pflic,
+								int* pwidth, int* pheight,
+								int* pspeed, int* pframes)
 {
 	Flifile *flifile;
 
-	if (NULL == pflic || NULL == pflic->flifile)
+	if (NULL == pflic || NULL == pflic->flifile) {
 		return internal_error(Err_null_ref,
 			"Flic file not properly opened, cannot get info.");
+	}
 
 	flifile = pflic->flifile;
 
-	if (NULL != pwidth.pt) {
-		if (Success != Popot_bufcheck(&pwidth, sizeof(int)))
-			return builtin_err;
-		*(int *)pwidth.pt = flifile->hdr.width;
+	if (NULL != pwidth) {
+		*pwidth = flifile->hdr.width;
 	}
 
-	if (NULL != pheight.pt) {
-		if (Success != Popot_bufcheck(&pheight, sizeof(int)))
-			return builtin_err;
-		*(int *)pheight.pt = flifile->hdr.height;
+	if (NULL != pheight) {
+		*pheight = flifile->hdr.height;
 	}
 
-	if (NULL != pspeed.pt) {
-		if (Success != Popot_bufcheck(&pspeed, sizeof(int)))
-			return builtin_err;
-		*(int *)pspeed.pt = flifile->hdr.speed;
+	if (NULL != pspeed) {
+		*pspeed = flifile->hdr.speed;
 	}
 
-	if (NULL != pframes.pt) {
-		if (Success != Popot_bufcheck(&pframes, sizeof(int)))
-			return builtin_err;
-		*(int *)pframes.pt = flifile->hdr.frame_count;
+	if (NULL != pframes) {
+		*pframes = flifile->hdr.frame_count;
 	}
 
 	return Success;
@@ -717,51 +741,47 @@ static Errcode return_flic_info(Flic *pflic,
  *	 routines to get the real work done.
  *--------------------------------------------------------------------------*/
 
-static Popot flic_open(Popot path)
 /*****************************************************************************
  * Flic *FlicOpen(char *path)
  ****************************************************************************/
+static void* flic_open(char* path)
 {
 	Errcode err;
-	Popot	ppflic = {NULL, NULL, NULL};
 	Flic	*pflic;
 
-	if (NULL == path.pt) {
+	if (NULL == path) {
 		builtin_err = Err_null_ref;
-		return ppflic;
+		return NULL;
 	}
 
-	if (Success > (err = do_flic_open(path.pt, &pflic))) {
+	err = do_flic_open(path, &pflic);
+	if (Success > err) {
 		builtin_err = err;
-		return ppflic;
+		return NULL;
 	}
 
-	ppflic = po_ptr2ppt(pflic, sizeof(Flic));
-
-	return ppflic;
+	return pflic;
 }
 
-static Errcode flic_info(Popot path, Popot width, Popot height, Popot speed, Popot frames)
 /*****************************************************************************
  * Errcode FlicInfo(char *path, int *w, int *h, int *speed, int *frames)
  *
  * this is the *only* FLICPLAY function that does not abort the Poco program
  * if the flic file can't be opened.  instead, it returns an error status.
  ****************************************************************************/
+static Errcode flic_info(char* path, int* width, int* height, int* speed, int* frames)
 {
 	Errcode err;
 	Flic	*pflic;
-	Flifile *flifile;
 
-	if (NULL == path.pt) {
+	if (NULL == path) {
 		return builtin_err = Err_null_ref;
 	}
 
-	if (Success > (err = do_flic_open(path.pt, &pflic))) {
+	err = do_flic_open(path, &pflic);
+	if (Success > err) {
 		return err;
 	}
-
-	flifile = pflic->flifile;
 
 	err = return_flic_info(pflic, width, height, speed, frames);
 
@@ -770,138 +790,151 @@ static Errcode flic_info(Popot path, Popot width, Popot height, Popot speed, Pop
 	return err;
 }
 
-static Popot flic_open_info(Popot path, Popot width, Popot height, Popot speed, Popot frames)
 /*****************************************************************************
  * Flic *FlicOpenInfo(char *path, int *w, int *h, int *speed, int *frames)
  ****************************************************************************/
+static void* flic_open_info(char* path, int* width, int* height, int* speed, int* frames)
 {
-	Popot	ppflic;
+	void *pflic;
 
-	ppflic = flic_open(path);
-	if (Success <= builtin_err) {
-		return_flic_info(ppflic.pt, width, height, speed, frames);
+	pflic = flic_open(path);
+	if (pflic != NULL && Success <= builtin_err) {
+		return_flic_info(pflic, width, height, speed, frames);
 	}
-	return ppflic;
+	return pflic;
 }
 
-static void flic_close(Popot theflic)
 /*****************************************************************************
  * void FlicClose(Flic *pflic)
  ****************************************************************************/
+static void flic_close(void* theflic)
 {
-	if (Success > flic_integrity_check(theflic.pt))
+	if (Success > flic_integrity_check(theflic)) {
 		return;
-	do_flic_close(theflic.pt);
+	}
+	do_flic_close(theflic);
 }
 
-static void flic_rewind(Popot theflic)
 /*****************************************************************************
  * void FlicRewind(Flic *pflic)
  ****************************************************************************/
+static void flic_rewind(void* theflic)
 {
-	if (Success > flic_integrity_check(theflic.pt))
+	if (Success > flic_integrity_check(theflic)) {
 		return;
-	do_rewind(theflic.pt);
+	}
+	do_rewind(theflic);
 }
 
-static void flic_seek_frame(Popot theflic, int theframe)
 /*****************************************************************************
  * void FlicSeekFream(Flic *pflic, int toframe)
  ****************************************************************************/
+static void flic_seek_frame(void* theflic, int theframe)
 {
-	Flic *pflic = theflic.pt;
+	Flic *pflic = theflic;
 
-	if (Success > flic_integrity_check(pflic))
+	if (Success > flic_integrity_check(pflic)) {
 		return;
+	}
 
 	if (theframe < 0 || theframe > pflic->event_data.num_frames-1) {
 		builtin_err = Err_parameter_range;
 		return;
 	}
 
-	do_seek_frame(theflic.pt, theframe);
+	do_seek_frame(theflic, theframe);
 }
 
-static void flic_play_options(Popot theflic,
-					   int speed, int input_stops, int see_mouse,
-					   Popot screen, int x, int y)
 /*****************************************************************************
  * void FlicOptions(Flic *f, int s, int input_stops, Screen *s, int x int y)
  ****************************************************************************/
+static void flic_play_options(void* theflic,
+					   int speed, int input_stops, int see_mouse,
+					   void* screen, int x, int y)
 {
-	if (Success > flic_integrity_check(theflic.pt))
+	if (Success > flic_integrity_check(theflic)) {
 		return;
+	}
 
-	builtin_err = do_flic_options(theflic.pt, speed, input_stops, see_mouse, screen.pt, x, y);
+	builtin_err = do_flic_options(theflic, speed, input_stops, see_mouse, screen, x, y);
 }
 
-static void flic_play_until(Popot theflic, Popot eventfunc, Popot userdata)
 /*****************************************************************************
  * void FlicPlayUntil(Flic *flic, EventFunc *pocofunc, void *userdata)
  ****************************************************************************/
+static void flic_play_until(void* theflic, void* eventfunc, void* userdata)
 {
 	void	*fuf;
 	Flic	*pflic;
+	Popot userdata_ppt;
 
-	if (Success > flic_integrity_check(theflic.pt))
+	if (Success > flic_integrity_check(theflic)) {
 		return;
-	pflic = theflic.pt;
+	}
+	pflic = theflic;
 
-	if (NULL == eventfunc.pt) {
+	if (NULL == eventfunc) {
 		builtin_err = Err_null_ref;
 		return;
 	}
 
-	if (NULL == (fuf = po_fuf_code(eventfunc.pt))) {
+	if (NULL == (fuf = po_fuf_code(eventfunc))) {
 		builtin_err = Err_function_not_found;
 		return;
 	}
 
-	builtin_err = do_play_until(theflic.pt, fuf, userdata);
+	/* Wrap userdata in a Popot for the callback */
+	Popot_make_null(&userdata_ppt);
+	userdata_ppt.pt = userdata;
+	builtin_err = do_play_until(theflic, fuf, userdata_ppt);
 }
 
-static void flic_play(Popot theflic)
 /*****************************************************************************
  * void FlicPlay(Flic *pflic)
  ****************************************************************************/
+static void flic_play(void* theflic)
 {
-	if (Success > flic_integrity_check(theflic.pt))
+	if (Success > flic_integrity_check(theflic)) {
 		return;
+	}
 
-	builtin_err = do_play(theflic.pt);
+	builtin_err = do_play(theflic);
 }
 
-static void flic_play_once(Popot theflic)
 /*****************************************************************************
  * void FlicPlay(Flic *pflic)
  ****************************************************************************/
+static void flic_play_once(void* theflic)
 {
-	if (Success > flic_integrity_check(theflic.pt))
+	if (Success > flic_integrity_check(theflic)) {
 		return;
+	}
 
-	builtin_err = do_play_once(theflic.pt);
+	builtin_err = do_play_once(theflic);
 }
 
-static void flic_play_timed(Popot theflic, int milliseconds)
 /*****************************************************************************
  * void FlicPlay(Flic *pflic, int millisecs)
  ****************************************************************************/
+static void flic_play_timed(void* theflic, int milliseconds)
 {
-	if (Success > flic_integrity_check(theflic.pt))
+	if (Success > flic_integrity_check(theflic)) {
 		return;
+	}
 
-	builtin_err = do_play_timed(theflic.pt, milliseconds);
+	builtin_err = do_play_timed(theflic, milliseconds);
 }
 
-static void flic_play_count(Popot theflic, int frame_count)
 /*****************************************************************************
  * void FlicPlay(Flic *pflic, int count)
  ****************************************************************************/
+static void flic_play_count(void* theflic, int frame_count)
 {
-	if (Success > flic_integrity_check(theflic.pt))
+	if (Success > flic_integrity_check(theflic)) {
 		return;
+	}
 
-	builtin_err = do_play_count(theflic.pt, frame_count);
+	builtin_err = do_play_count(theflic, frame_count);
 }
 
 /*----------------------------------------------------------------------------

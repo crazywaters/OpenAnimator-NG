@@ -75,9 +75,9 @@ Errcode save_text_file(Text_file *gf)
 			"!%s", "cant_save", gf->text_name));
 }
 
-Errcode load_titles(char *title)
 /* a bit of a fudge, but it will do it certainly will check for all errors
  * like long text and out of memory in the process */
+Errcode load_titles(char *title)
 {
 Errcode err;
 Text_file tf;

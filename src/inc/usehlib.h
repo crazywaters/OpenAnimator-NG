@@ -27,11 +27,14 @@
 
 #include <stdint.h>
 
+#ifndef HOSTLIB_DEFINED
+#define HOSTLIB_DEFINED
 typedef struct hostlib {
-	void *next;           /* pointer to next as declared Libhead pointer as loaded */
-	uint16_t type;        /* type and version of library desired by rexlib */
-	uint16_t version;
+    void *next;           /* pointer to next as declared Libhead pointer as loaded */
+    uint16_t type;        /* type and version of library desired by rexlib */
+    uint16_t version;
 } Hostlib;
+#endif
 
 
 #if HLIB_TYPE == AA_SYSLIB

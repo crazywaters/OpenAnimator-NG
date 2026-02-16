@@ -1,6 +1,8 @@
 #ifndef FILEPATH_H
 #define FILEPATH_H
 
+#include <stddef.h>
+
 #ifndef STDTYPES_H
 	#include "stdtypes.h"
 #endif

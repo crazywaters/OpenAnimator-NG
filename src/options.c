@@ -341,11 +341,11 @@ Button om_osped_group_sel = MB_INIT1(
 	);
 
 /* ----------- block for curve options -----------**/
-static Qslider otens_sl =
+Qslider otens_sl =
 	QSL_INIT1( -20, 20, &vs.sp_tens, 0, NULL, leftright_arrs);
-static Qslider ocont_sl =
+Qslider ocont_sl =
 	QSL_INIT1( -20, 20, &vs.sp_cont, 0, NULL, leftright_arrs);
-static Qslider obias_sl =
+Qslider obias_sl =
 	QSL_INIT1( -20, 20, &vs.sp_bias, 0, NULL, leftright_arrs);
 
 static Button bias_sl_sel = MB_INIT1(
@@ -653,7 +653,7 @@ Button freepoly_group_sel = MB_INIT1(
 	);
 
 /* -----------------Block for Star Point slider --------------- */
-static Qslider star_points_sl =
+Qslider star_points_sl =
 	QSL_INIT1( 3, 32, &vs.star_points, 0, NULL, leftright_arrs);
 
 static Button ompg_color2_sel = MB_INIT1(
@@ -746,7 +746,7 @@ static Button osr_points_sl_sel = MB_INIT1(
 	0
 	);
 
-static Qslider star_ratio_sl =
+Qslider star_ratio_sl =
 	QSL_INIT1( 0, 100, &vs.star_ratio,0,NULL, leftright_arrs);
 static Button osr_inrad_sl_sel = MB_INIT1(
 	&osr_points_sl_sel,
@@ -1374,7 +1374,7 @@ qsave_titles();
 show_mp();
 }
 
-static Errcode save_titles(char *title)
+Errcode save_titles(char *title)
 {
 return(pj_copyfile(text_name, title));
 }

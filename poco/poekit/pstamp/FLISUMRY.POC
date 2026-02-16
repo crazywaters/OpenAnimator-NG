@@ -82,13 +82,12 @@ char	disk_flicpath_gvar[] = "$flisumry_lastpath";
 
 int 	grid_dimension; 	// 3 == 3x3 grid, 4 == 4x4, etc.
 
-void do_help(void)
 /*****************************************************************************
  * give a little help on what the program is all about.
  ****************************************************************************/
+void do_help(void)
 {
 	Qtext(
-
 		"This program summarizes a flic by creating a screen full of small "
 		"'postage stamp' images from the flic's frames.  It can summarize "
 		"the flic currently in memory, placing the results in the swap "
@@ -103,11 +102,9 @@ void do_help(void)
 		"current flic frame.  Thus, you can summarize a disk flic onto a "
 		"frame with a larger resolution, and get larger postage stamps "
 		"images in the summary."
-
-		 );
+     );
 }
 
-void get_grid_choice(Boolean do_dialog)
 /*****************************************************************************
  * get the user's preference for the postage stamp grid.
  *	if the do_dialog flag is true, we ask the user via Qmenu().  if the flag
@@ -115,6 +112,7 @@ void get_grid_choice(Boolean do_dialog)
  *	when the user changes the value via the dialog, we store the new value
  *	into the global variable for next time we're run.
  ****************************************************************************/
+void get_grid_choice(Boolean do_dialog)
 {
 	int 	option;
 	char	stored_option[10] = "0";
@@ -145,26 +143,27 @@ void get_grid_choice(Boolean do_dialog)
 	}
 }
 
-char *ordinal(int num)
 /*****************************************************************************
  * return the suffix for a number to make the number ordinal.
  ****************************************************************************/
+char* ordinal(int num)
 {
 	int 		idx;
 	static char ordsuffix[10];
 	static char *suffi[] = {"th","st","nd","rd"};
 
 	idx = num % 10;
-	if ((num > 10 && num < 20) || idx > 3)
+	if ((num > 10 && num < 20) || idx > 3) {
 		idx = 0;
+	}
 	sprintf(ordsuffix,"%d%s", num, suffi[idx]);
 	return ordsuffix;
 }
 
-Errcode summarize_current_flic(void)
 /*****************************************************************************
  * summarize the current flic into the swap screen.
  ****************************************************************************/
+Errcode summarize_current_flic(void)
 {
 	Errcode err;
 	int 	dx, dy;
@@ -235,11 +234,11 @@ Errcode summarize_current_flic(void)
 	return err;
 }
 
-int ask_frame_count(int num_cel_frames, int pstamps_per_frame)
 /*****************************************************************************
  * we have more input frames that will fit in one output frame, ask the user
  * how many output frames should appear in the summary.
  ****************************************************************************/
+int ask_frame_count(int num_cel_frames, int pstamps_per_frame)
 {
 	int 		full_summary_frame_count;
 	int 		requested_frame_count;
@@ -269,10 +268,10 @@ int ask_frame_count(int num_cel_frames, int pstamps_per_frame)
 
 }
 
-Errcode summarize_disk_flic(char *flicpath)
 /*****************************************************************************
  * summarize a flic from disk into the current flic.
  ****************************************************************************/
+Errcode summarize_disk_flic(char *flicpath)
 {
 	Errcode err;
 	int 	dx, dy;
@@ -407,20 +406,16 @@ Errcode summarize_disk_flic(char *flicpath)
 
 CLEANUP_EXIT:
 
-#if __POCO__ < 178		// original Poco version didn't have a CelRelease()
-	CelGet(0,0,1,1);	// function, so we free the bulk of the resources
-#else					// used by the cel we loaded by cutting out a 1-pixel
-	CelRelease();		// cel, which hardly uses any resource at all.	Later
-#endif					// versions of Poco have a proper CelRelease().
+	CelRelease();
 
 	unprintf();
 	return err;
 }
 
-void main(void)
 /*****************************************************************************
  * drive main menu dialog, dispatch processing of selections.
  ****************************************************************************/
+void main(void)
 {
 	int option;
 	static char last_path[PATH_SIZE] = "";

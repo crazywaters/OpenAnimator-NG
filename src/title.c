@@ -608,7 +608,7 @@ static Errcode fresh_load_tf(Text_file *gf)
 	return(load_text_file(gf, text_name));
 }
 
-static Errcode do_titles(bool with_menu) /* aka do text */
+Errcode do_titles(bool with_menu) /* aka do text */
 {
 int omulti, oh;
 Text_file lgtf;

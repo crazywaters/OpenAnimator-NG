@@ -1,0 +1,69 @@
+/* Test FFI pointer-return handling.
+ * Regression test for bug where IDO_POINTER return values used
+ * address of local instead of the actual returned pointer.
+ */
+#pragma poco echo "expect>Success"
+
+main()
+{
+	char *result;
+	char *str = "hello world";
+
+	/* Test 1: strchr returns pointer into string */
+	result = strchr(str, 'w');
+	if (result == NULL)
+	{
+		printf("FAIL: strchr returned NULL");
+		return;
+	}
+	if (strcmp(result, "world") != 0)
+	{
+		printf("FAIL: strchr got '%s' expected 'world'", result);
+		return;
+	}
+
+	/* Test 2: strchr not found returns NULL */
+	result = strchr(str, 'z');
+	if (result != NULL)
+	{
+		printf("FAIL: strchr should return NULL for 'z'");
+		return;
+	}
+
+	/* Test 3: strstr returns pointer to substring */
+	result = strstr(str, "wor");
+	if (result == NULL)
+	{
+		printf("FAIL: strstr returned NULL");
+		return;
+	}
+	if (strcmp(result, "world") != 0)
+	{
+		printf("FAIL: strstr got '%s' expected 'world'", result);
+		return;
+	}
+
+	/* Test 4: strstr not found returns NULL */
+	result = strstr(str, "xyz");
+	if (result != NULL)
+	{
+		printf("FAIL: strstr should return NULL for 'xyz'");
+		return;
+	}
+
+	/* Test 5: getenv returns pointer (PATH should exist) */
+	result = getenv("PATH");
+	if (result == NULL)
+	{
+		printf("FAIL: getenv(PATH) returned NULL");
+		return;
+	}
+	/* Just verify it's a non-empty string */
+	if (strlen(result) == 0)
+	{
+		printf("FAIL: getenv(PATH) returned empty string");
+		return;
+	}
+
+	printf("Success");
+}

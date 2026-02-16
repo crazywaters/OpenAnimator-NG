@@ -13,8 +13,8 @@
  *		to shut down the whole show, we just report Err_not_found on a
  *		retrieval, or flat-out ignore the error on a store.
  *
- *		The global string vars come in two flavors, permenant and temporary.
- *		The permenant vars are stored in a file in the resource directory;
+ *		The global string vars come in two flavors, permanent and temporary.
+ *		The permanent vars are stored in a file in the resource directory;
  *		nothing makes them go away except an explicit delete request.  The
  *		temporary ones are stored in a PJ tempfile (device '=:'), and will
  *		disappear when a 'Reset' is done, or when a Quit/Abandon happens.
@@ -28,7 +28,7 @@
  *		routine dumps all the variables back into the two files, if the
  *		change counter is non-zero.  The logic for deleting a variable is
  *		also pretty cheesy:  we free up the value string, and then set the
- *		name field in the Globalv structure to '\0' to indicate the var has
+ *		name field in the Globallv structure to '\0' to indicate the var has
  *		been deleted.  We don't unlink the var from the list, we just leave
  *		the 'tombstone' entry linked in for simplicity.  When the list is
  *		saved, the tombstones are skipped so that deleted vars don't get
@@ -39,11 +39,14 @@
  * include the usual header files...
  *--------------------------------------------------------------------------*/
 
+#include <stdio.h>
+#include <string.h>
+
 #include "errcodes.h"
 #include "pocolib.h"
 #include "memory.h"
 #include "filepath.h"
-#include "lstdio.h"
+#include "resource.h"
 
 /*----------------------------------------------------------------------------
  * data and constants...
@@ -53,51 +56,55 @@ static char permfpath[PATH_SIZE] = "";
 static char permfname[] = "aaperm.glv";
 static char tempfpath[] = "=:aatemp.glv";
 
-#define CHANGE_COUNT_LIMIT 50	// number of changes before auto-list-compaction
-#define PERMVAR_FLAG '$'        // names starting with this outlive resets.
+#define CHANGE_COUNT_LIMIT 50  // number of changes before auto-list-compaction
+#define PERMVAR_FLAG '$'       // names starting with this outlive resets.
 
-#define MAX_VNAME_LEN	 256	// who needs a variable name bigger than this?
-#define MAX_VVALUE_LEN	1536	// 1.5k, because we're only g'teed 2k stack.
+#define MAX_VNAME_LEN 256    // who needs a variable name bigger than this?
+#define MAX_VVALUE_LEN 1536  // 1.5k, because we're only g'teed 2k stack.
+
+//! TODO: replace this linked list with the hashtable used by the poco FFI code
 
 typedef struct globalv {
-	struct globalv *next;
-	char		   *value;
-	char		   name[1]; 	// not really 1, just defines start of string.
-	} Globalv;
+	struct globalv* next;
+	char* value;
+	char name[1];  // not really 1, just defines start of string.
+} Globalv;
 
-static Globalv	*varlist  = NULL;
-static Globalv	*listnext = NULL;
-static Boolean	listchangecount = 0;
+static Globalv* varlist = NULL;
+static Globalv* listnext = NULL;
+static bool listchangecount = 0;
 
 /*----------------------------------------------------------------------------
  * code...
  *--------------------------------------------------------------------------*/
 
-static char *new_value(char *value)
 /*****************************************************************************
  * alloc memory for a string and copy the existing string into it.
  ****************************************************************************/
+static char* new_value(char* value)
 {
-	char	*newvalue;
-
-	if (NULL == (newvalue = pj_malloc(1+strlen(value))))
+	char* newvalue = pj_malloc(1 + strlen(value));
+	if (NULL == newvalue) {
 		return NULL;
+	}
 	strcpy(newvalue, value);
 	return newvalue;
 }
 
-static Globalv *new_global_var(char *name, char *value)
 /*****************************************************************************
  * alloc a new global var, copy the name and value into it.
  ****************************************************************************/
+static Globalv* new_global_var(char* name, char* value)
 {
-	Globalv *newvar;
+	Globalv* newvar = pj_malloc(sizeof(Globalv) + strlen(name));
 
-	if (NULL == (newvar = pj_malloc(sizeof(Globalv)+strlen(name))))
+	if (NULL == newvar) {
 		return NULL;
+	}
 	strcpy(newvar->name, name);
 
-	if (NULL == (newvar->value = new_value(value))) {
+	newvar->value = new_value(value);
+	if (NULL == newvar->value) {
 		pj_free(newvar);
 		return NULL;
 	}
@@ -107,74 +114,85 @@ static Globalv *new_global_var(char *name, char *value)
 	return newvar;
 }
 
-static void write_nt_string(FILE *ofile, char *str)
 /*****************************************************************************
  * write nullterm'd string (including nullterm char) to file.
  *	resist the temptation to change this to fputs, we have to preserve EOL
  *	chars as they exist in the variable data string.
  ****************************************************************************/
+static void write_nt_string(FILE* ofile, char* str)
 {
-	do	{
+	do {
 		fputc(*str, ofile);
-		} while (*str++);
+	} while (*str++);
 }
 
-static Errcode read_nt_string(FILE *ifile, char *str, int maxlen)
 /*****************************************************************************
  * read a nullterm'd string of up to maxlen chars.
  *	resist the temptation to change this to fgets, we have to preserve EOL
  *	chars as they exist in the variable data string.
  ****************************************************************************/
+static Errcode read_nt_string(FILE* ifile, char* str, int maxlen)
 {
 	int inchar;
 
 	for (;;) {
-		if (0 == --maxlen)
+		if (0 == --maxlen) {
 			return Err_truncated;
-		if (EOF == (inchar = fgetc(ifile)))
+		}
+
+		inchar = fgetc(ifile);
+		if (EOF == inchar) {
 			return Err_eof;
-		if (0x00 == (*str++ = inchar))
+		}
+
+		if (0x00 == (*str++ = inchar)) {
 			return Success;
+		}
 	}
 }
 
-static Errcode dump_global_vars(void)
 /*****************************************************************************
  * dump list of global vars (if any) to the temp files.
  *	 if we have trouble opening the permenant data file, we return the error
  *	 status to the caller, in case this dump was triggered by a GlobalVarFlush.
  *	 if we have trouble opening the temporary file, we ignore it.
  ****************************************************************************/
+static Errcode dump_global_vars(void)
 {
 	Errcode err;
-	FILE	*opfile = NULL; 		// file for permenant vars
-	FILE	*otfile = NULL; 		// file for temporary vars
-	FILE	*to_file;				// holds one of the above
-	Globalv *vl;
-	Globalv *vlnext;
+	FILE* opfile = NULL;  // file for permenant vars
+	FILE* otfile = NULL;  // file for temporary vars
+	FILE* to_file;        // holds one of the above
+	Globalv* vl;
+	Globalv* vlnext;
 
-	if (NULL == varlist)			// no list, punt.
+	if (NULL == varlist) {
+		// no list, punt.
 		return Success;
+	}
 
-	if (0 == listchangecount)		// unmodified list, just free it.
+	if (0 == listchangecount) {
+		// unmodified list, just free it.
 		goto FREE_LIST;
+	}
 
-	if (permfpath[0] == 0x00) { 	// one time, make perm filepathname.
+	if (permfpath[0] == 0x00) {  // one time, make perm filepathname.
 		make_resource_name(permfname, permfpath);
 	}
 
-	opfile = fopen(permfpath,"wb");
-	if (opfile == NULL)
-		err = pj_errno_errcode();
+	opfile = fopen(permfpath, "wb");
+	if (opfile == NULL) {
+		err = errno;
+	}
 
-	otfile = fopen(tempfpath,"wb"); // we don't care about errors here.
+	otfile = fopen(tempfpath, "wb");  // we don't care about errors here.
 
 	for (vl = varlist; vl != NULL; vl = vlnext) {
-		if (vl->name[0]) { // skip deleted-var tombstones
+		if (vl->name[0]) {  // skip deleted-var tombstones
 			to_file = (vl->name[0] == PERMVAR_FLAG) ? opfile : otfile;
 			if (to_file != NULL) {
-				write_nt_string(to_file, vl->name);  // we hope these writes
-				write_nt_string(to_file, vl->value); // work, but we don't care.
+				write_nt_string(to_file, vl->name);   // we hope these writes
+				write_nt_string(to_file, vl->value);  // work, but we don't care.
 			}
 		}
 		vlnext = vl->next;
@@ -182,10 +200,12 @@ static Errcode dump_global_vars(void)
 
 FREE_LIST:
 
-	if (opfile != NULL)
+	if (opfile != NULL) {
 		fclose(opfile);
-	if (otfile != NULL)
+	}
+	if (otfile != NULL) {
 		fclose(otfile);
+	}
 
 	for (vl = varlist; vl != NULL; vl = vlnext) {
 		if (vl->name[0]) {
@@ -196,33 +216,36 @@ FREE_LIST:
 	}
 
 	listchangecount = 0;
-	varlist  = NULL;
+	varlist = NULL;
 	listnext = NULL;
 	return err;
 }
 
-static Boolean load_a_file(char *fname)
 /*****************************************************************************
  * load vars from one of the var files, return TRUE if anything loaded.
  ****************************************************************************/
+static bool load_a_file(char* fname)
 {
-	Boolean anyloaded = FALSE;
-	FILE	*ifile;
-	char	vname[MAX_VNAME_LEN];
-	char	vvalue[MAX_VVALUE_LEN];
+	bool anyloaded = false;
+	FILE* ifile;
+	char vname[MAX_VNAME_LEN];
+	char vvalue[MAX_VVALUE_LEN];
 
 	if (NULL == (ifile = fopen(fname, "rb"))) {
-		return FALSE;
+		return false;
 	}
 
 	for (;;) {
-		if (Success != read_nt_string(ifile, vname, MAX_VNAME_LEN))
+		if (Success != read_nt_string(ifile, vname, MAX_VNAME_LEN)) {
 			goto ERROR_EXIT;
-		if (Success != read_nt_string(ifile, vvalue, MAX_VVALUE_LEN))
+		}
+		if (Success != read_nt_string(ifile, vvalue, MAX_VVALUE_LEN)) {
 			goto ERROR_EXIT;
-		if (NULL == new_global_var(vname, vvalue))
+		}
+		if (NULL == new_global_var(vname, vvalue)) {
 			goto ERROR_EXIT;
-		anyloaded = TRUE;
+		}
+		anyloaded = true;
 	}
 
 ERROR_EXIT:
@@ -231,23 +254,24 @@ ERROR_EXIT:
 	return anyloaded;
 }
 
-static Errcode load_global_vars(void)
 /*****************************************************************************
  * load the global vars from the temp files into a linked list.
  ****************************************************************************/
+static Errcode load_global_vars(void)
 {
-	Boolean anyloaded;
-	Globalv *dmyvar;
+	bool anyloaded;
+	Globalv* dmyvar;
 
-	if (permfpath[0] == 0x00) { 	// one time, make perm filepathname.
+	if (permfpath[0] == 0x00) {  // one time, make perm filepathname.
 		make_resource_name(permfname, permfpath);
 	}
 
-	if (NULL != varlist)		// should never happen, but if it does,
-		dump_global_vars(); 	// this will keep everything in sync.
+	if (NULL != varlist) {   // should never happen, but if it does,
+		dump_global_vars();  // this will keep everything in sync.
+	}
 
-	anyloaded  = load_a_file(permfpath);		   // load permenant vars
-	anyloaded |= load_a_file(tempfpath);		   // load temporary vars
+	anyloaded = load_a_file(permfpath);   // load permenant vars
+	anyloaded |= load_a_file(tempfpath);  // load temporary vars
 
 	/*------------------------------------------------------------------------
 	 * strange dept:
@@ -259,167 +283,199 @@ static Errcode load_global_vars(void)
 	 *----------------------------------------------------------------------*/
 
 	if (!anyloaded) {
-		if (NULL == (dmyvar = new_global_var("x","x"))) // add a dummy var,
-			return Err_no_memory;						// punt on failure.
-		pj_free(dmyvar->value); 						// free up dummy value.
-		dmyvar->name[0] = 0x00; 						// indicate var deleted.
+		// add a dummy var,
+		if (NULL == (dmyvar = new_global_var("x", "x"))) {
+			return Err_no_memory;  // punt on failure.
+		}
+		pj_free(dmyvar->value);  // free up dummy value.
+		dmyvar->name[0] = 0x00;  // indicate var deleted.
 	}
 
 	return Success;
 }
 
-static Errcode po_compact_global_vars(void)
 /*****************************************************************************
  * save then reload global vars, po_compacts memory from deleted/modified vars.
  ****************************************************************************/
+static Errcode po_compact_global_vars(void)
 {
 	Errcode err;
-	if (Success > (err = dump_global_vars()))
+	if (Success > (err = dump_global_vars())) {
 		return err;
+	}
 	return load_global_vars();
 }
 
-static Globalv *find_global_var(char *name)
 /*****************************************************************************
  * search the linked list for a variable of a given name.
  ****************************************************************************/
+static Globalv* find_global_var(char* name)
 {
-	Globalv *vl;
-	char	firstchar = name[0];
+	Globalv* vl;
+	char firstchar = name[0];
 
 	for (vl = varlist; vl != NULL; vl = vl->next) {
-		if (firstchar == vl->name[0] && 0 == strcmp(name, vl->name))
+		if (firstchar == vl->name[0] && 0 == strcmp(name, vl->name)) {
 			return vl;
+		}
 	}
 	return NULL;
 }
 
-static Errcode po_gvar_get(Popot name, Popot value)
 /*****************************************************************************
  * ErrCode GlobalVarGet(char *name, char *value);
  *	 search for the named variable and if found return its value in the
  *	 specified string.	if not found, the return string is unchanged.
  ****************************************************************************/
+static Errcode po_gvar_get(char* name, char* value)
 {
-	Globalv *var;
+	Globalv* var;
 	Errcode err;
 
-	if (NULL == varlist)
-		if (Success != (err = load_global_vars()))
+	if (NULL == varlist) {
+		err = load_global_vars();
+		if (Success != err) {
 			return err;
+		}
+	}
 
-	if (NULL == name.pt)
+	if (NULL == name) {
 		return builtin_err = Err_null_ref;
+	}
 
-	if (NULL == (var = find_global_var(name.pt)))
+	var = find_global_var(name);
+	if (NULL == var) {
 		return Err_not_found;
+	}
 
-	if (Popot_bufcheck(&value, 1+strlen(var->value)))
-		return builtin_err;
+	if (NULL == value) {
+		return builtin_err = Err_null_ref;
+	}
 
-	strcpy(value.pt, var->value);
+	strcpy(value, var->value);
 	return Success;
 }
 
-static Errcode po_gvar_set(Popot name, Popot value)
 /*****************************************************************************
  * ErrCode GlobalVarSet(char *name, char *value);
  *	 set the named variable to the specified value.
  ****************************************************************************/
+static Errcode po_gvar_set(char* name, char* value)
 {
 	Errcode err;
-	Globalv *var;
-	char	*newvalue;
+	Globalv* var;
+	char* newvalue;
 
-	if (NULL == varlist)
-		if (Success != (err = load_global_vars()))
+	if (NULL == varlist) {
+		err = load_global_vars();
+		if (Success != err) {
 			return err;
+		}
+	}
 
-	if (NULL == name.pt || NULL == value.pt)
+	if (NULL == name || NULL == value) {
 		return builtin_err = Err_null_ref;
+	}
 
-	if (strlen(name.pt) > MAX_VNAME_LEN || strlen(value.pt) > MAX_VVALUE_LEN)
+	if (strlen(name) > MAX_VNAME_LEN || strlen(value) > MAX_VVALUE_LEN) {
 		return builtin_err = Err_truncated;
+	}
 
-	if (NULL == (var = find_global_var(name.pt))) {
-		if (NULL == new_global_var(name.pt, value.pt))
+	if (NULL == (var = find_global_var(name))) {
+		if (NULL == new_global_var(name, value)) {
 			return Err_no_memory;
+		}
 	} else {
-		if (strlen(value.pt) <= strlen(var->value)) {	// copy in place if
-			strcpy(var->value, value.pt);				// it fits.
+		if (strlen(value) <= strlen(var->value)) {  // copy in place if
+			strcpy(var->value, value);              // it fits.
 		} else {
-			if (NULL == (newvalue = new_value(value.pt)))
+			newvalue = new_value(value);
+			if (NULL == newvalue) {
 				return Err_no_memory;
+			}
 			pj_free(var->value);
 			var->value = newvalue;
 		}
 	}
 
-	if (++listchangecount > CHANGE_COUNT_LIMIT)
+	if (++listchangecount > CHANGE_COUNT_LIMIT) {
 		po_compact_global_vars();
+	}
 	return Success;
 }
 
-static Errcode po_gvar_del(Popot name)
 /*****************************************************************************
  * Errcode GlobalVarDelete(char *name);
  *	delete the named variable.
  ****************************************************************************/
+static Errcode po_gvar_del(char* name)
 {
 	Errcode err;
-	Globalv *var;
+	Globalv* var;
 
-	if (NULL == varlist)
-		if (Success != (err = load_global_vars()))
+	if (NULL == varlist) {
+		err = load_global_vars();
+		if (Success != err) {
 			return err;
+		}
+	}
 
-	if (name.pt == NULL)
+	if (name == NULL) {
 		return builtin_err = Err_null_ref;
+	}
 
-	if ((*(char *)name.pt) == 0x00)
-		return Err_not_found;		// naughty caller passed an empty string!
+	if (name[0] == 0x00) {
+		return Err_not_found;  // naughty caller passed an empty string!
+	}
 
-	if (NULL == (var = find_global_var(name.pt)))
+	var = find_global_var(name);
+	if (NULL == var) {
 		return Err_not_found;
+	}
 
 	pj_free(var->value);
 	var->name[0] = 0x00;
-	if (++listchangecount)
+	if (++listchangecount) {
 		po_compact_global_vars();
+	}
 
 	return Success;
 }
 
-static Errcode po_gvar_next(Popot nameptr, Popot valueptr)
 /*****************************************************************************
  *
  ****************************************************************************/
+static Errcode po_gvar_next(char** nameptr, char** valueptr)
 {
-	Globalv *cur = listnext;
+	Globalv* cur = listnext;
 
-	if (cur == NULL)
+	if (cur == NULL) {
 		return Err_not_found;
+	}
 
-	if (NULL == nameptr.pt || NULL == valueptr.pt)
+	if (NULL == nameptr || NULL == valueptr) {
 		return builtin_err = Err_null_ref;
+	}
 
-	*((Popot *)nameptr.pt)	= po_ptr2ppt(cur->name,0);
-	*((Popot *)valueptr.pt) = po_ptr2ppt(cur->value,0);
+	*nameptr = cur->name;
+	*valueptr = cur->value;
 
 	listnext = cur->next;
 	return Success;
 }
 
-static Errcode po_gvar_first(Popot nameptr, Popot valueptr)
 /*****************************************************************************
  *
  ****************************************************************************/
+static Errcode po_gvar_first(char** nameptr, char** valueptr)
 {
 	Errcode err;
 
 	if (NULL == (listnext = varlist)) {
-		if (Success > (err = load_global_vars()))
+		err = load_global_vars();
+		if (Success > err) {
 			return err;
+		}
 		listnext = varlist;
 	}
 
@@ -450,25 +506,25 @@ static Errcode po_gvar_first(Popot nameptr, Popot valueptr)
  *--------------------------------------------------------------------------*/
 
 PolibGlobalv po_libglobalv = {
-po_gvar_get,
+	po_gvar_get,
 	"ErrCode GlobalVarGet(char *name, char *value);",
-po_gvar_set,
+	po_gvar_set,
 	"ErrCode GlobalVarSet(char *name, char *value);",
-po_gvar_del,
+	po_gvar_del,
 	"ErrCode GlobalVarDelete(char *name);",
-po_compact_global_vars,
+	po_compact_global_vars,
 	"ErrCode GlobalVarFlush(void);",
-po_gvar_first,
+	po_gvar_first,
 	"ErrCode GlobalVarFirst(char **name, char **value);",
-po_gvar_next,
+	po_gvar_next,
 	"ErrCode GlobalVarNext(char **name, char **value);",
 };
 
 Poco_lib po_globalv_lib = {
-	NULL,								// -> next
-	"Global Variable",                  // Library name
-	(Lib_proto *)&po_libglobalv,		// pointer to jumptable/protos
-	POLIB_GLOBALV_SIZE, 				// number of functions in library
-	NULL,								// library init routine
-	dump_global_vars,					// library cleanup routine
-	};
+	NULL,                        // -> next
+	"Global Variable",           // Library name
+	(Lib_proto*)&po_libglobalv,  // pointer to jumptable/protos
+	POLIB_GLOBALV_SIZE,          // number of functions in library
+	NULL,                        // library init routine
+	dump_global_vars,            // library cleanup routine
+};

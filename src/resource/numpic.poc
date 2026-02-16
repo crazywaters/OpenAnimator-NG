@@ -6,11 +6,7 @@
  **
  **/
 
-#pragma poco library "pdracces.poe"     // extended picture I/O library
 #include <errcodes.h>
-
-#define NO_DIALOG 0 // Parameter to pdraccess options routine
-#define DO_DIALOG 1 // Parameter to pdraccess options routine
 
 /*----------------------------------------------------------------------------
  * dialog strings, menu choices, etc...
@@ -54,11 +50,11 @@ enum {LOAD_APPEND=1, LOAD_INSERT, LOAD_REPLACE, LOAD_CANCEL};
 
 
 char pdr_prompt[]	= "Please select output format:";
-char *pdr_choices[] = {"GIF", "PCX", "TIFF", "Targa", "Macintosh Pict",
+char *pdr_choices[] = {"GIF", "PNG", "JPEG", "PCX",
 "Windows Bitmap",  "Cancel"};
-char *pdr_names[]	= {"GIF.PDR", "PCX.PDR", "TIFF.PDR", "TARGA.PDR", 
-	"PICT.PDR", "BMP.PDR"};
-char *pdr_suffixes[] = {".GIF", ".PCX", ".TIF", ".TGA", ".PCT", ".BMP"};
+char *pdr_names[]	= {"GIF.PDR", "PNG.PDR", "JPEG.PDR", "PCX.PDR",
+	"BMP.PDR"};
+char *pdr_suffixes[] = {".GIF", ".PNG", ".JPG", ".PCX", ".BMP"};
 
 char *start_of_final_digits(char *pt)
 /***********************************************************************
@@ -88,6 +84,9 @@ int get_num_name(char *name)
 {
 	char *pt;
 	char dev[4],dir[70],file[10],suff[5];
+
+	if (name == NULL || *name == '\0')
+		return(-1);
 
 	fnsplit(name,dev,dir,file,suff);
 	if ((pt = start_of_final_digits(file)) == file)
@@ -129,6 +128,12 @@ void make_num_name(char *buf, char *name, int num, int digits)
 	int  diglen;
 	char *pt;
 
+	if (buf == NULL || name == NULL || *name == '\0') {
+		if (buf != NULL)
+			*buf = '\0';
+		return;
+	}
+
 	fnsplit(name,dev,dir,file,suff);	// split file into component parts
 	if (count_digits(num)>digits)		// if number too big override digits
 		digits = count_digits(num);
@@ -150,31 +155,24 @@ ErrCode set_up_for_output(char *name)
  * we try to figure out the pdr name from the basename filetype, but
  * if that doesn't work (eg, if there is no suffix on the basename),
  * we prompt the user for the output format using Qmenu.
- * after a pdr is loaded to handle the output, we check whether output
- * options are supported by the pdr, and if so, we call the pdr's
- * options preset dialog.
  **********************************************************************/
 {
 	ErrCode err;
 	int 	thechoice;
 	char	*pdrname;
-	char dev[4],dir[70],file[10],suff[5];
 
-	if (Success > (err = PicDriverFindLoad(name))) {
+	if (name == NULL || *name == '\0') {
+		return Qerror(Err_null_ref, "No filename specified");
+	}
+
+	if (Success > (err = PicDriverDetect(name))) {
 		thechoice = Qmenu(pdr_choices, Array_els(pdr_choices), pdr_prompt);
 		if (--thechoice < 0)	// convert choice # to array index,
 			return Err_abort;	// if < 0, user picked Cancel or right-clicked
-		if (Success > (err = PicDriverLoad(pdr_names[thechoice]))) {
-			return Qerror(err, "Cannot load picture driver %s",pdr_names[thechoice]);
+		if (Success > (err = PicDriverSet(pdr_names[thechoice]))) {
+			return Qerror(err, "Cannot find picture driver %s",pdr_names[thechoice]);
 		}
-		/* If they've picked a driver from list, force suffix to match. */
-		fnsplit(name,dev,dir,file,suff);	// split file into component parts
-		fnmerge(name,dev,dir,file,pdr_suffixes[thechoice]);
-	}
-
-	if (PicPdrHasOptions()) {
-		if (Success > (err = PicPdrOptionsPreset(DO_DIALOG, 0)))
-			return err;
+		/* User selected format manually - PDR is now set */
 	}
 
 	return Success;
@@ -335,15 +333,6 @@ void load_pics(char *base_name)
 			return; 	// User selected Cancel or right-clicked
 	}
 
-// If rgb/truecolor data was found in the picture, ask the user for the
-// rgb processing option via the pdracces preset dialog.  The choosen
-// option will remain in effect throughout the load sequence.
-
-	if (picdepth > 8) {
-		if (Success > (err = PicRgbOptionsPreset(DO_DIALOG,0)))
-			return;
-	}
-
 	curframe = 1+GetFrame();
 
 // Load the pictures...
@@ -369,7 +358,6 @@ void load_pic_list(char **list,  int count)
  * Load a list of files into flic.
  ***********************************************************************/
 {
-	Boolean got_rgb = FALSE;
 	char *name;
 	int	picw, pich, picdepth;
 	int i;
@@ -386,13 +374,6 @@ void load_pic_list(char **list,  int count)
 			if (!report_about_error(err, name, i, count))
 				return;
 		} else {
-			/* If RGB (and haven't already) then query how to handle
-			 * color reduction. */
-			if (picdepth > 8 && !got_rgb) {
-				if (Success > (err = PicRgbOptionsPreset(DO_DIALOG,0)))
-					return;
-				got_rgb = TRUE;
-			}
 			if (Success > (err = PicLoad(name,NULL))) {
 				Qerror(err, "Cannot load %s", name);
 				if (!report_about_error(err, name, i, count))
@@ -414,6 +395,8 @@ void load_dir(char *base_name)
 	char **file_list;
 	int file_count;
 
+	if (base_name == NULL || *base_name == '\0')
+		return;
 
 	fnsplit(base_name, dev, dir, file, suff);
 	fnmerge(base_name, dev, dir, "", "");

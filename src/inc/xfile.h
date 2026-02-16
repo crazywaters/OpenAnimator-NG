@@ -1,6 +1,8 @@
 #ifndef XFILE_H
 #define XFILE_H
 
+#include <stddef.h>
+
 #ifndef _STDARG_H_INCLUDED
 #include <stdarg.h>
 #endif

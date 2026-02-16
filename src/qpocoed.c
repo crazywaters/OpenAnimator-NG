@@ -16,10 +16,11 @@ void unzoom(void);
 void rezoom(void);
 
 
-void etext_undraw_rect(Raster *r, void *data, int x, int y,
-	int width, int height);
 
-void etext_undraw_dot(int x, int y, Raster *r);
+// from hitext.c
+extern void etext_undraw_dot(SHORT x, SHORT y, void *r);
+extern void etext_undraw_rect(Raster *r, void *data, int x, int y,
+	int width, int height);
 
 // from resource.c
 char *make_resource_name(char *name, char *path_buf);
@@ -91,9 +92,9 @@ return(pos);
 }
 
 
-void full_screen_edit(Text_file *gf)
-/* Edit existing text full screen in same colors we use for menus over a 
+/* Edit existing text full screen in same colors we use for menus over a
  * blank screen. Don't paste the text. */
+void full_screen_edit(Text_file *gf)
 {
 	unzoom();
 	save_undo();

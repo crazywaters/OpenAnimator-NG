@@ -16,6 +16,7 @@ set(LIBPOCO_SRC_FILES
 		code.c
 		declare.c
 		dummylib.c
+		pocodos_standalone.c
 		fold.c
 		funccall.c
 		linklist.c
@@ -25,6 +26,7 @@ set(LIBPOCO_SRC_FILES
 		pocodis.c
 		pocoface.c
 		pocolib.c
+		pocoload.c
 		pocoop.c
 		pocotype.c
 		postring.c
@@ -58,14 +60,18 @@ list(TRANSFORM
 add_library(libpoco ${LIBPOCO_SRC_FILES})
 set_target_properties(libpoco PROPERTIES PREFIX "")
 # Put PRIVATE src/inc first in search order, then PUBLIC poco/include
-target_include_directories(libpoco
-    PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../src/inc"
-)
+# Do NOT include Animator's headers by default to avoid shadowing system headers
 target_include_directories(libpoco
     PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include"
 )
 
-target_link_libraries(libpoco PUBLIC ffi_static hashmap)
+# Prefer external host for pj_* (provided by pocohost)
+target_compile_definitions(libpoco PUBLIC USE_EXTERNAL_PJ_HOST)
+
+# Host helpers for Poco CLI and external apps (must be before libpoco/poco)
+add_subdirectory(pocohost)
+
+target_link_libraries(libpoco PUBLIC ffi_static hashmap PRIVATE pocohost trdfile)
 
 set(POCO_MAIN_SRC_FILES "${CMAKE_CURRENT_SOURCE_DIR}/src/main.c")
 if (APPLE OR UNIX)
@@ -73,9 +79,25 @@ if (APPLE OR UNIX)
 endif()
 
 add_executable(poco ${POCO_MAIN_SRC_FILES})
-target_link_libraries(poco libpoco trdfile trdutil ffi_static hashmap)
+target_compile_definitions(poco PRIVATE USE_EXTERNAL_PJ_HOST)
+target_link_libraries(poco libpoco pocohost trdfile trdutil ffi_static hashmap)
+
+# Ensure poco can find libpocohost at runtime
+if(APPLE)
+	set_target_properties(poco PROPERTIES
+		INSTALL_RPATH "@loader_path"
+	)
+elseif(UNIX)
+	set_target_properties(poco PROPERTIES
+		INSTALL_RPATH "$ORIGIN"
+	)
+endif()
+
 INSTALL(TARGETS poco DESTINATION ./)
 
+# NOTE: poekit (POE modules) is added from the root CMakeLists.txt
+# AFTER src's resource directory install, so native .poe files are not
+# overwritten by the resource directory copy.
 
 # Add test subdirectory
 add_subdirectory(test)

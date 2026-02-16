@@ -71,9 +71,12 @@
 
 #include "jfile.h"
 #include "pocoface.h"
-#include "errcodes.h"
+#include "pocoload.h"
+#include "poco_errcodes.h"
 #include "poco.h"
 #include <setjmp.h>
+#include <stdarg.h>
+#include <stdio.h>
 #include <string.h>
 
 /*****************************************************************************
@@ -87,6 +90,21 @@ int po_version_number = VRSN_NUM; /* Global version number for PJ's use.    */
 extern Errcode builtin_err;		  /* External library/floating point error.	*/
 
 static Poco_run_env* porunenv; /* -> run env; valid only when poco pgm running */
+
+static char poco_last_error[512] = "";
+
+void poco_set_error(const char* fmt, ...)
+{
+    va_list args;
+    va_start(args, fmt);
+    vsnprintf(poco_last_error, sizeof(poco_last_error), fmt, args);
+    va_end(args);
+}
+
+const char* poco_get_error(void)
+{
+    return poco_last_error;
+}
 
 #ifdef DEBUG
 void po_show_basic_sizes()
@@ -373,9 +391,18 @@ Poco_lib* po_open_library(Poco_cb* pcb, char* libname, char* id_string)
 		return pcb->builtin_lib;
 	}
 	else {
-		if ((err = pj_load_pocorex(&ll, libname, id_string)) < Success) {
+		if (pcb->t.verbose) {
+		fprintf(stderr, "[poco library] #pragma poco library '%s' encountered\n", libname);
+		}
+		{
+			const char* script_path = NULL;
+			if (pcb && pcb->t.file_stack && pcb->t.file_stack->name) {
+				script_path = pcb->t.file_stack->name;
+			}
+			if ((err = pj_load_pocorex(&ll, script_path, libname, id_string, pcb->t.verbose)) < Success) {
 			errline(err, "can't load poco lib.");
 			return (NULL);
+			}
 		}
 		ll->next = pcb->run.loaded_libs;
 		pcb->run.loaded_libs = ll;
@@ -453,7 +480,8 @@ Errcode compile_poco(void** ppexe,		 /* returns executable pexe on Success */
 					 char* err_file,	 /* file where error detected */
 					 long* err_line,	 /* line where error detected */
 					 int* err_char,		 /* character in line where err detected */
-					 Names* include_dirs /* include search path */
+					 Names* include_dirs, /* include search path */
+					 bool verbose		 /* enable verbose debug output */
 )
 {
 	Poco_cb* pcb;
@@ -462,23 +490,40 @@ Errcode compile_poco(void** ppexe,		 /* returns executable pexe on Success */
 	File_stack* fs;
 
 	*ppexe = NULL;
+	poco_last_error[0] = '\0';
 
 	if (Success != (err = setjmp(po_compile_errhandler))) {
-		err = Err_in_err_file; /* Got here via longjmp */
+		/* Got here via longjmp -- flush error output and read it back */
+		if (pcb->t.err_file != NULL && pcb->t.err_file != stdout && pcb->t.err_file != stderr) {
+			fflush(pcb->t.err_file);
+			rewind(pcb->t.err_file);
+			size_t n = fread(poco_last_error, 1, sizeof(poco_last_error) - 1, pcb->t.err_file);
+			poco_last_error[n] = '\0';
+		}
+		err = Err_in_err_file;
 	} else {
-		if (Success != (err = po_init_memory_management(&pcb)))
+		if (Success != (err = po_init_memory_management(&pcb))) {
+			poco_set_error("Out of memory during compilation");
 			return Err_no_memory; /* MUST return immediately if init fails. */
+		}
 
 		pcb->stack_bottom = ((char*)&ppexe) - MAX_STACK;
 
 		pcb->t.err_file		= stdout;
 		pcb->t.include_dirs = include_dirs;
+		pcb->t.verbose		= verbose;
 
 		pcb->libfunc	 = NULL;
 		pcb->builtin_lib = lib;
 
-		if (Success != (err = wanna_make(pcb, &pcb->t.err_file, errors_name))) {
-			goto OUT;
+		/* Use an anonymous temp file for error output so we don't need
+		 * a named temp file path that must be resolved for fopen(). */
+		{
+			FILE* etmp = tmpfile();
+			if (etmp != NULL) {
+				pcb->t.err_file = etmp;
+			}
+			/* else: falls back to stdout */
 		}
 
 		if (dump_name != NULL) {
@@ -491,12 +536,20 @@ Errcode compile_poco(void** ppexe,		 /* returns executable pexe on Success */
 			fprintf(stdout, "\ncompile_poco: got a non-zero return from po_compile_file!!!\n");
 			#endif
 
+			/* Read error output from the tmpfile into poco_last_error */
+			if (pcb->t.err_file != NULL && pcb->t.err_file != stdout && pcb->t.err_file != stderr) {
+				fflush(pcb->t.err_file);
+				rewind(pcb->t.err_file);
+				size_t n = fread(poco_last_error, 1, sizeof(poco_last_error) - 1, pcb->t.err_file);
+				poco_last_error[n] = '\0';
+			}
 			err = Err_in_err_file; /* we reported it in error file */
 			goto OUT;
 		}
 
 		pev = pj_zalloc((long)sizeof(*pev));
 		if (pev == NULL) {
+			poco_set_error("Out of memory allocating runtime environment");
 			err = Err_no_memory;
 			goto OUT;
 		}
@@ -511,9 +564,6 @@ OUT:
 	gentle_fclose(pcb->t.err_file);
 
 	if (err == Success) {
-		if (errors_name != NULL) {
-			pj_delete(errors_name);
-		}
 		po_free_compile_memory();
 	} 
 	/* Post-error cleanup goes here... */
@@ -566,6 +616,9 @@ OUT:
 	/* kiki addition: libffi integration */
 	if (err == Success) {
 		err = po_ffi_build_structures(pev);
+		if (err < Success && poco_last_error[0] == '\0') {
+			poco_set_error("FFI build structures failed");
+		}
 	}
 
 	return err;
@@ -581,8 +634,12 @@ Errcode run_poco(void** ppexe,
 				 long* err_line)
 {
 
+	Errcode run_err;
+
 	if ((porunenv = *ppexe) == NULL)
 		return (Err_not_found);
+
+	poco_last_error[0] = '\0';
 
 	porunenv->enable_debug_trace  = true;
 	porunenv->check_abort		  = check_abort;
@@ -592,7 +649,23 @@ Errcode run_poco(void** ppexe,
 
 	porunenv->variadic_type_index = 0;
 
-	return lib_run_file(porunenv, "main");
+	run_err = lib_run_file(porunenv, "main");
+	if (run_err == Err_in_err_file && trace_file != NULL) {
+		/* Runtime wrote a trace/error to the file — read it back */
+		FILE* tf = fopen(trace_file, "r");
+		if (tf != NULL) {
+			size_t n = fread(poco_last_error, 1, sizeof(poco_last_error) - 1, tf);
+			poco_last_error[n] = '\0';
+			fclose(tf);
+		}
+	} else if (run_err < Success && poco_last_error[0] == '\0') {
+		char buf[256];
+		get_errtext(run_err, buf);
+		if (buf[0] != '\0') {
+			poco_set_error("%s", buf);
+		}
+	}
+	return run_err;
 }
 
 /*****************************************************************************

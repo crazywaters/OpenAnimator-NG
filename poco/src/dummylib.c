@@ -295,9 +295,8 @@ static Lib_proto lib[] = {
 	{dummy_libfunc, "double  tanh(double x);"},
 */
 /********* DOS library ***********/
+/* fnsplit and fnmerge are implemented in pocodos_standalone.c */
 
-	{dummy_libfunc, "ErrCode fnsplit(char *path, char *device, char *dir, char *file, char *suf);"},
-	{dummy_libfunc, "ErrCode fnmerge(char *path, char *device, char *dir, char *file, char *suf);"},
 	{dummy_libfunc, "Boolean DosExists(char *filename);"},
 	{dummy_libfunc, "ErrCode DosCopy(char *source, char *dest);"},
 	{dummy_libfunc, "ErrCode DosDelete(char *filename);"},

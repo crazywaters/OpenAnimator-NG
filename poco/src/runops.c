@@ -270,9 +270,14 @@ Errcode poco_cont_ops(void* code_pt, Pt_num* pret, int arglength, ...)
 #endif /* STRING_EXPERIMENT */
 			case OP_CPT_TO_PPT:
 				// convert void* to popot pointer
+				// NOTE: Since we don't know the size of the C-allocated memory,
+				// we set permissive bounds (min=0, max=max_addr) to allow array
+				// access. This trades safety for C interoperability.
 				acc.ret.p	   = stack->p;
 				stack		   = OPTR(stack, sizeof(stack->p) - sizeof(stack->ppt));
-				stack->ppt.min = stack->ppt.max = stack->ppt.pt = acc.ret.p;
+				stack->ppt.pt  = acc.ret.p;
+				stack->ppt.min = NULL;
+				stack->ppt.max = (void*)~(size_t)0;
 				break;
 #ifdef STRING_EXPERIMENT
 			case OP_CPT_TO_STRING:
@@ -319,6 +324,7 @@ Errcode poco_cont_ops(void* code_pt, Pt_num* pret, int arglength, ...)
 			case OP_LCCALL:	 /* call long valued C function */
 			case OP_DCCALL:	 /* call double valued C function */
 			case OP_PCCALL:	 /* call (popot) pointer valued C function */
+			case OP_CPCCALL: /* call C pointer valued C function */
 			case OP_CVCCALL: /* call void valued C function */
 				if (STACK_OVERFLOW(MIN_CCALL_STACK)) {
 					err = Err_stack;
@@ -329,7 +335,10 @@ Errcode poco_cont_ops(void* code_pt, Pt_num* pret, int arglength, ...)
 					goto ERR_IN_LIBROUTINE;
 				}
 
-				acc.ret = po_ffi_call(binding, stack, pe->variadic_types);
+					acc.ret = po_ffi_call(binding, stack, pe->variadic_types);
+				if (builtin_err < Success) {
+					goto ERR_IN_LIBROUTINE;
+				}
 				ip		= OPTR(ip, sizeof(ip->func));
 				break;
 

@@ -10,8 +10,10 @@
 #include "errcodes.h"
 #include "options.h"
 #include "poly.h"
+#include "redo.h"
+#include "render.h"
 
-extern char    po_chainto_program_path[];  // in qpoco.c
+extern char po_chainto_program_path[];  // in qpoco.c
 extern Errcode builtin_err;
 Errcode resize_default_temps(SHORT width, SHORT height);
 void kill_seq(void);
@@ -19,110 +21,112 @@ void zoom_unundo(void);
 void swap_undo(void);
 void restore(void);
 
-static int po_get_change_count(void)
 /*****************************************************************************
  * int GetChangeCount(void)
  ****************************************************************************/
+static int po_get_change_count(void)
 {
-	return (dirty_file ? dirty_strokes : 0);
+	return dirty_file ? dirty_strokes : 0;
 }
 
-static void po_redo(void)
 /*****************************************************************************
  * void Redo(void)
  ****************************************************************************/
+static void po_redo(void)
 {
-_redo_draw(&vs.redo);
-dirties();
+	_redo_draw(&vs.redo);
+	dirties();
 }
 
-static void po_exit(int err)
 /*****************************************************************************
  * void exit(ErrCode err)
  ****************************************************************************/
+static void po_exit(int err)
 {
-if (err >= Success)
-	err = Err_poco_exit; // magical errcode that runops.c xlates into Success
-builtin_err = err;
-return;
+	if (err >= Success) {
+		err = Err_poco_exit;  // magical errcode that runops.c xlates into Success
+	}
+	builtin_err = err;
 }
 
-int po_rnd(int max)
 /*****************************************************************************
  * int rnd(int max)
  ****************************************************************************/
+int po_rnd(int max)
 {
-if (max == 0)
-	return(0);
-if (max < 0)
-	return builtin_err = Err_parameter_range;
-return(rand()%max);
+	if (max == 0) {
+		return 0;
+	}
+	if (max < 0) {
+		return builtin_err = Err_parameter_range;
+	}
+	return rand() % max;
 }
 
-int po_version(void)
 /*****************************************************************************
  * int PocoVersion(void)
  ****************************************************************************/
+int po_version(void)
 {
-return(po_version_number);
+	return po_version_number;
 }
-
 
 static Errcode in_poco_reset(int width, int height)
 {
 	Errcode err;
 	char pbuf[PATH_SIZE];
 
-	free_render_cashes();					// Reset may redo ink types
-	cleanup_toptext();						// It redoes the windows too.
-	vset_get_path(POCO_PATH,pbuf);			// Save poco program name
-	err = resize_default_temps(width,height);	// Reset!
-	vset_get_path(POCO_PATH,pbuf);			// Restore poco name
+	free_render_cashes();                       // Reset may redo ink types
+	cleanup_toptext();                          // It redoes the windows too.
+	vset_get_path(POCO_PATH, pbuf);             // Save poco program name
+	err = resize_default_temps(width, height);  // Reset!
+	vset_get_path(POCO_PATH, pbuf);             // Restore poco name
 	make_render_cashes();
 	return err;
 }
 
-static Errcode po_resize_reset(int width, int height)
 /*****************************************************************************
  * ErrCode ResizeReset(int width, int height)
  ****************************************************************************/
+static Errcode po_resize_reset(int width, int height)
 {
-Errcode err;
+	Errcode err;
 
-if (width <= 0 || width > SHRT_MAX || height <= 0 || height > SHRT_MAX)
-	return Err_parameter_range;
-return in_poco_reset(width, height);
+	if (width <= 0 || width > SHRT_MAX || height <= 0 || height > SHRT_MAX) {
+		return Err_parameter_range;
+	}
+	return in_poco_reset(width, height);
 }
 
-static Errcode po_reset(void)
 /*****************************************************************************
  * ErrCode Reset(void)
  ****************************************************************************/
+static Errcode po_reset(void)
 {
-return(in_poco_reset(vb.pencel->width,vb.pencel->height));
+	return in_poco_reset(vb.pencel->width, vb.pencel->height);
 }
 
-static Boolean po_is_batch(void)
 /*****************************************************************************
- * Boolean IsBatchRun(void) - Return is/isnot a run started from cmdline.
+ * bool IsBatchRun(void) - Return is/isnot a run started from cmdline.
  ****************************************************************************/
+static bool po_is_batch(void)
 {
-	extern char *cl_poco_name;	/* in main.c */
-	return (cl_poco_name != NULL);
+	extern char* cl_poco_name; /* in main.c */
+	return cl_poco_name != NULL;
 }
 
-static void po_chainto(Popot ppath)
 /*****************************************************************************
  * void PocoChainTo(char *program_path)
  ****************************************************************************/
+static void po_chainto(Popot ppath)
 {
-	if (ppath.pt == NULL)
+	if (ppath.pt == NULL) {
 		po_chainto_program_path[0] = '\0';
-	else
+	} else {
 		get_full_path(ppath.pt, po_chainto_program_path);
+	}
 }
 
-static Errcode po_system(Popot cmdline)
 /*****************************************************************************
  * Errcode system(char *command_line)
  *	This behaves like ANSI system(), except if the command line string is
@@ -132,10 +136,10 @@ static Errcode po_system(Popot cmdline)
  *	find COMMAND.COM or didn't have enough DOS-area memory to load it into. In
  *	this case, we return the status to the caller without stopping the show.
  ****************************************************************************/
+static Errcode po_system(Popot cmdline)
 {
 	return Err_unimpl;
 }
-
 
 /*----------------------------------------------------------------------------
  * library protos...
@@ -161,39 +165,41 @@ static Errcode po_system(Popot cmdline)
  *--------------------------------------------------------------------------*/
 
 PolibMisc po_libmisc = {
-po_exit,
+	po_exit,
 	"void    exit(ErrCode err);",
-kill_seq,
+	kill_seq,
 	"void    NewFlic(void);",
-po_reset,
+	po_reset,
 	"ErrCode Reset(void);",
-po_resize_reset,
+	po_resize_reset,
 	"ErrCode ResizeReset(int width, int height);",
-po_get_change_count,
+	po_get_change_count,
 	"int     GetChangeCount(void);",
-po_version,
+	po_version,
 	"int     PocoVersion(void);",
-po_redo,
+	po_redo,
 	"void    Redo(void);",
-restore,
+	restore,
 	"void    Restore(void);",
-po_rnd,
+	po_rnd,
 	"int     rnd(int max);",
-rand,
+	rand,
 	"int     rand(void);",
-srand,
+	srand,
 	"void    srand(int seed);",
-clock,
+	clock,
 	"long    clock(void);",
-po_is_batch,
+	po_is_batch,
 	"Boolean IsBatchRun(void);",
-po_chainto,
+	po_chainto,
 	"void    PocoChainTo(char *program_path);",
-po_system,
+	po_system,
 	"Errcode system(char *command_line);",
 };
 
 Poco_lib po_misc_lib = {
-	NULL, "Misc. Functions",
-	(Lib_proto *)&po_libmisc, POLIB_MISC_SIZE,
-	};
+	NULL,
+	"Misc. Functions",
+	(Lib_proto*)&po_libmisc,
+	POLIB_MISC_SIZE,
+};

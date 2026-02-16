@@ -46,5 +46,6 @@ typedef struct rexlib_entry {
 } Rexlib_entry;
 
 Errcode pj_open_rex(char *path, Jfile *pfile, EXP_HDR *hdrsp);
+Errcode pj_rex_load(char *path,void **rexpp, void **prexlib);
 
 #endif /* REXLOAD_H */

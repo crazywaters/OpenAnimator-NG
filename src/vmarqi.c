@@ -237,7 +237,7 @@ Errcode get_rub_vertex(Short_xy *p0,
 	return(rubba_vertex(p0,p1,p2,NULL,color));
 }
 
-static void disp_line_alot(Short_xy *v)
+void disp_line_alot(Short_xy *v)
 {
 	top_textf("!%3d%3d%3d%3d%3d%3d%3ld%3d", rub_line_str,
 			v[0].x, v[0].y, 

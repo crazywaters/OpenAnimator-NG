@@ -33,17 +33,43 @@ add_subdirectory(softmenu)
 add_subdirectory(util)
 add_subdirectory(wndo)
 
+## Even if WITH_POCO is 0, these files are
+## still needed for softmenu parsing
+include_directories("${CMAKE_SOURCE_DIR}/poco/include")
+set(PJ_POCO_FILES
+	"${CMAKE_SOURCE_DIR}/poco/src/token.c"
+	"${CMAKE_SOURCE_DIR}/poco/src/bcutil.c"
+)
+
 if (WITH_POCO)
-    # poco is now a top-level subproject; include only minimal files needed when disabled
-    
-else()
-	## files still needed for softmenu parsing
-	include_directories("${CMAKE_SOURCE_DIR}/poco/include")
-	set(PJ_POCO_FILES
-		"${CMAKE_SOURCE_DIR}/poco/src/token.c"
-		"${CMAKE_SOURCE_DIR}/poco/src/bcutil.c"
+	list(APPEND
+		PJ_POCO_FILES
+		"${CMAKE_CURRENT_SOURCE_DIR}/pocoa3d.c"
+		"${CMAKE_CURRENT_SOURCE_DIR}/pocoalt.c"
+		"${CMAKE_CURRENT_SOURCE_DIR}/pocoblit.c"
+		"${CMAKE_CURRENT_SOURCE_DIR}/pococel.c"
+		"${CMAKE_CURRENT_SOURCE_DIR}/pococolo.c"
+		"${CMAKE_CURRENT_SOURCE_DIR}/pocodos.c"
+		"${CMAKE_CURRENT_SOURCE_DIR}/pocodraw.c"
+		"${CMAKE_CURRENT_SOURCE_DIR}/pocofile.c"
+		"${CMAKE_CURRENT_SOURCE_DIR}/pocoflic.c"
+		"${CMAKE_CURRENT_SOURCE_DIR}/pocofunc.c"
+		"${CMAKE_CURRENT_SOURCE_DIR}/pocogvar.c"
+		"${CMAKE_CURRENT_SOURCE_DIR}/pocolibs.c"
+		"${CMAKE_CURRENT_SOURCE_DIR}/pocomode.c"
+		"${CMAKE_CURRENT_SOURCE_DIR}/pocoqnum.c"
+		"${CMAKE_CURRENT_SOURCE_DIR}/pocorex.c"
+		"${CMAKE_CURRENT_SOURCE_DIR}/pocotext.c"
+		"${CMAKE_CURRENT_SOURCE_DIR}/pocotime.c"
+		"${CMAKE_CURRENT_SOURCE_DIR}/pocotur.c"
+		"${CMAKE_CURRENT_SOURCE_DIR}/pocotwee.c"
+		"${CMAKE_CURRENT_SOURCE_DIR}/pocouser.c"
+		"${CMAKE_CURRENT_SOURCE_DIR}/pocopicdrive.c"
+		"${CMAKE_CURRENT_SOURCE_DIR}/packcmap.c"
+		"${CMAKE_CURRENT_SOURCE_DIR}/qpoco.c"
+		"${CMAKE_CURRENT_SOURCE_DIR}/qpocoed.c"
 	)
-endif()
+endif() ## WITH_POCO
 
 set(PJMAIN_SRC_FILES
 	a3d.c
@@ -173,6 +199,20 @@ if (WITH_ANI)
 			VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_INSTALL_PREFIX}"
 	)
 
+	# Ensure ani can find libanimhost at runtime
+	if(APPLE)
+		set_target_properties(${PROJECT_NAME} PROPERTIES
+			INSTALL_RPATH "@loader_path"
+		)
+	elseif(UNIX)
+		set_target_properties(${PROJECT_NAME} PROPERTIES
+			INSTALL_RPATH "$ORIGIN"
+		)
+	endif()
+
+# Match util/CLIB_MEMORY so main.c can log pj memory stats on exit
+target_compile_definitions(${PROJECT_NAME} PRIVATE CLIB_MEMORY)
+
 target_link_libraries(
 		${PROJECT_NAME}
 			trdfile
@@ -203,6 +243,8 @@ target_link_libraries(
 
 	if (WITH_POCO)
 		target_link_libraries(${PROJECT_NAME} libpoco)
+		# Animator uses internal pj_* from src/util/memalloc.c and links only animhost for _a_a_* handles
+		target_link_libraries(${PROJECT_NAME} animhost)
 	endif()
 	
 	if (CMAKE_GENERATOR STREQUAL "Xcode")

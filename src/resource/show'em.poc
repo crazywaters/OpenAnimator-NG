@@ -7,11 +7,6 @@
 // the Autodesk Animator Pro.
 
 
-// Need to make sure we're running the right version of Animator Pro.
-#if __POCO__ < 181
-	#error "You must upgrade to Animator Pro 1.3 or later to run this program"
-#endif
-
 #include <stdio.h>
 #include <ctype.h>
 #include <optics.h>
@@ -790,17 +785,17 @@ Slide_style default_style =
 	{100, 40, 255},					/* Background Color. */
 	"gradient",						 /* Background Name */
 	{204, 108, 12,},				  /* Title Color */
-	{"SERB10.FNT", 67, 0, 0},	  /* Title font, size, spacing, leading */
+	{"chalet.m24", 67, 0, 0},	  /* Title font, size, spacing, leading */
 	JUST_LEFT,						  /* Title justify */
 	{0,0,},							  /* Title position */
 	{60, 156, 156,},				  /* Item color */
-	{"SERB08.FNT", 48, 0, 0},	  /* Item font, size, spacing, leading */
+	{"chalet.m12", 48, 0, 0},	  /* Item font, size, spacing, leading */
 	"circle",							/* Bullet name */
 	{60, 156, 156,},				  /* Bullet color */
 	"none",							  /* Logo name */
 	{590, 50},						  /* Logo position */
 	FALSE,								/* Antialias toggle*/
-	FALSE,								/* Safe Title toggle
+	FALSE,								/* Safe Title toggle */
 	AM_STILL,							/* Anim_mode */
 	0,									 /* Anim frames */
 	0,									 /* Anim speed (milliseconds) */
@@ -812,8 +807,8 @@ void set_default_style(Slide_style *sf)
  */
 {
 	memcpy(sf, &default_style, sizeof(*sf));	/* Do most of the work here. */
-	full_font_name("SERB10.FNT", sf->title_font.name);
-	full_font_name("SERB08.FNT", sf->item_font.name);
+	full_font_name("chalet.m24", sf->title_font.name);
+	full_font_name("chalet.m12", sf->item_font.name);
 }
 
 int get_title_width(Slide_style *sf)

@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 
 #include "animinfo.h"
 #include "errcodes.h"
@@ -714,7 +715,7 @@ Errcode go_load_the_cel(void)
 	char sph_buf[50];
 
 	if (thecel == NULL) {
-		fprintf(stderr, "Attempted to save NULL 'thecel'.\n");
+        fprintf(stderr, "Attempted to save NULL 'thecel'.\n");
 		return Err_bad_address;
 	}
 
@@ -744,7 +745,7 @@ void qload_the_cel(void)
 	}
 }
 
-static Errcode save_the_cel(char* path)
+Errcode save_the_cel(char* path)
 {
 	Errcode err;
 	char* celpath;
@@ -933,7 +934,7 @@ void qsave_the_cel(void)
 	char sph_buf[50];
 
 	if (thecel == NULL) {
-		fprintf(stderr, "Attempted to save NULL 'thecel'.\n");
+                xfprintf(xstderr, "Attempted to save NULL 'thecel'.\n");
 		return;
 	}
 

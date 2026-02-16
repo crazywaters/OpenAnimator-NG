@@ -54,6 +54,16 @@ extern void mview_path(void);
 extern void edit_path(void);
 extern void go_ado(void);
 
+extern Errcode get_a3d_state(void);
+extern Errcode set_a3d_state(void);
+extern void ado_clear_all(void);
+extern void a3d_check_el(bool *no_poly, bool *no_tween);
+
+extern void make_rot_op(void);
+extern Errcode do_move_along(void);
+extern void a3d_default_centers(void);
+int a3d_get_auto_flags(void);
+
 /* a3ddat.c */
 extern Errcode load_a3d_panel(void **ss);
 extern void a3d_disables(void);

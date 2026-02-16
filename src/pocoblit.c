@@ -6,17 +6,22 @@
 #include "pocoface.h"
 #include "pocolib.h"
 #include "flicel.h"
+#include "pentools.h"
+#include "zoom.h"
 
 extern Poco_lib po_blit_lib;
 extern Flicel *thecel;
 
-static void free_allocated_screens(Poco_lib *lib)
 /*****************************************************************************
  * library resources cleanup routine
  ****************************************************************************/
+static void free_allocated_screens(Poco_lib *lib)
 {
 Dlheader *sfi = &lib->resources;
 Dlnode *node, *next;
+
+if (sfi->head == NULL)
+	return;
 
 for(node = sfi->head; NULL != (next = node->next); node = next)
 	{
@@ -28,75 +33,58 @@ for(node = sfi->head; NULL != (next = node->next); node = next)
 
 extern char dirty_frame, dirty_file;
 
-static void po_dirties(void)
 /*****************************************************************************
  * void PicDirtied(void);
  *	allow a poco/poe to indicate that the picscreen has been dirtied.
  ****************************************************************************/
+static void po_dirties(void)
 {
 	dirties();
 	save_undo();
 	zoom_it();
 }
 
-Popot po_get_screen(void)
 /*****************************************************************************
  * Screen *GetPicScreen(void);
  ****************************************************************************/
+void* po_get_screen(void)
 {
-Popot result;
-
-result.min = result.max = NULL;
-result.pt = vb.pencel;
-return(result);
+return vb.pencel;
 }
 
-Popot po_get_swap(void)
 /*****************************************************************************
  * Screen *GetSwapScreen(void);
  ****************************************************************************/
+void* po_get_swap(void)
 {
-Popot result;
-
-result.min = result.max = NULL;
-result.pt = vl.alt_cel;
-return(result);
+return vl.alt_cel;
 }
 
-Popot po_get_undo(void)
 /*****************************************************************************
  * Screen *GetUndoScreen(void);
  ****************************************************************************/
+void* po_get_undo(void)
 {
-Popot result;
-
-result.min = result.max = NULL;
-result.pt = undof;
-return(result);
+return undof;
 }
 
-static Popot po_get_celscreen(void)
 /*****************************************************************************
  * Screen *GetCelScreen(void);
  ****************************************************************************/
+static void* po_get_celscreen(void)
 {
-Popot result;
-
-result.min = result.max = NULL;
 if (thecel == NULL)
-	result.pt = NULL;
-else
-	result.pt = thecel->rc;
-return(result);
+	return NULL;
+return thecel->rc;
 }
 
-void po_a_dot(Popot pscreen, int color, int x, int y)
 /*****************************************************************************
  * void SetPixel(Screen *s, int color, int x, int y);
  ****************************************************************************/
+void po_a_dot(void* pscreen, int color, int x, int y)
 {
 Raster *r;
-if ((r = pscreen.pt) == NULL)
+if ((r = pscreen) == NULL)
 	{
 	builtin_err = Err_null_ref;
 	return;
@@ -108,40 +96,40 @@ if (r == (Raster *)vb.pencel)
 	}
 }
 
-int po_a_get_dot(Popot pscreen, int x, int y)
 /*****************************************************************************
  * int GetPixel(Screen *s, int x, int y);
  ****************************************************************************/
+int po_a_get_dot(void* pscreen, int x, int y)
 {
-if (pscreen.pt == NULL)
+if (pscreen == NULL)
 	return(builtin_err = Err_null_ref);
-return(pj_get_dot(pscreen.pt, x, y));
+return(pj_get_dot(pscreen, x, y));
 }
 
-void po_get_dims(Popot pscreen, Popot width, Popot height)
 /*****************************************************************************
  * void GetScreenSize(Screen *s, int *x, int *y);
  ****************************************************************************/
+void po_get_dims(void* pscreen, int* width, int* height)
 {
 
-if (pscreen.pt == NULL || width.pt == NULL || height.pt == NULL)
+if (pscreen == NULL || width == NULL || height == NULL)
 	{
 	builtin_err = Err_null_ref;
 	return;
 	}
-vass(width.pt,int)	= ((Raster *)pscreen.pt)->width;
-vass(height.pt,int) = ((Raster *)pscreen.pt)->height;
+*width  = ((Raster *)pscreen)->width;
+*height = ((Raster *)pscreen)->height;
 }
 
-static void po_copy_screen(Popot s, Popot d)
 /*****************************************************************************
  * void CopyScreen(Screen *source, Screen *dest);
  ****************************************************************************/
+static void po_copy_screen(void* s, void* d)
 {
 Rcel *scel, *dcel;
-Boolean csame;
+bool csame;
 
-if ((scel = s.pt) == NULL || (dcel = d.pt) == NULL)
+if ((scel = s) == NULL || (dcel = d) == NULL)
 	{
 	builtin_err = Err_null_ref;
 	return;
@@ -160,15 +148,15 @@ if (dcel == vb.pencel)
 	}
 }
 
-void po_swap_screen(Popot s, Popot d)
 /*****************************************************************************
  * void TradeScreen(Screen *a, Screen *b);
  ****************************************************************************/
+void po_swap_screen(void* s, void* d)
 {
 Rcel *scel, *dcel;
-Boolean csame;
+bool csame;
 
-if ((scel = s.pt) == NULL || (dcel = d.pt) == NULL)
+if ((scel = s) == NULL || (dcel = d) == NULL)
 	{
 	builtin_err = Err_null_ref;
 	return;
@@ -188,175 +176,139 @@ if (dcel == vb.pencel)
 }
 
 
-struct rectpix_parms
-	{
-	Popot r, pixbuf;
-	int x,y,width,height;
-	};
-
-Errcode check_rectpix_parms(struct rectpix_parms *p)
-/*****************************************************************************
- * service routine
- ****************************************************************************/
-{
-if (p->width < 0 || p->height < 0)
-	return builtin_err = Err_parameter_range;
-if (p->r.pt == NULL)
-	{
-	return(builtin_err = Err_null_ref);
-	}
-if (Popot_bufcheck(&p->pixbuf,p->width*p->height) < Success)
-	{
-	return builtin_err;
-	}
-return(Success);
-}
-
-static void po_put_rectpix(struct rectpix_parms p)
 /*****************************************************************************
  * void SetBlock(Screen *s, char *pixbuf, int x, int y, int width, int height);
  ****************************************************************************/
+static void po_put_rectpix(void* r, char* pixbuf, int x, int y, int width, int height)
 {
-char *pixbuf = p.pixbuf.pt;
-
-if (check_rectpix_parms(&p) < Success)
+if (width < 0 || height < 0)
+	{
+	builtin_err = Err_parameter_range;
 	return;
+	}
+if (r == NULL || pixbuf == NULL)
+	{
+	builtin_err = Err_null_ref;
+	return;
+	}
 /* We do this one line at a time since put_hseg does clipping but
  * put_rectpix does not. */
-while (--p.height >= 0)
+while (--height >= 0)
 	{
-	pj_put_hseg(p.r.pt, pixbuf,  p.x, p.y, p.width);
-	pixbuf += p.width;
-	p.y += 1;
+	pj_put_hseg(r, pixbuf,  x, y, width);
+	pixbuf += width;
+	y += 1;
 	}
-if (p.r.pt == (void *)vb.pencel)
+if (r == (void *)vb.pencel)
 	{
 	dirties();
 	}
 }
 
-static void po_get_rectpix(struct rectpix_parms p)
 /*****************************************************************************
  * void GetBlock(Screen *s, char *pixbuf, int x, int y, int width, int height);
  ****************************************************************************/
+static void po_get_rectpix(void* r, char* pixbuf, int x, int y, int width, int height)
 {
-
-if (check_rectpix_parms(&p) < Success)
+if (width < 0 || height < 0)
+	{
+	builtin_err = Err_parameter_range;
 	return;
-pj_get_rectpix(p.r.pt, p.pixbuf.pt, p.x, p.y, p.width, p.height);
+	}
+if (r == NULL || pixbuf == NULL)
+	{
+	builtin_err = Err_null_ref;
+	return;
+	}
+pj_get_rectpix(r, pixbuf, x, y, width, height);
 }
 
-struct iconblit_parms
-	{
-	Popot msource;
-	int mbpr;
-	int mx, my;
-	int width, height;
-	Popot dest;
-	int dx, dy;
-	int color;
-	};
-
-static void po_icon_blit(struct iconblit_parms p)
 /*****************************************************************************
  * void IconBlit(char *source, int snext, int sx, int sy, int width, int height
  ****************************************************************************/
+static void po_icon_blit(void* msource, int mbpr, int mx, int my,
+	int width, int height, void* dest, int dx, int dy, int color)
 {
 
-if (p.msource.pt == NULL || p.dest.pt == NULL)
+if (msource == NULL || dest == NULL)
 	{
 	builtin_err = Err_null_ref;
 	return;
 	}
-if (p.width < 0 || p.height < 0)
+if (width < 0 || height < 0)
 	{
 	builtin_err = Err_parameter_range;
 	return;
 	}
-p.color &= 0xff;
-pj_mask1blit(p.msource.pt, p.mbpr, p.mx, p.my,
-	p.dest.pt, p.dx, p.dy, p.width, p.height, p.color);
-if (p.dest.pt == (void *)vb.pencel)
+color &= 0xff;
+pj_mask1blit(msource, mbpr, mx, my,
+	dest, dx, dy, width, height, color);
+if (dest == (void *)vb.pencel)
 	dirties();
 }
 
-struct blit_parm
-	{
-	Popot source;
-	int sx, sy;
-	int width, height;
-	Popot dest;
-	int dx, dy;
-	};
-
-static void po_blit(struct blit_parm p)
 /*****************************************************************************
  * void Blit(Screen *source, int sx, int sy, int width, int height
  ****************************************************************************/
+static void po_blit(void* source, int sx, int sy, int width, int height,
+	void* dest, int dx, int dy)
 {
-if (p.source.pt == NULL || p.dest.pt == NULL)
+if (source == NULL || dest == NULL)
 	{
 	builtin_err = Err_null_ref;
 	return;
 	}
-if (p.width < 0 || p.height < 0)
+if (width < 0 || height < 0)
 	{
 	builtin_err = Err_parameter_range;
 	return;
 	}
-pj_blitrect(p.source.pt, p.sx, p.sy, p.dest.pt, p.dx, p.dy,
-	p.width, p.height);
-if (p.dest.pt == (void *)vb.pencel)
+pj_blitrect(source, sx, sy, dest, dx, dy,
+	width, height);
+if (dest == (void *)vb.pencel)
 	dirties();
 }
 
-struct keyblit_parm
-	{
-	Popot source;
-	int sx, sy;
-	int width, height;
-	Popot dest;
-	int dx, dy;
-	int key_color;
-	};
-
-static void po_key_blit(struct keyblit_parm p)
 /*****************************************************************************
  * void KeyBlit(Screen *source, int sx, int sy, int width, int height
  ****************************************************************************/
+static void po_key_blit(void* source, int sx, int sy, int width, int height,
+	void* dest, int dx, int dy, int key_color)
 {
-if (p.source.pt == NULL || p.dest.pt == NULL)
+if (source == NULL || dest == NULL)
 	{
 	builtin_err = Err_null_ref;
 	return;
 	}
-if (p.width < 0 || p.height < 0)
+if (width < 0 || height < 0)
 	{
 	builtin_err = Err_parameter_range;
 	return;
 	}
-pj_tblitrect(p.source.pt, p.sx, p.sy, p.dest.pt, p.dx, p.dy,
-	p.width, p.height, p.key_color);
-if (p.dest.pt == (void *)vb.pencel)
+pj_tblitrect(source, sx, sy, dest, dx, dy,
+	width, height, key_color);
+if (dest == (void *)vb.pencel)
 	dirties();
 }
 
-static Errcode po_alloc_screen(Popot pcel, int w, int h)
 /*****************************************************************************
  * ErrCode AllocScreen(Screen **screen, int width, int height);
  ****************************************************************************/
+static Errcode po_alloc_screen(Popot* p, int w, int h)
 {
 Errcode err;
-Popot *p;
 Rnode *r;
 
-if ((p = pcel.pt) == NULL)
+if (p == NULL)
 	return(builtin_err = Err_null_ref);
 if (NULL == (r = pj_zalloc(sizeof(Rnode))))
 	return(builtin_err = Err_no_memory);
 
 if (w < 0 || h < 0)
+	{
+	pj_free(r);
 	return Err_parameter_range;
+	}
 
 p->min = p->max = NULL;
 
@@ -371,15 +323,14 @@ r->resource = p->pt;
 return(Success);
 }
 
-static void po_free_screen(Popot pcel)
 /*****************************************************************************
  * void FreeScreen(Screen **screen);
  ****************************************************************************/
+static void po_free_screen(Popot* p)
 {
-Popot *p;
 Rnode *r;
 
-if ((p = pcel.pt) == NULL)
+if (p == NULL)
 	{
 	builtin_err = Err_null_ref;
 	return;
@@ -398,90 +349,86 @@ p->pt = NULL;
 
 }
 
-Popot po_get_physical_screen(void)
 /*****************************************************************************
  * Screen *GetPhysicalScreen(void);
  ****************************************************************************/
+void* po_get_physical_screen(void)
 {
-Popot result;
-
-result.min = result.max = NULL;
-result.pt = vb.screen;
-return(result);
+return vb.screen;
 }
 
-void po_set_box(Popot s, int color, int x, int y, int width, int height)
 /*****************************************************************************
  *  void    SetBox(Screen *s, int color, int x, int y, int width, int height);
  ****************************************************************************/
+void po_set_box(void* s, int color, int x, int y, int width, int height)
 {
-	if (s.pt == NULL)
+	if (s == NULL)
 		{
 		builtin_err = Err_null_ref;
 		return;
 		}
-	pj_set_rect(s.pt, color, x, y, width, height);
-	if (s.pt == (void *)vb.pencel)
+	pj_set_rect(s, color, x, y, width, height);
+	if (s == (void *)vb.pencel)
 		dirties();
 }
 
-void po_menu_text(Popot s, int color, int xoff, int yoff, Popot text)
 /*****************************************************************************
  * void	MenuText(Screen *screen, int color, int xoff, int yoff, char *text);
  * 		Draw text on any screen in font used for menus.
  ****************************************************************************/
+void po_menu_text(void* s, int color, int xoff, int yoff, char* text)
 {
-	if (s.pt == NULL || text.pt == NULL)
+	if (s == NULL || text == NULL)
 		{
 		builtin_err = Err_null_ref;
 		return;
 		}
-	gftext(s.pt,vb.screen->mufont,text.pt,xoff,yoff,color,TM_MASK1,0);
-	if (s.pt == (void *)vb.pencel)
+	gftext(s,vb.screen->mufont,text,xoff,yoff,color,TM_MASK1,0);
+	if (s == (void *)vb.pencel)
 		dirties();
 }
 
-int po_menu_text_width(Popot text)
 /*****************************************************************************
  * int	MenuTextWidth(char *text);
  * 		Find out width of text string in menu font.
  ****************************************************************************/
+int po_menu_text_width(char* text)
 {
-	if (text.pt == NULL)
+	if (text == NULL)
 		{
 		return (builtin_err = Err_null_ref);
 		}
-	return(fstring_width(vb.screen->mufont, text.pt));
+	return(fstring_width(vb.screen->mufont, text));
 }
 
-int po_menu_text_height(void)
 /*****************************************************************************
  * int	MenuTextHeight(void);
  * 		Get height of menu font.
  ****************************************************************************/
+int po_menu_text_height(void)
 {
 	return(tallest_char(vb.screen->mufont));
 }
 
-static void po_get_menu_colors(Popot black, Popot grey, Popot light
-, Popot bright, Popot red)
 /*****************************************************************************
  * void	GetMenuColors(int *black, int *grey, int *light, int *bright, int *red)
  *		Return the colors commonly used for the menus.
  ****************************************************************************/
+static void po_get_menu_colors(int* black, int* grey, int* light, int* bright, int* red)
 {
 	Pixel *colors = vb.screen->mc_colors;
 
-	if (black.pt == NULL || grey.pt == NULL || light.pt == NULL
-	|| bright.pt == NULL || red.pt == NULL)
+	if (black == NULL || grey == NULL || light == NULL
+	|| bright == NULL || red == NULL)
 		{
 		builtin_err = Err_null_ref;
+		return;
 		}
-	*((int *)(black.pt)) = colors[MC_BLACK];
-	*((int *)(grey.pt)) = colors[MC_GREY];
-	*((int *)(light.pt)) = colors[MC_WHITE];
-	*((int *)(bright.pt)) = colors[MC_BRIGHT];
-	*((int *)(red.pt)) = colors[MC_RED];
+	*black  = colors[MC_BLACK];
+	*grey   = colors[MC_GREY];
+	*light  = colors[MC_WHITE];
+	*bright = colors[MC_BRIGHT];
+	*red    = colors[MC_RED];
 }
 
 /*----------------------------------------------------------------------------

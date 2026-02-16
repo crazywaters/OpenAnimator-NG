@@ -81,6 +81,7 @@ set(GFXLIB_SRC_FILES
 	fgitfang.c
 	fgpiclip.c
 	fgrotate.c
+	gfxlib.c
 	gl_sclin.c
 	gl_sdot.c
 	gl_sline.c

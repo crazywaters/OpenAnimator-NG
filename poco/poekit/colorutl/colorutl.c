@@ -64,56 +64,28 @@
  * include the usual header files...
  *--------------------------------------------------------------------------*/
 
-#include "patch10a.h"   /* MUST BE FIRST! Patches for new lib functions  */
-
+#define PUBLIC_CODE
+#include "errcodes.h"   /* host error codes (must precede pocorex.h)     */
+#include "rexlib.h"     /* required for the hostlibs                     */
 #include "pocorex.h"    /* required header file, also includes pocolib.h */
-#include "errcodes.h"   /* most POE programs will need error codes info  */
 #include "cmap.h"       /* this one defines Rgb3 and such for us.        */
+
 
 /*----------------------------------------------------------------------------
  * set up the host libraries we need...
  *--------------------------------------------------------------------------*/
 
-#define HLIB_TYPE_1 AA_POCOLIB	/* this one is always required in a POE */
-#include <hliblist.h>
+// #define HLIB_TYPE_1 AA_POCOLIB	/* this one is always required in a POE */
+// #include <hliblist.h>
 
-/*----------------------------------------------------------------------------
- * local data and declarations...
- *--------------------------------------------------------------------------*/
-
-typedef struct {int r,g,b;} IRgb3; // like Rgb3, but with 32-bit components.
-
-/*----------------------------------------------------------------------------
- * the following functions are in poclosec.asm
- *--------------------------------------------------------------------------*/
-
-extern int color_dif(IRgb3 *pcolor1, IRgb3 *pcolor2);
-extern int closestc(IRgb3 *pcolor, IRgb3 *ptab, int tabcount);
-
-/*----------------------------------------------------------------------------
- * the following functions are in rgblhs.c
- *--------------------------------------------------------------------------*/
-
-extern void hls_to_rgb(int *r, int *g, int *b, int h, int l, int s);
-extern void rgb_to_hls(int r, int g, int b, int *h, int *l, int *s);
-
-/*----------------------------------------------------------------------------
- * code...
- *--------------------------------------------------------------------------*/
-
-#ifdef __WATCOMC__
-	#pragma aux popot_rdcheck parm [eax];		// parms in regs for these
-	#pragma aux popot_wrcheck parm [eax] [ecx]; // funcs, for performance.
-#endif
-
-static Errcode popot_rdcheck(Popot *p)
 /*****************************************************************************
- * check a Popot for use as read-only in our code.
- *	we ensure the pointer is not NULL, and that it points to memory within
- *	the min/max range.	we *don't* check to make sure that any specific
- *	amount of space is available between the pointer and the max range,
- *	because we're not going to write into the space anyway.
- ****************************************************************************/
+* check a Popot for use as read-only in our code.
+*	we ensure the pointer is not NULL, and that it points to memory within
+*	the min/max range.	we *don't* check to make sure that any specific
+*	amount of space is available between the pointer and the max range,
+*	because we're not going to write into the space anyway.
+****************************************************************************/
+static Errcode popot_rdcheck(Popot *p)
 {
 	Errcode err;
 
@@ -129,13 +101,13 @@ static Errcode popot_rdcheck(Popot *p)
 	return builtin_err = err;
 }
 
-static Errcode popot_wrcheck(Popot *p, int size)
 /*****************************************************************************
- * check a Popot for use as read/write in our code.
- *	we ensure the pointer is not NULL, and that it points to memory within
- *	the min/max range.	we also check to make sure that the requested
- *	amount of space is available between the pointer and the max range.
- ****************************************************************************/
+* check a Popot for use as read/write in our code.
+*	we ensure the pointer is not NULL, and that it points to memory within
+*	the min/max range.	we also check to make sure that the requested
+*	amount of space is available between the pointer and the max range.
+****************************************************************************/
+static Errcode popot_wrcheck(Popot *p, int size)
 {
 	Errcode err;
 
@@ -151,10 +123,10 @@ static Errcode popot_wrcheck(Popot *p, int size)
 	return builtin_err = err;
 }
 
-static void rgb_to_irgb(void *irgb, void *rgb, int count)
 /*****************************************************************************
- * convert unsigned byte rgb triplets used internally to integer triplets.
- ****************************************************************************/
+* convert unsigned byte rgb triplets used internally to integer triplets.
+****************************************************************************/
+static void rgb_to_irgb(void *irgb, void *rgb, int count)
 {
 	unsigned int  *pout = irgb;
 	unsigned char *pin	= rgb;
@@ -166,28 +138,28 @@ static void rgb_to_irgb(void *irgb, void *rgb, int count)
 	}
 }
 
-int safe_color_dif(Popot pcolor1, Popot pcolor2)
 /*****************************************************************************
- * find the difference between two rgb colors.
- *
- *	this routine just checks parameter validity, then calls the assembler
- *	routine that does the real work.
- ****************************************************************************/
+* find the difference between two rgb colors.
+*
+*	this routine just checks parameter validity, then calls the assembler
+*	routine that does the real work.
+****************************************************************************/
+int safe_color_dif(Popot pcolor1, Popot pcolor2)
 {
 	if (popot_rdcheck(&pcolor1) ||
 		popot_rdcheck(&pcolor2))
 		return builtin_err;
 
-	return color_dif((IRgb3 *)pcolor1.pt, (IRgb3 *)pcolor2.pt);
+	return color_dif((Rgb3 *)pcolor1.pt, (Rgb3 *)pcolor2.pt);
 }
 
-int safe_closestc(Popot pcolor, Popot ptab, int tabcount)
 /*****************************************************************************
- * find the rgb color in a table that is closest to the requested color.
- *
- *	this routine just checks parameter validity, then calls the assembler
- *	routine that does the real work.
- ****************************************************************************/
+* find the rgb color in a table that is closest to the requested color.
+*
+*	this routine just checks parameter validity, then calls the assembler
+*	routine that does the real work.
+****************************************************************************/
+int safe_closestc(Popot pcolor, Popot ptab, int tabcount)
 {
 	if (popot_rdcheck(&pcolor) ||
 		popot_rdcheck(&ptab))
@@ -196,18 +168,18 @@ int safe_closestc(Popot pcolor, Popot ptab, int tabcount)
 	if (tabcount < 0)
 		return builtin_err = Err_parameter_range;
 
-	return closestc((IRgb3 *)pcolor.pt, (IRgb3 *)ptab.pt, tabcount);
+	return closestc((Rgb3 *)pcolor.pt, (Rgb3 *)ptab.pt, tabcount);
 
 }
 
-void menu_colors(Popot current, Popot preferred)
 /*****************************************************************************
- * return current menu rgb colors and the user's preferred menu rgb colors.
- *
- *	either pointer may be NULL, indicating that the caller doesn't want
- *	that set of colors returned.  (both could be NULL, but that would be
- *	pretty pointless, huh?)
- ****************************************************************************/
+* return current menu rgb colors and the user's preferred menu rgb colors.
+*
+*	either pointer may be NULL, indicating that the caller doesn't want
+*	that set of colors returned.  (both could be NULL, but that would be
+*	pretty pointless, huh?)
+****************************************************************************/
+void menu_colors(Popot current, Popot preferred)
 {
 	Rgb3	*pl_currents;
 	Rgb3	*pl_preferreds;
@@ -215,13 +187,13 @@ void menu_colors(Popot current, Popot preferred)
 	GetMenuColors(NULL, &pl_currents, &pl_preferreds);
 
 	if (current.pt != NULL) {
-		if (popot_wrcheck(&current, 5*sizeof(IRgb3)))
+		if (popot_wrcheck(&current, 5*sizeof(Rgb3)))
 			return;
 		rgb_to_irgb(current.pt, pl_currents, 5);
 	}
 
 	if (preferred.pt != NULL) {
-		if (popot_wrcheck(&preferred, 5*sizeof(IRgb3)))
+		if (popot_wrcheck(&preferred, 5*sizeof(Rgb3)))
 			return;
 		rgb_to_irgb(preferred.pt, pl_preferreds, 5);
 	}
@@ -229,16 +201,16 @@ void menu_colors(Popot current, Popot preferred)
 	return;
 }
 
-void menu_indexes(Popot pindexes)
 /*****************************************************************************
- * return current menu color indexes.
- *
- *	the indexes (whatever happened to the word indicies anyway?) are the
- *	five slots in the color palette which are currently being used for the
- *	menu colors.  in other words, if you used each of the five indexes to
- *	go look in the color palette, you'd find the rgb values returned by
- *	the 'currents' portion of the function above.
- ****************************************************************************/
+* return current menu color indexes.
+*
+*	the indexes (whatever happened to the word indicies anyway?) are the
+*	five slots in the color palette which are currently being used for the
+*	menu colors.  in other words, if you used each of the five indexes to
+*	go look in the color palette, you'd find the rgb values returned by
+*	the 'currents' portion of the function above.
+****************************************************************************/
+void menu_indexes(Popot pindexes)
 {
 	int 	i;
 	Pixel	*indexes;
@@ -256,10 +228,10 @@ void menu_indexes(Popot pindexes)
 	return;
 }
 
-void safe_rgb2hls(int r, int g, int b, Popot ph, Popot pl, Popot ps)
 /*****************************************************************************
- * check the validity of the poco pointers, then call the real-work routine.
- ****************************************************************************/
+* check the validity of the poco pointers, then call the real-work routine.
+****************************************************************************/
+void safe_rgb2hls(int r, int g, int b, Popot ph, Popot pl, Popot ps)
 {
 
 	r &= 0x00FF;	/* force color components to be in 0-255 range */
@@ -276,10 +248,10 @@ void safe_rgb2hls(int r, int g, int b, Popot ph, Popot pl, Popot ps)
 	return;
 }
 
-void safe_hls2rgb(Popot pr, Popot pg, Popot pb, int h, int l, int s)
 /*****************************************************************************
- * check the validity of the poco pointers, then call the real-work routine.
- ****************************************************************************/
+* check the validity of the poco pointers, then call the real-work routine.
+****************************************************************************/
+void safe_hls2rgb(Popot pr, Popot pg, Popot pb, int h, int l, int s)
 {
 
 	h &= 0x00FF;	/* force color components to be in 0-255 range */
@@ -309,5 +281,5 @@ static Lib_proto poe_calls[] = {
   { safe_hls2rgb,	"void HlsToRgb(int *r, int *g, int *b, int h, int l, int s);"},
 };
 
-Setup_Pocorex(init_patches_10a, NOFUNC, "Color Utilities v1.1", poe_calls);
+Setup_Pocorex(NOFUNC, NOFUNC, "Color Utilities v1.1", poe_calls);
 

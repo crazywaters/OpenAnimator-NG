@@ -72,6 +72,9 @@ extern void zoom_blit_brush(Rbrush *rb, Coor x, Coor y);
 extern void save_undo_brush(SHORT y);
 extern void see_pen(struct button *b);
 
+extern Errcode set_circle_brush(int size);
+
+
 /* gel.c */
 extern void see_gel_brush(struct button *b);
 

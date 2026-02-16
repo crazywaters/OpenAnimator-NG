@@ -1,0 +1,8 @@
+/* nlib04.poc - Test Err_poco_lib_version: Library version mismatch */
+#pragma poco library "badver"
+
+main()
+{
+	puts("This should never execute!");
+}
+

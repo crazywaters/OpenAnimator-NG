@@ -235,8 +235,10 @@ static void mk_function_call(Poco_cb* pcb, Exp_frame* e, Func_frame* fff, SHORT 
 		// clear current stack of parameter types
 		po_code_op(pcb, &e->ecd, OP_FFI_POP_ALL);
 
-		//		for (int i = parameter_index - 1; i >= 0; i--) {
-        for (int i = 0; i < parameter_index; i++) {
+		/* Only push types for the variadic parameters, not the fixed ones.
+		 * po_ffi_call uses variadic_types[0..vargcount-1] for the variadic
+		 * args only, so we must not include fixed parameter types here. */
+        for (int i = parameter_index - varg_param_count; i < parameter_index; i++) {
             const ffi_type* type = parameter_types[i];
             int op = 0;
 

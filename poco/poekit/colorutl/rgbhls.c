@@ -9,6 +9,10 @@
 
 #include "stdtypes.h"
 
+typedef struct rgb3 {
+    UBYTE r,g,b;
+} Rgb3;
+
 static int pj_uscale_by(USHORT x, USHORT p, USHORT q)
 /*****************************************************************************
  * return(x * p/q) done to avoid rounding error
@@ -158,4 +162,24 @@ void rgb_to_hls(int ir, int ig, int ib, int *ph, int *pl, int *ps)
 	*ph = hv;
 	*pl = lv;
 	*ps = sv;
+}
+
+/* Minimal host-side color utilities for this module */
+int color_dif(const Rgb3 *c1, const Rgb3 *c2)
+{
+    int dr = (int)c1->r - (int)c2->r;
+    int dg = (int)c1->g - (int)c2->g;
+    int db = (int)c1->b - (int)c2->b;
+    return dr*dr + dg*dg + db*db;
+}
+
+int closestc(const Rgb3 *rgb, const Rgb3 *cmap, int count)
+{
+    int best = 0;
+    int bestdif = 0x7fffffff;
+    for (int i = 0; i < count; ++i) {
+        int d = color_dif(rgb, &cmap[i]);
+        if (d < bestdif) { bestdif = d; best = i; if (d == 0) break; }
+    }
+    return best;
 }

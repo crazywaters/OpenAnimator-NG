@@ -45,7 +45,7 @@ static Errcode internal_error(Errcode err, char *str)
  * report a fatal internal error, and set builtin_err to Err_reported.
  ****************************************************************************/
 {
-	poeQerror(1, 4, err, str2ppt("Internal data integrity error in FLICPLAY.POE:\n%s"), str);
+	poeQerror(err, "Internal data integrity error in FLICPLAY.POE:\n%s", str);
 	return builtin_err = Err_reported;
 }
 

@@ -398,7 +398,7 @@ error:
 
 
 /* save whole fli without altering records */
-static Errcode save_fli(char *name)
+Errcode save_fli(char *name)
 {
 	Errcode err;
 	int oix;

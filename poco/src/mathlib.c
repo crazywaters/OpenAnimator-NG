@@ -2,7 +2,7 @@
 #include "pocolib.h"
 #include <math.h>
 #include <signal.h>
-#include "errcodes.h"
+#include "poco_errcodes.h"
 #include "ptrmacro.h"
 
 extern Errcode builtin_err;

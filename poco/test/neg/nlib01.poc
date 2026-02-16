@@ -1,0 +1,7 @@
+/* nlib01.poc - Test Err_poco_lib_not_found: Library file not found */
+#pragma poco library "nonexistent_library"
+
+main()
+{
+	puts("This should never execute!");
+}

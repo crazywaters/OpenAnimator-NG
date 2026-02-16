@@ -182,6 +182,8 @@ extern bool maybe_ref_flicel_pos(Flicel *cel);
 extern Errcode draw_flicel(Flicel *fc, int drawmode, int cfitmode);
 extern bool refresh_flicel_pos(Flicel *cel);
 
+extern void noask_delete_the_cel(void);
+
 /* flicelio.c */
 extern Errcode save_fcel_temp(Flicel *fc);
 
@@ -210,8 +212,11 @@ extern Errcode
 pdr_load_any_flicel(char *path, char *tempname, char *fliname, Flicel **pfcel);
 
 extern Errcode load_the_cel(char *path);
+extern Errcode save_the_cel(char* path);
 extern Errcode go_load_the_cel(void);
 extern void qload_the_cel(void);
 extern void qsave_the_cel(void);
+
+extern Errcode cel_from_rect(Rectangle* rect, bool render_only);
 
 #endif

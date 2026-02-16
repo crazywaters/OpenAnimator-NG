@@ -1,7 +1,7 @@
 ## dfile -- dos file routines? Seem to be called all over
-#set(DFILE_SRC_FILES
-#	dfile.c
-#)
+set(DFILE_SRC_FILES
+	dfile.c
+)
 
 ## "j" dos device and directory level calls that call dos only
 set(JFDEV_SRC_FILES
@@ -65,7 +65,7 @@ set(XFILE_SRC_FILES
 
 ## library with temp and ram file handling file system and all utilities
 add_library(trdfile
-#	${DFILE_SRC_FILES}
+	${DFILE_SRC_FILES}
 	${JFDEV_SRC_FILES}
 	${FPARSE_SRC_FILES}
 	${JFILETR_SRC_FILES}

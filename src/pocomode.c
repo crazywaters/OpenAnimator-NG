@@ -1,339 +1,351 @@
 /* pocomode.c - poco library functions that get/set drawing state
    and other variables. */
 
+#include <stdio.h>
+#include <string.h>
+
 #include "jimk.h"
 #include "errcodes.h"
 #include "pocoface.h"
 #include "pocolib.h"
+#include "options.h"
 #include "util.h"
+#include "render.h"
+#include "inks.h"
+#include "brush.h"
 
 extern Errcode builtin_err;
 
-static Errcode po_ink_set(Popot name)
+extern void set_ccycle(bool newcyc);
+
+
 /*****************************************************************************
  * ErrCode SetInk(char *name)
  ****************************************************************************/
+static Errcode po_ink_set(char* name)
 {
-extern Option_tool *ink_list;
-Option_tool *l;
+	extern Option_tool* ink_list;
+	Option_tool* l;
 
-if (name.pt == NULL)
-	return(builtin_err = Err_null_ref);
-
-l = ink_list;
-while (l != NULL)
-	{
-	if (txtcmp(name.pt, l->name) == 0)
-		{
-		free_render_cashes();
-		set_curink(l);
-		set_render_fast();
-		make_render_cashes();
-		return(Success);
-		}
-	l = l->next;
+	if (name == NULL) {
+		return builtin_err = Err_null_ref;
 	}
-return(Err_not_found);
+
+	l = ink_list;
+	while (l != NULL) {
+		if (txtcmp(name, l->name) == 0) {
+			free_render_cashes();
+			set_curink(l);
+			set_render_fast();
+			make_render_cashes();
+			return Success;
+		}
+		l = l->next;
+	}
+	return Err_not_found;
 }
 
-static void po_get_ink(Popot name)
 /*****************************************************************************
  * void GetInk(char *buf)
  ****************************************************************************/
+static void po_get_ink(char* name)
 {
-if (Popot_bufcheck(&name, 16) >= Success)
-	strcpy(name.pt,vl.ink->ot.name);
+	if (name == NULL) {
+		builtin_err = Err_null_ref;
+		return;
+	}
+	strcpy(name, vl.ink->ot.name);
 }
 
-static void po_ink_strength(int percent)
 /*****************************************************************************
  * void SetInkStrength(int percent)
  ****************************************************************************/
+static void po_ink_strength(int percent)
 {
-if (percent > 100)
-	percent = 100;
-if (percent < 0)
-	percent = 0;
-free_render_cashes();
-vl.ink->strength = percent;
-make_render_cashes();
+	if (percent > 100) {
+		percent = 100;
+	}
+	if (percent < 0) {
+		percent = 0;
+	}
+	free_render_cashes();
+	vl.ink->strength = percent;
+	make_render_cashes();
 }
 
-static int po_get_ink_strength(void)
 /*****************************************************************************
  * int GetInkStrength(void)
  ****************************************************************************/
+static int po_get_ink_strength(void)
 {
-return(vl.ink->strength);
+	return vl.ink->strength;
 }
 
-static void po_ink_dither(Boolean dither)
 /*****************************************************************************
- * void SetInkDither(Boolean dither)
+ * void SetInkDither(bool dither)
  ****************************************************************************/
+static void po_ink_dither(bool dither)
 {
-free_render_cashes();
-vl.ink->dither = dither;
-make_render_cashes();
+	free_render_cashes();
+	vl.ink->dither = dither;
+	make_render_cashes();
 }
 
-static Boolean po_get_ink_dither(void)
 /*****************************************************************************
- * Boolean GetInkDither(void)
+ * bool GetInkDither(void)
  ****************************************************************************/
+static bool po_get_ink_dither(void)
 {
-return(vl.ink->dither);
+	return vl.ink->dither;
 }
 
-static void po_tool_fill(Boolean fill)
 /*****************************************************************************
- * void SetFilled(Boolean fill)
+ * void SetFilled(bool fill)
  ****************************************************************************/
+static void po_tool_fill(bool fill)
 {
-vs.fillp = fill;
+	vs.fillp = fill;
 }
 
-static Boolean po_get_fill(void)
 /*****************************************************************************
- * Boolean GetFilled(void)
+ * bool GetFilled(void)
  ****************************************************************************/
+static bool po_get_fill(void)
 {
-return(vs.fillp);
+	return vs.fillp;
 }
 
-
-static void po_tool_brush_size(int size)
 /*****************************************************************************
  * void SetBrushSize(int size)
  ****************************************************************************/
+static void po_tool_brush_size(int size)
 {
-vs.use_brush = (size != 0);
-set_circle_brush(size);
+	vs.use_brush = (size != 0);
+	set_circle_brush(size);
 }
 
-static int po_get_brush_size(void)
 /*****************************************************************************
  * int GetBrushSize(void)
  ****************************************************************************/
+static int po_get_brush_size(void)
 {
-	return(vs.use_brush?get_brush_size():0);
+	return vs.use_brush ? get_brush_size() : 0;
 }
 
-static void po_set_key_clear(Boolean clear)
 /*****************************************************************************
- * void SetKeyMode(Boolean clear)
+ * void SetKeyMode(bool clear)
  ****************************************************************************/
+static void po_set_key_clear(bool clear)
 {
-vs.zero_clear = (clear != 0);
+	vs.zero_clear = (clear != 0);
 }
 
-static Boolean po_get_key_clear(void)
 /*****************************************************************************
- * Boolean GetKeyMode(void)
+ * bool GetKeyMode(void)
  ****************************************************************************/
+static bool po_get_key_clear(void)
 {
-return(vs.zero_clear);
+	return vs.zero_clear;
 }
 
-static void po_set_key_color(int color)
 /*****************************************************************************
  * void SetKeyColor(int color)
  ****************************************************************************/
+static void po_set_key_color(int color)
 {
-vs.inks[0] = color&0xff;
+	vs.inks[0] = color & 0xff;
 }
 
-static int po_get_key_color(void)
 /*****************************************************************************
  * int GetKeyColor(void)
  ****************************************************************************/
+static int po_get_key_color(void)
 {
-return(vs.inks[0]);
+	return vs.inks[0];
 }
 
-static void po_set_mask_use(Boolean use_it)
 /*****************************************************************************
- * void SetMaskUse(Boolean use_it)
+ * void SetMaskUse(bool use_it)
  ****************************************************************************/
+static void po_set_mask_use(bool use_it)
 {
-vs.use_mask = use_it;
-if (vs.use_mask)
-	vs.make_mask = 0;
-set_render_fast();
-free_render_cashes();
-make_render_cashes();
+	vs.use_mask = use_it;
+	if (vs.use_mask) {
+		vs.make_mask = 0;
+	}
+	set_render_fast();
+	free_render_cashes();
+	make_render_cashes();
 }
 
-static Boolean po_get_mask_use(void)
 /*****************************************************************************
- * Boolean GetMaskUse(void)
+ * bool GetMaskUse(void)
  ****************************************************************************/
+static bool po_get_mask_use(void)
 {
-return(vs.use_mask);
+	return vs.use_mask;
 }
 
-static void po_set_mask_make(Boolean make_it)
 /*****************************************************************************
- * void SetMaskCreate(Boolean make_it)
+ * void SetMaskCreate(bool make_it)
  ****************************************************************************/
+static void po_set_mask_make(bool make_it)
 {
-vs.make_mask = make_it;
-if (vs.make_mask)
-	vs.use_mask = 0;
-set_render_fast();
-free_render_cashes();
-make_render_cashes();
+	vs.make_mask = make_it;
+	if (vs.make_mask) {
+		vs.use_mask = 0;
+	}
+	set_render_fast();
+	free_render_cashes();
+	make_render_cashes();
 }
 
-static Boolean po_get_mask_make(void)
 /*****************************************************************************
- * Boolean GetMaskCreate(void)
+ * bool GetMaskCreate(void)
  ****************************************************************************/
+static bool po_get_mask_make(void)
 {
-return(vs.make_mask);
+	return vs.make_mask;
 }
 
-static int po_get_star_points(void)
 /*****************************************************************************
  * int GetStarPoints(void)
  ****************************************************************************/
+static int po_get_star_points(void)
 {
-return(vs.star_points);
+	return vs.star_points;
 }
 
-static void po_set_star_points(int points)
 /*****************************************************************************
  * void SetStarPoints(int points)
  ****************************************************************************/
+static void po_set_star_points(int points)
 {
-extern Qslider star_points_sl;
-vs.star_points = clip_to_slider(points,&star_points_sl);
+	extern Qslider star_points_sl;
+	vs.star_points = clip_to_slider(points, &star_points_sl);
 }
 
-static int po_get_star_ratio(void)
 /*****************************************************************************
  * int GetStarRatio(void)
  ****************************************************************************/
+static int po_get_star_ratio(void)
 {
-return(vs.star_ratio);
+	return vs.star_ratio;
 }
 
-static void po_set_star_ratio(int ratio)
 /*****************************************************************************
  * void SetStarRatio(int ratio)
  ****************************************************************************/
+static void po_set_star_ratio(int ratio)
 {
-extern Qslider star_ratio_sl;
-vs.star_ratio = clip_to_slider(ratio, &star_ratio_sl);
+	extern Qslider star_ratio_sl;
+	vs.star_ratio = clip_to_slider(ratio, &star_ratio_sl);
 }
 
-static void po_get_spline_tcb(Popot t, Popot c, Popot b)
 /*****************************************************************************
  * void GetSplineTCB(int *t, int *c, int *b)
  ****************************************************************************/
+static void po_get_spline_tcb(Popot t, Popot c, Popot b)
 {
-if (t.pt == NULL || c.pt == NULL || b.pt == NULL)
-	{
-	builtin_err = Err_null_ref;
-	}
-else
-	{
-	*(int *)t.pt = vs.sp_tens;
-	*(int *)c.pt = vs.sp_cont;
-	*(int *)b.pt = vs.sp_bias;
+	if (t.pt == NULL || c.pt == NULL || b.pt == NULL) {
+		builtin_err = Err_null_ref;
+	} else {
+		*(int*)t.pt = vs.sp_tens;
+		*(int*)c.pt = vs.sp_cont;
+		*(int*)b.pt = vs.sp_bias;
 	}
 }
 
-static void po_set_spline_tcb(int t, int c, int b)
 /*****************************************************************************
  * void SetSplineTCB(int t, int c, int b)
  ****************************************************************************/
+static void po_set_spline_tcb(int t, int c, int b)
 {
-extern Qslider otens_sl, ocont_sl, obias_sl;
+	extern Qslider otens_sl, ocont_sl, obias_sl;
 
-vs.sp_tens = clip_to_slider(t, &otens_sl);
-vs.sp_cont = clip_to_slider(c, &ocont_sl);
-vs.sp_bias = clip_to_slider(b, &obias_sl);
+	vs.sp_tens = clip_to_slider(t, &otens_sl);
+	vs.sp_cont = clip_to_slider(c, &ocont_sl);
+	vs.sp_bias = clip_to_slider(b, &obias_sl);
 }
 
-static Boolean po_get_two_color(void)
 /*****************************************************************************
- * Boolean GetTwoColorOn(void)
+ * bool GetTwoColorOn(void)
  ****************************************************************************/
+static bool po_get_two_color(void)
 {
-return(vs.color2);
+	return vs.color2;
 }
 
-static void po_set_two_color(Boolean setit)
 /*****************************************************************************
- * void SetTwoColorOn(Boolean setit)
+ * void SetTwoColorOn(bool setit)
  ****************************************************************************/
+static void po_set_two_color(bool setit)
 {
-vs.color2 = setit;
+	vs.color2 = setit;
 }
 
-static int po_get_outline_color(void)
 /*****************************************************************************
  * int GetTwoColor(void)
  ****************************************************************************/
+static int po_get_outline_color(void)
 {
-return(vs.inks[7]);
+	return vs.inks[7];
 }
 
-static void po_set_outline_color(int color)
 /*****************************************************************************
  * void SetTwoColor(int color)
  ****************************************************************************/
+static void po_set_outline_color(int color)
 {
-vs.inks[7] = (color&255);
+	vs.inks[7] = (color & 255);
 }
 
-static Boolean po_get_poly_closed(void)
 /*****************************************************************************
- * Boolean GetClosed(void)
+ * bool GetClosed(void)
  ****************************************************************************/
+static bool po_get_poly_closed(void)
 {
-return(vs.closed_curve);
+	return vs.closed_curve;
 }
 
-static void po_set_poly_closed(Boolean closed)
 /*****************************************************************************
- * void SetClosed(Boolean closed)
+ * void SetClosed(bool closed)
  ****************************************************************************/
+static void po_set_poly_closed(bool closed)
 {
-vs.closed_curve = closed;
+	vs.closed_curve = closed;
 }
 
-static Boolean po_get_cycle_draw(void)
 /*****************************************************************************
- * Boolean GetCycleDraw(void)
+ * bool GetCycleDraw(void)
  ****************************************************************************/
+static bool po_get_cycle_draw(void)
 {
-return(vs.cycle_draw);
+	return vs.cycle_draw;
 }
 
-static void po_set_cycle_draw(Boolean cycle)
 /*****************************************************************************
- * void SetCycleDraw(Boolean cycle)
+ * void SetCycleDraw(bool cycle)
  ****************************************************************************/
+static void po_set_cycle_draw(bool cycle)
 {
-set_ccycle(cycle);
+	set_ccycle(cycle);
 }
 
-static Boolean po_get_multi(void)
 /*****************************************************************************
- * Boolean GetMultiFrame(void)
+ * bool GetMultiFrame(void)
  ****************************************************************************/
+static bool po_get_multi(void)
 {
-return vs.multi;
+	return vs.multi;
 }
 
-static po_set_multi(Boolean multi)
 /*****************************************************************************
- * void SetMultiFrame(Boolean multi)
+ * void SetMultiFrame(bool multi)
  ****************************************************************************/
+static void po_set_multi(bool multi)
 {
-vs.multi = multi;
+	vs.multi = multi;
 }
 
 /*----------------------------------------------------------------------------
@@ -360,77 +372,45 @@ vs.multi = multi;
  *--------------------------------------------------------------------------*/
 
 PolibMode po_libmode = {
-po_ink_set,
-	"ErrCode SetInk(char *name);",
-po_get_ink,
-	"void    GetInk(char *buf);",
-po_ink_strength,
-	"void    SetInkStrength(int percent);",
-po_get_ink_strength,
-	"int     GetInkStrength(void);",
-po_ink_dither,
-	"void    SetInkDither(Boolean dither);",
-po_get_ink_dither,
-	"Boolean GetInkDither(void);",
-po_tool_fill,
-	"void    SetFilled(Boolean fill);",
-po_get_fill,
-	"Boolean GetFilled(void);",
-po_tool_brush_size,
-	"void    SetBrushSize(int size);",
-po_get_brush_size,
-	"int     GetBrushSize(void);",
-po_set_key_clear,
-	"void    SetKeyMode(Boolean clear);",
-po_get_key_clear,
-	"Boolean GetKeyMode(void);",
-po_set_key_color,
-	"void    SetKeyColor(int color);",
-po_get_key_color,
-	"int     GetKeyColor(void);",
-po_set_mask_use,
-	"void    SetMaskUse(Boolean use_it);",
-po_get_mask_use,
-	"Boolean GetMaskUse(void);",
-po_set_mask_make,
-	"void    SetMaskCreate(Boolean make_it);",
-po_get_mask_make,
-	"Boolean GetMaskCreate(void);",
-po_set_star_points,
-	"void    SetStarPoints(int points);",
-po_get_star_points,
-	"int     GetStarPoints(void);",
-po_set_star_ratio,
-	"void    SetStarRatio(int ratio);",
-po_get_star_ratio,
-	"int     GetStarRatio(void);",
-po_set_spline_tcb,
-	"void    SetSplineTCB(int t, int c, int b);",
-po_get_spline_tcb,
-	"void    GetSplineTCB(int *t, int *c, int *b);",
-po_set_two_color,
-	"void    SetTwoColorOn(Boolean setit);",
-po_get_two_color,
-	"Boolean GetTwoColorOn(void);",
-po_set_outline_color,
-	"void    SetTwoColor(int color);",
-po_get_outline_color,
-	"int     GetTwoColor(void);",
-po_set_poly_closed,
-	"void    SetClosed(Boolean closed);",
-po_get_poly_closed,
-	"Boolean GetClosed(void);",
-po_set_cycle_draw,
-	"void    SetCycleDraw(Boolean cycle);",
-po_get_cycle_draw,
-	"Boolean GetCycleDraw(void);",
-po_get_multi,
-	"Boolean GetMultiFrame(void);",
-po_set_multi,
-	"void    SetMultiFrame(Boolean multi);",
+	po_ink_set,           "ErrCode SetInk(char *name);",
+	po_get_ink,           "void    GetInk(char *buf);",
+	po_ink_strength,      "void    SetInkStrength(int percent);",
+	po_get_ink_strength,  "int     GetInkStrength(void);",
+	po_ink_dither,        "void    SetInkDither(Boolean dither);",
+	po_get_ink_dither,    "Boolean GetInkDither(void);",
+	po_tool_fill,         "void    SetFilled(Boolean fill);",
+	po_get_fill,          "Boolean GetFilled(void);",
+	po_tool_brush_size,   "void    SetBrushSize(int size);",
+	po_get_brush_size,    "int     GetBrushSize(void);",
+	po_set_key_clear,     "void    SetKeyMode(Boolean clear);",
+	po_get_key_clear,     "Boolean GetKeyMode(void);",
+	po_set_key_color,     "void    SetKeyColor(int color);",
+	po_get_key_color,     "int     GetKeyColor(void);",
+	po_set_mask_use,      "void    SetMaskUse(Boolean use_it);",
+	po_get_mask_use,      "Boolean GetMaskUse(void);",
+	po_set_mask_make,     "void    SetMaskCreate(Boolean make_it);",
+	po_get_mask_make,     "Boolean GetMaskCreate(void);",
+	po_set_star_points,   "void    SetStarPoints(int points);",
+	po_get_star_points,   "int     GetStarPoints(void);",
+	po_set_star_ratio,    "void    SetStarRatio(int ratio);",
+	po_get_star_ratio,    "int     GetStarRatio(void);",
+	po_set_spline_tcb,    "void    SetSplineTCB(int t, int c, int b);",
+	po_get_spline_tcb,    "void    GetSplineTCB(int *t, int *c, int *b);",
+	po_set_two_color,     "void    SetTwoColorOn(Boolean setit);",
+	po_get_two_color,     "Boolean GetTwoColorOn(void);",
+	po_set_outline_color, "void    SetTwoColor(int color);",
+	po_get_outline_color, "int     GetTwoColor(void);",
+	po_set_poly_closed,   "void    SetClosed(Boolean closed);",
+	po_get_poly_closed,   "Boolean GetClosed(void);",
+	po_set_cycle_draw,    "void    SetCycleDraw(Boolean cycle);",
+	po_get_cycle_draw,    "Boolean GetCycleDraw(void);",
+	po_get_multi,         "Boolean GetMultiFrame(void);",
+	po_set_multi,         "void    SetMultiFrame(Boolean multi);",
 };
 
 Poco_lib po_mode_lib = {
-	NULL, "Graphics Modes",
-	(Lib_proto *)&po_libmode,POLIB_MODE_SIZE,
-	};
+	NULL,
+	"Graphics Modes",
+	(Lib_proto*)&po_libmode,
+	POLIB_MODE_SIZE,
+};

@@ -12,5 +12,6 @@
 #define TS_BY_CHARACTER 1
 
 extern void do_title_menu(void);
+extern Errcode do_titles(bool with_menu);
 
 #endif

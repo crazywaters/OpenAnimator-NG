@@ -10,9 +10,9 @@
 #endif
 
 //!TODO: Determine if these sizes are enough for modern use
-#define POCO_STACKSIZE_MIN		(6*1024L)
-#define POCO_STACKSIZE_MAX		(64*1024L)
-#define POCO_STACKSIZE_DEFAULT	(10*1024L) /* default poco runtime stacksize */
+#define POCO_STACKSIZE_MIN		(32*1024L)
+#define POCO_STACKSIZE_MAX		(256*1024L)
+#define POCO_STACKSIZE_DEFAULT	(64*1024L) /* default poco runtime stacksize */
 
 extern int	po_version_number; /* added 10/30/90, poco's version number */
 
@@ -26,7 +26,8 @@ Errcode compile_poco(void **ppev,	/* returns executable pexe on Success */
 	char *err_fname,	/* file where error detected */
 	long *err_line, 	/* line where error detected */
 	int *err_char,		/* character in line where err detected */
-	Names *include_dirs /* include search path */
+	Names *include_dirs, /* include search path */
+	bool verbose		/* enable verbose debug output */
 	);
 /* Compile poco function.  Leave error messages in a file named errors.
    Otherwise build up executable structure in *ppev */
@@ -58,44 +59,13 @@ void pev_free_data(void *p);
 void *po_fuf_code(void *fuf);
 char *po_fuf_name(void *fuf);
 
+/* Boundary constant: poco's value for Err_in_err_file.
+ * Use this at the poco/host boundary instead of Err_in_err_file,
+ * whose numeric value differs between the two errcodes.h files. */
+#define POCO_ERR_IN_ERR_FILE (-11)
 
-
-#endif /* POCOFACE_H */
-
-#ifndef POCOFACE_H
-#define POCOFACE_H
-
-#include "pocolib.h"
-#include <stdbool.h>
-#include <stddef.h>
-
-#define POCO_STACKSIZE_MIN		(6*1024L)
-#define POCO_STACKSIZE_MAX		(64*1024L)
-#define POCO_STACKSIZE_DEFAULT	(10*1024L)
-
-#include "commonst.h"
-
-Errcode compile_poco(void **ppev,
-	char *source_name,
-	char *errors,
-	char *dump_name,
-	Poco_lib *lib,
-	char *err_fname,
-	long *err_line,
-	int *err_char,
-	Names *include_dirs);
-
-Errcode run_poco(void **ppev,
-	char *trace_name,
-	bool (*check_abort)(void *),
-	void *check_abort_data,
-	long *err_line);
-
-void free_poco(void **ppev);
-
-void *po_fuf_code(void *fuf);
-char *po_fuf_name(void *fuf);
+/* Retrieve last error message from libpoco.
+ * Returns pointer to static buffer; cleared at start of compile/run. */
+const char* poco_get_error(void);
 
 #endif /* POCOFACE_H */
-
-

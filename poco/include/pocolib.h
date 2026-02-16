@@ -13,8 +13,8 @@
 #ifndef STDTYPES_H
 #include "stdtypes.h"
 #endif
-#ifndef ERRCODES_H
-#include "errcodes.h"
+#ifndef POCO_ERRCODES_H
+#include "poco_errcodes.h"
 #endif
 
 #include <stdarg.h>
@@ -89,9 +89,10 @@ typedef struct rnode /* Used for resource tracking in builtin libs */
 Errcode po_check_formatf(int maxlen, int vargcount, int vargsize, char* fmt, va_list pargs);
 Errcode po_init_libs(Poco_lib* lib);
 void po_cleanup_libs(Poco_lib* lib);
-void po_free(Popot ppt);
-Popot po_malloc(int size);
-Popot po_calloc(int size_el, int el_count);
+void po_free(void* pt);
+void* po_malloc(int size);
+void* po_calloc(int size_el, int el_count);
+Popot poco_lmalloc(long size);
 void poco_freez(Popot* pt);
 
 #define Array_els(array) (sizeof(array)/sizeof((array)[0]))
