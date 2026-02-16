@@ -444,7 +444,7 @@ void next_frame(void* data)
 }
 
 /* Ya, go play dem frames.  Replay temp file */
-static Errcode vp_playit(LONG frames)
+Errcode vp_playit(LONG frames)
 {
 	Errcode err;
 	ULONG clock;

@@ -6,58 +6,48 @@
 #include "errcodes.h"
 #include "memory.h"
 #include "ptrmacro.h"
-#include "jimk.h"       /* import vb and vs declarations */
+#include "jimk.h" /* import vb and vs declarations */
 #include "rexlib.h"
 #include "pocorex.h"
 #include "pocolib.h"
 #include "pocoface.h"
 #include "poly.h"
 
-extern Boolean po_check_abort(void *data);
+extern bool po_check_abort(void* data);
+extern Errcode clone_ppoints(Poly* s, Poly* d); // from polytool.c
 
-static Poco_lib *poco_libs[] =
-	{
-	&po_user_lib,
-	&po_draw_lib,
-	&po_text_lib,
-	&po_mode_lib,
-	&po_turtle_lib,
-	&po_time_lib,
-	&po_cel_lib,
-	&po_alt_lib,
-	&po_optics_lib,
-	&po_blit_lib,
-	&po_misc_lib,
-	&po_load_save_lib,
-	&po_FILE_lib,
-	&po_str_lib,
-	&po_mem_lib,
-	&po_math_lib,
-	&po_dos_lib,
-	&po_globalv_lib,
-	&po_title_lib,
-	&po_tween_lib,
-	&po_flicplay_lib,
-	};
+/* Forward declarations for hostlib wiring (see get_poco_libs) */
+extern Hostlib _a_a_pocolib; /* from animhost/hostlib_table.c */
+extern Porexlib aa_pocolib;  /* defined later in this file */
 
+static Poco_lib* poco_libs[] = {
+	&po_user_lib,  &po_draw_lib,  &po_text_lib,     &po_mode_lib, &po_turtle_lib, &po_time_lib,
+	&po_cel_lib,   &po_alt_lib,   &po_optics_lib,   &po_blit_lib, &po_misc_lib,   &po_load_save_lib,
+	&po_FILE_lib,  &po_str_lib,   &po_mem_lib,      &po_math_lib, &po_dos_lib,    &po_globalv_lib,
+	&po_title_lib, &po_tween_lib, &po_flicplay_lib, &po_picdrive_lib,
+};
 
-Poco_lib *get_poco_libs()
 /*****************************************************************************
  *
  ****************************************************************************/
+Poco_lib* get_poco_libs()
 {
-	static Poco_lib *list = NULL;
+	static Poco_lib* list = NULL;
 	int i;
 
-	if (list == NULL)
-		{
-		for (i=Array_els(poco_libs); --i >= 0; )
-			{
+	if (list == NULL) {
+		/* Wire the hostlib chain so POE modules can access host functions
+		 * via _plptr (which dereferences _a_a_pocolib.next as Porexlib*).
+		 * Without this, _a_a_pocolib.next stays NULL and any POE module
+		 * that calls GetPicScreen(), poePicDirtied(), etc. will segfault. */
+		_a_a_pocolib.next = &aa_pocolib;
+
+		for (i = Array_els(poco_libs); --i >= 0;) {
 			poco_libs[i]->next = list;
 			list = poco_libs[i];
-			}
 		}
-	return(list);
+	}
+	return list;
 }
 
 /*****************************************************************************
@@ -65,141 +55,155 @@ Poco_lib *get_poco_libs()
  ****************************************************************************/
 
 extern Popot poco_lmalloc(long size);
-extern void po_free(Popot ppt);
+extern void po_free(void* pt);
 
-static void poly_to_arrays(Poly *p, int *x, int *y)
 /*****************************************************************************
  * Convert a polygon to two int arrays
  ****************************************************************************/
+static void poly_to_arrays(Poly* p, int* x, int* y)
 {
 	int i;
-	LLpoint *pt;
+	LLpoint* pt;
 
 	i = p->pt_count;
 	pt = p->clipped_list;
-	while (--i >= 0)
-		{
+	while (--i >= 0) {
 		*x++ = pt->x;
 		*y++ = pt->y;
 		pt = pt->next;
-		}
+	}
 }
 
-Errcode po_poly_to_arrays(Poly *p, Popot *px, Popot *py)
 /*****************************************************************************
  * Convert a polygon to two poco int arrays
  ****************************************************************************/
+Errcode po_poly_to_arrays(Poly* p, Popot* px, Popot* py)
 {
-	Popot x,y;
+	Popot x, y;
 	long acount;
 
-	acount = p->pt_count*sizeof(int);
+	acount = p->pt_count * sizeof(int);
 	x = poco_lmalloc(acount);
-	if (x.pt == NULL)
-		return(Err_no_memory);
+	if (x.pt == NULL) {
+		return Err_no_memory;
+	}
 	y = poco_lmalloc(acount);
-	if (y.pt == NULL)
-		{
-		po_free(x);
-		return(Err_no_memory);
-		}
+	if (y.pt == NULL) {
+		po_free(x.pt);
+		return Err_no_memory;
+	}
 	poly_to_arrays(p, x.pt, y.pt);
 	*px = x;
 	*py = y;
-	return(Success);
-}
-
-Errcode po_2_arrays_check(int ptcount, Popot *px, Popot *py)
-/* Make sure that 2 poco arrays are big enough to hold ptcount ints. */
-{
-	int bsize;
-
-	if ((px->pt) == NULL || (py->pt) == NULL)
-		return(builtin_err = Err_null_ref);
-	bsize = ptcount*sizeof(int);
-	if (Popot_bufsize(px) < bsize || Popot_bufsize(py) < bsize)
-		{
-		return(builtin_err = Err_index_big);
-		}
 	return Success;
 }
 
-Errcode po_arrays_to_poly(Poly *p, int ptcount, Popot *px, Popot *py)
+/* Make sure that 2 poco arrays are big enough to hold ptcount ints. */
+Errcode po_2_arrays_check(int ptcount, Popot* px, Popot* py)
+{
+	int bsize;
+
+	if (px->pt == NULL || py->pt == NULL) {
+		return builtin_err = Err_null_ref;
+	}
+	bsize = ptcount * sizeof(int);
+	if (Popot_bufsize(px) < bsize || Popot_bufsize(py) < bsize) {
+		return builtin_err = Err_index_big;
+	}
+	return Success;
+}
+
 /*****************************************************************************
  * This creates a Poly quickly from Poco array representation.
  * However this poly needs to be disposed with free(p->clipped_list)
  * rather than freeing each point individually.
  ****************************************************************************/
+Errcode po_arrays_to_poly(Poly* p, int ptcount, Popot* px, Popot* py)
 {
-	LLpoint *list;
+	LLpoint* list;
 	int i;
-	int *x;
-	int *y;
-	Errcode err;
+	int* x;
+	int* y;
+	Errcode err = po_2_arrays_check(ptcount, px, py);
 
-	if ((err = po_2_arrays_check(ptcount, px, py)) < Success)
+	if (err < Success) {
 		return err;
+	}
 	x = px->pt;
 	y = py->pt;
-	if((list = p->clipped_list = begmem(ptcount * sizeof(LLpoint))) == NULL)
-		return(Err_no_memory);
+	list = p->clipped_list = begmem(ptcount * sizeof(LLpoint));
+	if (list == NULL) {
+		return Err_no_memory;
+	}
 	i = p->pt_count = ptcount;
-	while (--i >= 0)
-		{
+	while (--i >= 0) {
 		list->x = *x++;
 		list->y = *y++;
 		list++;
-		}
+	}
 	p->polymagic = POLYMAGIC;
 	linkup_poly(p);
-	return(Success);
+	return Success;
 }
 
-Errcode po_arrays_to_ll_poly(Poly *poly, int ptcount, Popot *px, Popot *py)
 /*****************************************************************************
  * This creates a Poly quickly from Poco array representation.
  * It creates each point individually.
  ****************************************************************************/
+Errcode po_arrays_to_ll_poly(Poly* poly, int ptcount, Popot* px, Popot* py)
 {
 	Poly lpoly;
-	Errcode err;
-
-	if ((err = po_arrays_to_poly(&lpoly, ptcount, px, py)) < Success)
+	Errcode err = po_arrays_to_poly(&lpoly, ptcount, px, py);
+	if (err < Success) {
 		return err;
+	}
 	err = clone_ppoints(&lpoly, poly);
 	poly->polymagic = POLYMAGIC;
 	pj_free(lpoly.clipped_list);
 }
 
-
-static void *get_pic_screen(void)
 /*****************************************************************************
  *
  ****************************************************************************/
+static void* get_pic_screen(void)
 {
-	return(vb.pencel);
+	return vb.pencel;
 }
 
-static int get_menu_colors(Pixel **indicies, Rgb3 **lastrgbs, Rgb3 **idealrgbs)
 /*****************************************************************************
  *
  ****************************************************************************/
+static int get_menu_colors(Pixel** indicies, Rgb3** lastrgbs, Rgb3** idealrgbs)
 {
-
-	if (indicies != NULL)
+	if (indicies != NULL) {
 		*indicies = &vb.screen->mc_colors;
-	if (lastrgbs != NULL)
+	}
+	if (lastrgbs != NULL) {
 		*lastrgbs = &vb.screen->mc_lastrgbs;
-	if (idealrgbs != NULL)
+	}
+	if (idealrgbs != NULL) {
 		*idealrgbs = vb.screen->mc_ideals;
+	}
 	return NUM_MUCOLORS;
-
 }
 
 /*****************************************************************************
  *
  ****************************************************************************/
+Popot po_ptr2ppt(void *ptr, int bytes) {
+    Popot p = { ptr, ptr, bytes > 0 ? (char*)ptr + bytes - 1 : ptr };
+    return p;
+}
 
+
+void *po_ppt2ptr(Popot ppt) {
+    return ppt.pt;
+}
+
+
+ /*****************************************************************************
+ *
+ ****************************************************************************/
 Porexlib aa_pocolib = {
 	/* header */
 	{sizeof(Porexlib), AA_POCOLIB, AA_POCOLIB_VERSION},
@@ -215,7 +219,7 @@ Porexlib aa_pocolib = {
 	po_poe_overall,
 	&vb,
 	&vs,
-	{NULL,NULL,NULL,NULL},	/* reserved1[4] */
+	{0, 0, 0, 0}, /* reserved1[4] */
 	&po_libuser,
 	&po_liboptics,
 	&po_libswap,
@@ -233,5 +237,4 @@ Porexlib aa_pocolib = {
 	&po_libtitle,
 	&po_libtween,
 	&po_libflicplay,
-	{NULL}, 				/* reserved2[1] */
-	};
+};

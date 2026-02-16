@@ -142,7 +142,7 @@ extern bool check_undo_key(void);
 #define CH_WIDTH 6
 #define CH_HEIGHT 8
 
-extern ULONG pj_clock_1000(void);
+extern long pj_clock_1000(void);
 extern void wait_millis(int millis);
 extern Errcode wait_til(ULONG clock_1000);
 

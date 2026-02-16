@@ -112,7 +112,7 @@ Errcode load_pic(char *picname)
 	Errcode err;
 	Screen	*pscreen = GetPicScreen();
 
-	PicDriverFindLoad(picname);
+	PicDriverDetect(picname);
 	if (Success > (err = PicLoad(picname, pscreen))) {
 		Qerror(err, load_error, picname);
 	}
@@ -135,10 +135,8 @@ void view_pic(char *picname)
 	pscreen = GetPicScreen();
 	sscreen = GetSwapScreen();
 
-	PicDriverFindLoad(picname);
-	PicRgbOptionsPreset(FALSE,1);	  // fast psuedo-color for rgb picture view
+	PicDriverDetect(picname);
 	err = PicLoad(picname, pscreen);
-	PicRgbOptionsClear();
 	if (Success > err) {
 		Qerror(err, load_error, picname);
 		return;

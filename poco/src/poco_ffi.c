@@ -556,6 +556,7 @@ Po_FFI* po_ffi_find_binding_by_name(const Poco_run_env* env, const char* name)
 int po_ffi_build_structures(Poco_run_env* env)
 {
 	if (!env || !env->protos || !env->protos->next || !env->protos->next->mlink) {
+		poco_set_error("FFI: no library prototypes available");
 		return Err_poco_ffi_no_protos;
 	}
 
@@ -569,7 +570,7 @@ int po_ffi_build_structures(Poco_run_env* env)
 	/* allocate funcmap */
 	env->func_map = po_ffi_funcmap_new();
 	if (!env->func_map) {
-		fprintf(stderr, "%s: Unable to allocate func map\n", __FUNCTION__);
+		poco_set_error("FFI: unable to allocate function map");
 		return Err_poco_ffi_no_func_map;
 	}
 
@@ -596,8 +597,7 @@ int po_ffi_build_structures(Poco_run_env* env)
 				//				fprintf(stderr, "%s: Pointer for func '%s' already exists\n",
 				//						__FUNCTION__, frame->name);
 			} else {
-				fprintf(stderr, "%s: Unable to insert '%s' into func map (error %d)\n",
-						__FUNCTION__, frame->name, put_result);
+				poco_set_error("FFI: unable to insert '%s' into function map", frame->name);
 				return Err_poco_ffi_no_map_insert;
 			}
 		}
@@ -723,6 +723,7 @@ Pt_num po_ffi_call(const Po_FFI* binding, const Pt_num* stack_in, const ffi_type
 		po_ffi_assign_variadic_parameters(&exec_binding, arg_count, (void*)stack, variadic_types);
 	}
 
+
 	/* At this point all the binding types and sizes are set,
 	 * but we still need to assign the data pointers.
 	 *
@@ -736,11 +737,22 @@ Pt_num po_ffi_call(const Po_FFI* binding, const Pt_num* stack_in, const ffi_type
 	exec_binding.arg_types[exec_binding.arg_count] = NULL;
 
 
-	ffi_status status = ffi_prep_cif_var(
-		&exec_binding.interface, FFI_DEFAULT_ABI,
-		original_arg_count - is_variadic,  // note that we are comparing the base arg count
-		exec_binding.arg_count,            // vs the total arguments passed in
-		exec_binding.result_type, exec_binding.arg_types);
+	ffi_status status;
+	if (is_variadic) {
+		/* original_arg_count includes two sentinel parameters inserted for variadics;
+		 * libffi requires at least one fixed argument when using ffi_prep_cif_var. */
+		status = ffi_prep_cif_var(
+			&exec_binding.interface, FFI_DEFAULT_ABI,
+			original_arg_count - is_variadic,
+			exec_binding.arg_count,
+			exec_binding.result_type, exec_binding.arg_types);
+	}
+	else {
+		status = ffi_prep_cif(
+			&exec_binding.interface, FFI_DEFAULT_ABI,
+			exec_binding.arg_count,
+			exec_binding.result_type, exec_binding.arg_types);
+	}
 
 	if (status != FFI_OK) {
 		fprintf(stderr, "po_ffi_call: '%s' couldn't prep variadic CIF-- %s.\n", exec_binding.name,
@@ -765,8 +777,12 @@ Pt_num po_ffi_call(const Po_FFI* binding, const Pt_num* stack_in, const ffi_type
 			result.d = *((double*)&exec_binding.result);
 			break;
 		case IDO_POINTER:
+			result.ppt.pt  = *((void**)&exec_binding.result);
+			result.ppt.min = NULL;
+			result.ppt.max = (void*)~(size_t)0;
+			break;
 		case IDO_CPT:
-			result.p = (void*)&exec_binding.result;
+			result.p = *((void**)&exec_binding.result);
 			break;
 
 #ifdef STRING_EXPERIMENT

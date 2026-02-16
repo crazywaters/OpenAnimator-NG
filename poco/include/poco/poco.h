@@ -1,6 +1,6 @@
 #ifndef POCO_POCO_H
 #define POCO_POCO_H
 
-#include "../poco.h"
+#include "../src/poco.h"
 
 #endif /* POCO_POCO_H */

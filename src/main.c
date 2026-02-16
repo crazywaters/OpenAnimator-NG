@@ -20,6 +20,7 @@
 #include "resource.h"
 #include "vdevcall.h"
 #include "zoom.h"
+#include "memory.h"
 
 #ifdef WITH_POCO
 #include "poco/poco.h"
@@ -78,14 +79,13 @@ static Errcode force_temp_files(void)
 
 		err = set_flisize(&flxsize);
 		if(err < Success) {
-			return (resize_pencel(true, true)); /* user will abort and exit */
+			return resize_pencel(true, true); /* user will abort and exit */
 		}
 
 		return open_tempflx(true);
 	}
 
-	err = set_penwndo_size(vb.screen->wndo.width,
-						   vb.screen->wndo.height);
+	err = set_penwndo_size(vb.screen->wndo.width, vb.screen->wndo.height);
 	if(err < 0)
 	{
 		return err;
@@ -118,7 +118,7 @@ static void push_close_toscreen(void)
 Errcode empty_newflx(void)
 /* Open a new empty flx, but with old settings */
 {
-Vset_flidef fdef;
+	Vset_flidef fdef;
 
 	if(load_default_flidef(&fdef) < Success
 		|| fdef.frame_count < 1)
@@ -127,7 +127,7 @@ Vset_flidef fdef;
 	}
 	vs.bframe_ix = 0;
 	rethink_settings();
-	return(empty_tempflx(fdef.frame_count));
+	return empty_tempflx(fdef.frame_count);
 }
 
 
@@ -138,8 +138,7 @@ static Errcode reopen_tempflx(bool reset)
 	/* if tflx is there re open it, otherwise open a new default flx
 	 * if that fails put up a new flx */
 
-	if( (!pj_exists(tflxname))
-		|| open_tempflx(true) < Success)
+	if( !pj_exists(tflxname) || open_tempflx(true) < Success)
 	{
 		if(reset)
 			err = open_default_flx();
@@ -241,7 +240,7 @@ static Errcode set_flisize(Rectangle *newsize)
 
 char *cl_poco_name;  /* loaded from arguments */
 char *cl_flic_name;  /* Flic loaded from arguments. */
-static char po_suffix[] = ".POC";
+static char po_suffix[] = ".poc";
 
 
 static Errcode go_vpaint(void)
@@ -275,8 +274,13 @@ static Errcode go_vpaint(void)
 		if (err < Success && err != Err_abort)
 		{
 			cleanup(true);
-			if (err == Err_in_err_file) {
-				po_file_to_stdout(poco_err_name);
+			if (err == POCO_ERR_IN_ERR_FILE) {
+				const char* poco_msg = poco_get_error();
+				if (poco_msg != NULL && poco_msg[0] != '\0') {
+					fprintf(stdout, "%s\n", poco_msg);
+				} else {
+					po_file_to_stdout(poco_err_name);
+				}
 			}
 			exit(err);
 		}
@@ -411,9 +415,20 @@ void cleanup(bool save_state)
 	cleanup_all(Success);
 }
 
+#ifdef CLIB_MEMORY
+static void log_pj_memory_stats(void)
+{
+	fprintf(stderr, "pj memory: max_used=%ld leaked=%ld\n",
+		(long)pj_max_mem_used, (long)pj_mem_used);
+}
+#endif
+
 static void outofhere(bool save_state)
 {
 	cleanup(save_state);
+#ifdef CLIB_MEMORY
+	log_pj_memory_stats();
+#endif
 	exit(0);
 }
 
@@ -458,8 +473,13 @@ int main(int argc, char** argv)
 	if (cl_poco_name != NULL) {
 		err = compile_cl_poco(cl_poco_name);
 		if (err < Success) {
-			if (err == Err_in_err_file) {
-				po_file_to_stdout(poco_err_name);
+			if (err == POCO_ERR_IN_ERR_FILE) {
+				const char* poco_msg = poco_get_error();
+				if (poco_msg != NULL && poco_msg[0] != '\0') {
+					fprintf(stdout, "%s\n", poco_msg);
+				} else {
+					po_file_to_stdout(poco_err_name);
+				}
 			}
 			err = Err_reported;
 			goto error;
@@ -478,7 +498,8 @@ int main(int argc, char** argv)
 		pj_delete(tflxname); /* Delete old tempflx */
 	}
 
-	if((err = force_temp_files()) < Success) {
+	err = force_temp_files();
+	if(err < Success) {
 		goto error;
 	}
 
@@ -503,10 +524,9 @@ int main(int argc, char** argv)
 				break;
 			case RESET_DEFAULT_FLX:
 				push_close_toscreen();
-				if((err = clear_vtemps(true)) < 0) {
-					goto error;
-				}
-				if((err = open_default_flx()) < 0) {
+				clear_vtemps(true);
+				err = open_default_flx();
+				if(err < 0) {
 					goto error;
 				}
 			case RESTART_VPAINT:
@@ -522,6 +542,9 @@ int main(int argc, char** argv)
 	}
 error:
 	cleanup_all(err);
+#ifdef CLIB_MEMORY
+	log_pj_memory_stats();
+#endif
 	exit(err);
 }
 
@@ -588,12 +611,12 @@ bool was_zoom;
 			return err;
 		}
 
-		if((err = clear_vtemps(reset)) < Success) {
-			return err;
+		clear_vtemps(reset);
+		if(set_flisize(&newsize) >= Success)
+		{
+			break;
 		}
 
-		if(set_flisize(&newsize) >= Success)
-			break;
 		/* try again */
 	}
 

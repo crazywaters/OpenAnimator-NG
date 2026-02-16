@@ -25,7 +25,7 @@ static void use_range_button(Button *m);
 static void spread_frames(Button *m);
 
 static SHORT jiffies;
-static Qslider speed_sl = QSL_INIT1(0, 120, &jiffies, 0, NULL, leftright_arrs);
+Qslider speed_sl = QSL_INIT1(0, 120, &jiffies, 0, NULL, leftright_arrs);
 
 static void see_speed_sl(Button *b)
 {

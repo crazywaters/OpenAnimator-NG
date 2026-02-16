@@ -1,0 +1,44 @@
+/* Test variadic FFI type-mapping with sprintf.
+ * Regression test for bug where variadic int arguments were misread
+ * as 8-byte pointers instead of 4-byte ints.
+ */
+#pragma poco echo "expect>Success"
+
+char buf[256];
+
+main()
+{
+	/* Test 1: Mixed int and string variadic args */
+	sprintf(buf, "%d %s %d", 42, "hello", 99);
+	if (strcmp(buf, "42 hello 99") != 0)
+	{
+		printf("FAIL: got '%s' expected '42 hello 99'", buf);
+		return;
+	}
+
+	/* Test 2: Multiple integers */
+	sprintf(buf, "%d + %d = %d", 10, 20, 30);
+	if (strcmp(buf, "10 + 20 = 30") != 0)
+	{
+		printf("FAIL: got '%s' expected '10 + 20 = 30'", buf);
+		return;
+	}
+
+	/* Test 3: String only variadic */
+	sprintf(buf, "name=%s, city=%s", "Alice", "Boston");
+	if (strcmp(buf, "name=Alice, city=Boston") != 0)
+	{
+		printf("FAIL: got '%s' expected 'name=Alice, city=Boston'", buf);
+		return;
+	}
+
+	/* Test 4: Hex formatting */
+	sprintf(buf, "0x%x 0x%x", 255, 4096);
+	if (strcmp(buf, "0xff 0x1000") != 0)
+	{
+		printf("FAIL: got '%s' expected '0xff 0x1000'", buf);
+		return;
+	}
+
+	printf("Success");
+}

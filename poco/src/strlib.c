@@ -4,23 +4,19 @@
 #include <stdarg.h>
 #include <string.h>
 
-#include "errcodes.h"
+#include "poco_errcodes.h"
+#include "pjhost.h"
 #include "poco.h"
 #include "pocolib.h"
 #include "ptrmacro.h"
-#include "util.h"
-
-extern char* getenv(); /* can't use watcom stdlib.h, conflicts with pj hdrs */
 
 extern Errcode builtin_err;
 
-static Popot null_popot = { NULL, NULL, NULL };
-
 /*****************************************************************************/
  static char* strlwr(char* s) {
-  for(char *p=s; *p; p++)
-  *p=tolower(*p);
-  return s;
+ for(char *p=s; *p; p++)
+ *p=tolower(*p);
+ return s;
 }
 
 static char* strupr(char* s) {
@@ -33,78 +29,71 @@ static char* strupr(char* s) {
 /*****************************************************************************
  * int sprintf(char *buf, char *format, ...)
  ****************************************************************************/
-static int po_sprintf(long vargcount, long vargsize, Popot buf, Popot format, ...)
+static int po_sprintf(char* buf, char* format, ...)
 {
 	int rv;
 	va_list args;
 
-	if (buf.pt == NULL)
+	if (buf == NULL || format == NULL)
 		return (builtin_err = Err_null_ref);
 
 	va_start(args, format);
-
-	if (Success >
-		(rv = po_check_formatf(Popot_bufsize(&buf), vargcount, vargsize, format.pt, args)))
-		return rv;
-
-	rv = vsprintf(buf.pt, format.pt, args);
-
+	rv = vsprintf(buf, format, args);
 	va_end(args);
+
 	return rv;
 }
 
 /*****************************************************************************
  * int strcmp(char *a, char *b)
  ****************************************************************************/
-static int po_strcmp(Popot d, Popot s)
+static int po_strcmp(char* d, char* s)
 {
-	if (d.pt == NULL || s.pt == NULL)
+	if (d == NULL || s == NULL)
 		return (builtin_err = Err_null_ref);
-	return (strcmp(d.pt, s.pt));
+	return (strcmp(d, s));
 }
 
 /*****************************************************************************
  * int stricmp(char *a, char *b)
  ****************************************************************************/
-static int po_stricmp(Popot d, Popot s)
+static int po_stricmp(char* d, char* s)
 {
-	if (d.pt == NULL || s.pt == NULL)
+	if (d == NULL || s == NULL)
 		return (builtin_err = Err_null_ref);
-	return (stricmp(d.pt, s.pt));
+	return (stricmp(d, s));
 }
 
 /*****************************************************************************
  * int strncmp(char *a, char *b, int maxlen)
  ****************************************************************************/
-static int po_strncmp(Popot d, Popot s, int maxlen)
+static int po_strncmp(char* d, char* s, int maxlen)
 {
-	if (d.pt == NULL || s.pt == NULL)
+	if (d == NULL || s == NULL)
 		return (builtin_err = Err_null_ref);
-	return (strncmp(d.pt, s.pt, maxlen));
+	return (strncmp(d, s, maxlen));
 }
 
 /*****************************************************************************
  * int strlen(char *a)
  ****************************************************************************/
-static int po_strlen(Popot s)
+static int po_strlen(char* s)
 {
-	if (s.pt == NULL)
+	if (s == NULL)
 		return (builtin_err = Err_null_ref);
-	return (strlen(s.pt));
+	return (strlen(s));
 }
 
 /*****************************************************************************
  * char *strcpy(char *dest, char *source)
  ****************************************************************************/
-static Popot po_strcpy(Popot d, Popot s)
+static char* po_strcpy(char* d, char* s)
 {
 
-	if (d.pt == NULL || s.pt == NULL)
+	if (d == NULL || s == NULL)
 		builtin_err = Err_null_ref;
-	else if (Popot_bufsize(&d) < (1 + strlen(s.pt)))
-		builtin_err = Err_string;
 	else
-		strcpy(d.pt, s.pt);
+		strcpy(d, s);
 
 	return (d);
 }
@@ -112,17 +101,12 @@ static Popot po_strcpy(Popot d, Popot s)
 /*****************************************************************************
  * char *strncpy(char *dest, char *source, int maxlen)
  ****************************************************************************/
-static Popot po_strncpy(Popot d, Popot s, int maxlen)
+static char* po_strncpy(char* d, char* s, int maxlen)
 {
-	int dlen;
-
-	if (d.pt == NULL || s.pt == NULL)
+	if (d == NULL || s == NULL)
 		builtin_err = Err_null_ref;
 	else {
-		dlen = Popot_bufsize(&d);
-		if (maxlen >= dlen)
-			maxlen = dlen - 1;
-		strncpy(d.pt, s.pt, maxlen);
+		strncpy(d, s, maxlen);
 	}
 	return (d);
 }
@@ -130,14 +114,12 @@ static Popot po_strncpy(Popot d, Popot s, int maxlen)
 /*****************************************************************************
  * char *strcat(char *dest, char *source)
  ****************************************************************************/
-static Popot po_strcat(Popot d, Popot tail)
+static char* po_strcat(char* d, char* tail)
 {
-	if (d.pt == NULL || tail.pt == NULL)
-		builtin_err = Err_null_ref;
-	else if (Popot_bufsize(&d) < (1 + strlen(d.pt) + strlen(tail.pt)))
+	if (d == NULL || tail == NULL)
 		builtin_err = Err_null_ref;
 	else
-		strcat(d.pt, tail.pt);
+		strcat(d, tail);
 
 	return (d);
 }
@@ -145,232 +127,214 @@ static Popot po_strcat(Popot d, Popot tail)
 /*****************************************************************************
  * char *strdup(char *source)
  ****************************************************************************/
-static Popot po_strdup(Popot s)
+static char* po_strdup(char* s)
 {
-	int len;
-	Popot d = { NULL, NULL, NULL };
+	Popot d;
 
-	if (s.pt == NULL) {
+	if (s == NULL) {
 		builtin_err = Err_null_ref;
-	} else {
-		len = strlen(s.pt) + 1;
-		d	= po_malloc(len);
-		strcpy(d.pt, s.pt);
+		return NULL;
 	}
-	return (d);
+	int len = strlen(s) + 1;
+	d = poco_lmalloc(len);
+	if (d.pt == NULL) {
+		builtin_err = Err_no_memory;
+		return NULL;
+	}
+	strcpy(d.pt, s);
+	return (char*)d.pt;
 }
 
 /*****************************************************************************
  * char *strchr(char *source, int c)
  ****************************************************************************/
-static Popot po_strchr(Popot s1, int c)
+static char* po_strchr(char* s1, int c)
 {
-	if (s1.pt == NULL) {
+	if (s1 == NULL) {
 		builtin_err = Err_null_ref;
-		return null_popot;
+		return NULL;
 	}
-	if (NULL == (s1.pt = strchr(s1.pt, c)))
-		return null_popot;
-
-	return (s1);
+	return strchr(s1, c);
 }
 
 /*****************************************************************************
  * char *strrchr(char *source, int c)
  ****************************************************************************/
-static Popot po_strrchr(Popot s1, int c)
+static char* po_strrchr(char* s1, int c)
 {
-	if (s1.pt == NULL) {
+	if (s1 == NULL) {
 		builtin_err = Err_null_ref;
-		return null_popot;
+		return NULL;
 	}
-	if ((s1.pt = strrchr(s1.pt, c)) == NULL)
-		return null_popot;
-
-	return (s1);
+	return strrchr(s1, c);
 }
 
 /*****************************************************************************
  * char *strstr(char *string, char *substring)
  ****************************************************************************/
-static Popot po_strstr(Popot s1, Popot s2)
+static char* po_strstr(char* s1, char* s2)
 {
 
-	if (s1.pt == NULL || s2.pt == NULL) {
+	if (s1 == NULL || s2 == NULL) {
 		builtin_err = Err_null_ref;
-		return null_popot;
+		return NULL;
 	}
-	if ((s1.pt = strstr(s1.pt, s2.pt)) == NULL)
-		return null_popot;
-
-	return (s1);
+	return strstr(s1, s2);
 }
 
 /*****************************************************************************
  * char *stristr(char *string, char *substring)
  ****************************************************************************/
-static Popot po_stristr(Popot s1, Popot s2)
+static char* po_stristr(char* s1, char* s2)
 {
 	char *p1 = NULL, *p2 = NULL;
 	char* res;
+	char* result = NULL;
 
-	if (s1.pt == NULL || s2.pt == NULL) {
+	if (s1 == NULL || s2 == NULL) {
 		builtin_err = Err_null_ref;
-		goto ERR;
+		goto OUT;
 	}
-	if ((p1 = clone_string(s1.pt)) == NULL) {
+	if ((p1 = clone_string(s1)) == NULL) {
 		builtin_err = Err_no_memory;
-		goto ERR;
+		goto OUT;
 	}
-	if ((p2 = clone_string(s2.pt)) == NULL) {
+	if ((p2 = clone_string(s2)) == NULL) {
 		builtin_err = Err_no_memory;
-		goto ERR;
+		goto OUT;
 	}
 	upc(p1);
 	upc(p2);
 	if ((res = strstr(p1, p2)) == NULL)
-		goto ERR;
-	s1.pt = OPTR(s1.pt, res - p1);
-	goto OUT;
-ERR:
-	s1.pt = s1.min = s1.max = NULL;
+		goto OUT;
+	result = s1 + (res - p1);
 OUT:
 	pj_gentle_free(p1);
 	pj_gentle_free(p2);
-	return (s1);
+	return result;
 }
 
 /*****************************************************************************
  * int atoi(char *str);
  ****************************************************************************/
-static int po_atoi(Popot str)
+static int po_atoi(char* str)
 {
-	if (str.pt == NULL)
+	if (str == NULL)
 		return builtin_err = Err_null_ref;
 
-	return atoi(str.pt);
+	return atoi(str);
 }
 
 /*****************************************************************************
  * double atof(char *str);
  ****************************************************************************/
-static double po_atof(Popot str)
+static double po_atof(char* str)
 {
-	if (str.pt == NULL)
+	if (str == NULL)
 		return builtin_err = Err_null_ref;
 
-	return atof(str.pt);
+	return atof(str);
 }
 
 /*****************************************************************************
  * int strspn(char *string, char *charset)
  ****************************************************************************/
-static int po_strspn(Popot s1, Popot s2)
+static int po_strspn(char* s1, char* s2)
 {
 
-	if (s1.pt == NULL || s2.pt == NULL) {
+	if (s1 == NULL || s2 == NULL) {
 		return builtin_err = Err_null_ref;
 	}
-	return strspn(s1.pt, s2.pt);
+	return strspn(s1, s2);
 }
 
 /*****************************************************************************
  * int strcspn(char *string, char *charset)
  ****************************************************************************/
-static int po_strcspn(Popot s1, Popot s2)
+static int po_strcspn(char* s1, char* s2)
 {
 
-	if (s1.pt == NULL || s2.pt == NULL) {
+	if (s1 == NULL || s2 == NULL) {
 		return builtin_err = Err_null_ref;
 	}
-	return strcspn(s1.pt, s2.pt);
+	return strcspn(s1, s2);
 }
 
 /*****************************************************************************
  * char *strpbrk(char *string, char *breakset)
  ****************************************************************************/
-static Popot po_strpbrk(Popot s1, Popot s2)
+static char* po_strpbrk(char* s1, char* s2)
 {
 
-	if (s1.pt == NULL || s2.pt == NULL) {
+	if (s1 == NULL || s2 == NULL) {
 		builtin_err = Err_null_ref;
-		return null_popot;
+		return NULL;
 	}
-	if ((s1.pt = strpbrk(s1.pt, s2.pt)) == NULL)
-		return null_popot;
-
-	return (s1);
+	return strpbrk(s1, s2);
 }
 
 /*****************************************************************************
  * char *strtok(char *string, char *delimset)
  ****************************************************************************/
-static Popot po_strtok(Popot s1, Popot s2)
+static char* po_strtok(char* s1, char* s2)
 {
 
-	if (s2.pt == NULL) /* note that NULL s1 is allowed! */
+	if (s2 == NULL) /* note that NULL s1 is allowed! */
 	{
 		builtin_err = Err_null_ref;
-		return null_popot;
+		return NULL;
 	}
-	if ((s1.pt = strtok(s1.pt, s2.pt)) == NULL)
-		return null_popot;
-
-	return (s1);
+	return strtok(s1, s2);
 }
 
 /*****************************************************************************
  * char *getenv(char *varname)
  ****************************************************************************/
-static Popot po_getenv(Popot s1)
+static char* po_getenv(char* s1)
 {
 
-	if (s1.pt == NULL) {
+	if (s1 == NULL) {
 		builtin_err = Err_null_ref;
-		return null_popot;
+		return NULL;
 	}
-	if ((s1.pt = getenv(s1.pt)) == NULL)
-		return null_popot;
-
-	return (s1);
+	return getenv(s1);
 }
 
 /*****************************************************************************
  * char *strlwr(char *string)
  ****************************************************************************/
-static Popot po_strlwr(Popot d)
+static char* po_strlwr(char* d)
 {
 
-	if (d.pt == NULL)
+	if (d == NULL)
 		builtin_err = Err_null_ref;
 	else
-		strlwr(d.pt);
+		strlwr(d);
 	return (d);
 }
 
 /*****************************************************************************
  * char *strupr(char *string)
  ****************************************************************************/
-static Popot po_strupr(Popot d)
+static char* po_strupr(char* d)
 {
 
-	if (d.pt == NULL)
+	if (d == NULL)
 		builtin_err = Err_null_ref;
 	else
-		strupr(d.pt);
+		strupr(d);
 	return (d);
 }
 
 /*****************************************************************************
  * char *strerror(int errnum)
  ****************************************************************************/
-static Popot po_strerror(int err)
+static char* po_strerror(int err)
 {
 	static char errmsg[ERRTEXT_SIZE];
-	static Popot retval = { errmsg, errmsg, errmsg + ERRTEXT_SIZE };
 
 	get_errtext(err, errmsg);
-	return retval;
+	return errmsg;
 }
 
 /*----------------------------------------------------------------------------

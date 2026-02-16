@@ -2,12 +2,15 @@
 #include <string.h>
 #include <ctype.h>
 #include <stdio.h>
+#include "pjhost.h"
 
+#ifndef USE_EXTERNAL_PJ_HOST
 void *pj_malloc(size_t i) { return malloc(i); }
 void *pj_zalloc(size_t size) { void *p = malloc(size); if (p) memset(p, 0, size); return p; }
 void pj_free(void *v) { free(v); }
 void pj_gentle_free(void *p) { if (p) free(p); }
 void pj_freez(void *p) { if (p && *(void**)p) { free(*(void**)p); *(void**)p = NULL; } }
+#endif
 
 int pj_delete(const char *name) { return remove(name); }
 void init_stdfiles(void) { }

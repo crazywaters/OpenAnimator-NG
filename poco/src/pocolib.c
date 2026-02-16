@@ -10,7 +10,7 @@
 
 
 #include "poco.h"
-#include "errcodes.h"
+#include "poco_errcodes.h"
 #include "ptrmacro.h"
 #include "pocolib.h"
 #include <stdarg.h>
@@ -57,7 +57,7 @@ void poco_freez(Popot *pt)
  ****************************************************************************/
 {
 if (pt->pt != NULL)
-	po_free(*pt);
+	po_free(pt->pt);
 pt->pt = pt->min =	pt->max = NULL;
 }
 

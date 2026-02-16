@@ -1,180 +1,219 @@
-# Functions that call po_say_fatal / longjmp by file
+# Poco Menu Notes
 
-```
-poco/bcutil.c:
- (Does not call po_say_fatal)
+## src/mainpull.c
+- Errcode init_poco_pull(Menuhdr *mh, SHORT prev_id, SHORT root_id)
+  - Where the Poco items are found for the main menu
 
-poco/bop.c:
-  enforce_simple
-  po_get_binop_expression
+## Menu Execution
 
-poco/chopper.c:
-  po_get_csource_line
+Flow when a Poco menu item is selected:
+- `run_pull_poco`, `qrun_pocofile`, `load_soft_pull`, `main_selit`
 
-poco/code.c:
-  (Does not call po_say_fatal)
+### Execution Flow
 
-poco/declare.c:
-  dirdcl
-  based_decs
-  array_decl
-  po_get_base_type
-  check_params_same
-  check_dupe_proto
+1. Menu selection (`src/menus/pull.c`):
+   - `menu_dopull()` (line 347) handles selection
+   - On selection, calls `mh->dodata` with the selected menu ID (line 362):
+   ```c
+   if (mh->dodata != NULL) {
+       (*((VFUNC)(mh->dodata)))(mh, selid);
+   }
+   ```
 
-poco/dummylib.c:
- (Does not call po_say_fatal)
+2. Menu setup (`src/quickdat.c`):
+   - `load_soft_pull()` (line 315) sets `mh->dodata = main_selit` (set in `smupull.c` line 37)
 
-poco/fold.c:
-  po_eval_const_expression
-  po_fold_const
-  po_is_static_init_const
+3. Main selection handler (`src/vpaint.c`):
+   - `main_selit()` (line 558) handles menu selections
+   - When the hit ID is in the Poco range (`POC_DOT_PUL + 1` to `POC_DOT_PUL + 10`), it calls `run_pull_poco()`:
+   ```c
+   if (hitid > POC_DOT_PUL && hitid <= POC_DOT_PUL + 10) /* poco call */
+   {
+       run_pull_poco(mh, hitid);
+   }
+   ```
 
-poco/funccall.c:
-  po_get_param_size
-  mk_function_call
+4. Run Poco program (`src/mainpull.c`):
+   - `run_pull_poco()` (line 138) constructs the file path and calls `qrun_pocofile()`:
+   ```c
+   Errcode run_pull_poco(Menuhdr *mh, SHORT id)
+   {
+       char ppath[PATH_SIZE];
+       poco_pull_path(mh, id, ppath);  // Builds path like "resource_dir/PROGRAM.POC"
+       return qrun_pocofile(ppath, false);
+   }
+   ```
 
-poco/linklist.c:
- (Does not call po_say_fatal)
+5. Execute (`src/qpoco.c`):
+   - `qrun_pocofile()` (line 344) calls `qrun_poco()` (line 233)
+   - `qrun_poco()` compiles the Poco program via `compile_poco()` and runs it via `execute_poco()` (line 256), which calls `run_poco()` from the Poco library
 
-poco/main.c:
-  (This is a test program, not part of the library - so this doesn't count in the same way)
-
-poco/mathlib.c:
- (Does not call po_say_fatal)
-
-poco/pocmemry.c:
-  new_mblk
-
-poco/poco.c:
-  po_expecting_got_str
-  po_need_token
-  po_redefined
-  po_undefined
-  po_unmatched_paren
-  no_assign_void
-  unknown_assignment
-  no_struct_assign
-  no_use_void
-  get_array
-  not_a_member
-  get_pmember
-  get_member
-  upgrade_numerical_expression
-  po_coerce_to_boolean
-#ifdef STRING_EXPERIMENT
-  cant_convert_to_String
-  po_coerce_to_string
-#endif
-  po_coerce_numeric_exp
-  po_coerce_expression
-  po_get_prim
-  get_dereference
-  get_address
-  make_assign
-  plus_equals
-  po_new_frame
-  po_append_type
-  po_cat_type
-  po_set_base_type
-  find_global_use
-  po_check_undefined_funcs
-  po_compile_file
-
-poco/poco_ffi.c: (Calls through fprintf if ffi_prep_cif fails.)
+In summary: `menu_dopull` → `main_selit` → `run_pull_poco` → `qrun_pocofile` → `qrun_poco` → compiles and executes the Poco program.
 
 
-poco/poco_unix.c:
- (Does not call po_say_fatal)
 
-poco/pocodis.c:
-  po_check_instr_table
-  po_disasm
+---
 
-poco/pocolib.c:
-  po_cat_type
-  safe_file_check
-  po_fopen
-  po_memchk
+# Rex Dynamic Library System
 
-#ifdef STRING_EXPERIMENT
-poco/postring.c:
-  po_sr_new_copy
-  po_sr_cat
+## Overview
 
-#endif
+Rex is a **general-purpose dynamic library loading system** used throughout Animator Pro, not just for Poco. It supports multiple plugin types:
+- `REX_VDRIVER` (0x0101) - Video/graphics drivers
+- `REX_INK` (0x0201) - Drawing ink modules  
+- `REX_IDRIVER` (0x0301) - Input drivers
+- `REX_PICDRIVER` (0x0401) - Picture format drivers (GIF, JPEG, etc.)
+- `REX_POCO` (0x0501) - Poco extensions (POE modules)
+- `REX_TRUEPDR` (0x0601) - True picture drivers
 
-poco/pp.c:
-  pp_say_fatal (wrapper for po_say_fatal and is called extensively)
+**Why Rex is separate from Poco**: Rex is shared infrastructure used by multiple subsystems. Building it into Poco would create unnecessary dependencies and code duplication across video drivers, picture drivers, inks, etc.
 
-poco/ppeval.c:
-  pp_say_fatal
-  pp_atom
+## How the Old Rex System Worked (DOS 32-bit)
 
-poco/runops.c:
-  (Does not directly call po_say_fatal, calls fprintf if an error occurs during runtime.)
+### File Format (.REX/.EXP)
+- Based on Phar Lap/Watcom 32-bit DOS executable format
+- Entry point (`rexentry.asm`) contains:
+  - Magic numbers (`PJREX_MAGIC`, `PJREX_MAGIC2`) for validation
+  - Pointer to `rexlib_header` structure in loaded code
+  - Data end marker (`_end`)
 
-poco/safefile.c:
-  (Does not call po_say_fatal)
+### Loading Process (`src/rexlib/rexhost/rexload.c`)
+1. **Read .REX header**: Phar Lap format with code offset, data size, relocation table
+2. **Allocate memory**: Load code and initialized data into memory
+3. **Apply relocations**: Fix 16/32-bit offsets for actual load address
+4. **Locate header**: Extract `rexlib_header` pointer from entry point structure
 
-poco/statemen.c:
-  get_while
-  get_do
-  get_switch
-  get_case
-  get_default
-  get_if
-  get_return
-  get_for
-  get_break
-  get_continue
-  po_get_goto
-  get_undef_label
-  warn_no_effect
-  po_need_comma_or_brace
-  po_check_array_dim
+### Library Structure
 
-poco/strlib.c:
-  po_strcmp
-  po_stricmp
-  po_strncmp
-  po_strlen
-  po_strcpy
-  po_strncpy
-  po_strcat
-  po_strdup
-  po_strstr
-  po_stristr
-  po_atoi
-  po_atof
-  po_strpbrk
-  po_strspn
-  po_strcspn
-  po_strtok
-  po_getenv
-  po_strlwr
-  po_strupr
-
-poco/struct.c:
-  po_get_struct
-  pf_to_sif
-
-poco/token.c:
-  get_digits
-  tokenize_word
-
-poco/trace.c:
-  po_compress_line_data
-  resize_line_data
-
-poco/varinit.c:
-  anytype_init
-  quo_init
-  array_init
-  struct_init
-  po_var_init
-
-
+Each POE module defines a `Pocorex` structure:
+```c
+typedef struct pocorex {
+    Rexlib hdr;      // Rexlib header (type, version, init, cleanup, hostlibs)
+    Poco_lib lib;    // Poco library structure (name, Lib_proto array, count)
+} Pocorex;
 ```
 
+**Rexlib header** contains:
+- `type`: Must be `REX_POCO` (0x0501)
+- `version`: Version check
+- `init`: Optional initialization function (called after loading)
+- `cleanup`: Optional cleanup function (called before unloading)
+- `first_hostlib`: Linked list of `Hostlib` structures requesting host libraries
+- `id_string`: Optional identifier string for validation
 
+**Poco_lib structure** contains:
+- `name`: Library name
+- `lib`: Array of `Lib_proto` structures
+- `count`: Number of functions
+
+### Host Library System
+
+POE modules request host libraries via `Hostlib` structures:
+```c
+// In POE source code:
+#define HLIB_TYPE_1 AA_POCOLIB
+#define HLIB_TYPE_2 AA_SYSLIB  
+#include <hliblist.h>  // Builds linked list automatically
+```
+
+During loading (`src/rexlib/rexhost/rexlib.c`):
+1. Host receives `Hostlib` list from loaded module
+2. Matches requested libraries with host-provided `Libhead` structures
+3. Replaces `Hostlib.next` pointers with pointers to host `Libhead` structures
+4. Module code can then call host functions through these pointers
+
+**What is passed to libraries:**
+- Host library pointers (via `Hostlib.next` fields)
+- Program ID and version (to `init()` function)
+- Optional user data (to `init()`)
+
+**What is retrieved from libraries:**
+- `Rexlib` header (type, version, init/cleanup pointers)
+- `Poco_lib` structure containing:
+  - `func`: Function pointer (used at runtime)
+  - `proto`: Prototype string (used during compilation)
+
+## Where `#pragma poco library` is Handled
+
+### Location
+- **Parser**: `poco/src/pp.c`, function `pp_pragma()` (lines 1070-1196)
+- **Case 3** (line 1149): Handles `#pragma poco library "filename.poe"`
+
+### Flow
+1. Parser recognizes `#pragma poco library "filename.poe"`
+2. Resolves file path via include directories (line 1157)
+3. Calls `po_open_library()` (`poco/src/pocoface.c:367`)
+4. `po_open_library()` calls `pj_load_pocorex()` (`src/pocorex.c:7`)
+5. `pj_load_pocorex()` calls `pj_rexlib_load()` which:
+   - Loads binary via `pj_rex_load()`
+   - Verifies type and version
+   - Resolves host libraries
+   - Calls `pj_rexlib_init()` for initialization
+6. Returns `Poco_lib*` added to `pcb->run.loaded_libs`
+7. Preprocessor treats library as file stack entry (line 1185)
+
+### During Compilation
+- `po_get_libproto_line()` (`pocoface.c:420`) returns prototype strings from loaded libraries
+- Each prototype pairs with function pointer (`pcb->libfunc`)
+- `func_proto()` (`declare.c:385`) associates function pointer with prototype during parsing
+
+## Modern Rex System Design
+
+### Challenges with Old System
+1. **DOS executable format**: `.REX` files are DOS 32-bit executables, not portable
+2. **Manual relocation**: Custom relocation code is OS/architecture-specific
+3. **Binary format**: Tightly coupled to Phar Lap/Watcom toolchain
+
+### Recommended Approach: Platform-Native Shared Libraries
+
+Use OS-native shared libraries:
+- **Linux**: `.so` files via `dlopen()`/`dlsym()`
+- **macOS**: `.dylib` files via `dlopen()`/`dlsym()`
+- **Windows**: `.dll` files via `LoadLibrary()`/`GetProcAddress()`
+
+### Implementation Steps
+
+1. **Library Structure** (keep same):
+   ```c
+   // Export entry function
+   Pocorex* poco_rexlib_get(void) {
+       return &rexlib_header;
+   }
+   ```
+
+2. **Host Loading** (`src/pocorex.c`):
+   ```c
+   Errcode pj_load_pocorex_modern(Poco_lib **lib, char *name, char *id_string) {
+       void *handle = dlopen(name, RTLD_LAZY);
+       Pocorex* (*get_rexlib)(void) = dlsym(handle, "poco_rexlib_get");
+       Pocorex *exe = get_rexlib();
+       // ... rest of initialization same as before
+   }
+   ```
+
+3. **Build System**:
+   ```bash
+   # Build as shared library
+   gcc -shared -fPIC -o pstamp.poe pstamp.c -lpoco
+   ```
+
+### Benefits
+- Works with standard C toolchains
+- OS handles linking and relocation automatically
+- Standardized binary format per platform
+- Easier debugging and maintenance
+
+### What to Keep
+- `Pocorex`/`Rexlib`/`Hostlib` structures (they're portable)
+- `#pragma poco library` interface (already works)
+- Host library resolution system
+- Version checking and initialization protocol
+
+## Key Files
+
+- **Rex loader**: `src/rexlib/rexhost/rexload.c` - Low-level binary loading
+- **Rex library manager**: `src/rexlib/rexhost/rexlib.c` - High-level loading and hostlib resolution
+- **Poco wrapper**: `src/pocorex.c` - Poco-specific wrapper around Rex
+- **Pragma handler**: `poco/src/pp.c` - Parses `#pragma poco library`
+- **Library opening**: `poco/src/pocoface.c` - `po_open_library()` function
+- **Header definitions**: `src/rexlib/inc/rexlib.h`, `src/rexlib/inc/pocorex.h`

@@ -85,6 +85,9 @@ if (WITH_POCO)
 	include_directories(thirdparty/imgui/imgui/backends)
 	include_directories(thirdparty/imgui/imgui_club/imgui_memory_editor)
 
+	# Build animhost first (needed by POE modules)
+	add_subdirectory(src/animhost)
+	
 	# Add new standalone poco subproject
 	add_subdirectory(poco)
 
@@ -96,6 +99,12 @@ endif()
 
 ## main
 add_subdirectory(src)
+
+## POE modules (must come AFTER src so native .poe installs are not
+## overwritten by the src/resource directory copy)
+if (WITH_POCO)
+	add_subdirectory(poco/poekit)
+endif()
 
 ## tests
 if (APPLE)

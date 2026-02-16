@@ -5,6 +5,7 @@ set(FONTLIB_SRC_FILES
 	fontdev.c
 	hpjet.c
 	vfont.c
+	sail.c
 	stfont.c
 	sixhi.c
 	wwcountl.c

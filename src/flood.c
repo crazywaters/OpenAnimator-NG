@@ -147,8 +147,7 @@ Errcode flood(USHORT x, USHORT y, Pixel endcolor)
 	return(some_flood(x,y,1,endcolor));
 }
 
-static Errcode
-csd_some_flood(USHORT x, USHORT y, int floodto, Pixel fcolor, Rcel *r)
+Errcode csd_some_flood(USHORT x, USHORT y, int floodto, Pixel fcolor, Rcel *r)
 {
 Errcode err;
 register Floodata *fd;

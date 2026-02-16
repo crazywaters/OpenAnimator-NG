@@ -213,7 +213,7 @@ if (b == 0)
 return(ilcm(a,b));
 }
 
-static void init_tw_list(Tw_tlist *twl)
+void init_tw_list(Tw_tlist *twl)
 {
 clear_struct(twl);
 init_list(&twl->list);

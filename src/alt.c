@@ -7,7 +7,7 @@
 #include "pentools.h"
 #include "zoom.h"
 
-static void free_alt(void)
+void free_alt(void)
 {
 	pj_rcel_free(vl.alt_cel);
 	vl.alt_cel = NULL;

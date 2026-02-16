@@ -25,239 +25,218 @@
 Poly working_poly;
 char curveflag;
 
-static Errcode csd_render_poly(Poly *poly, bool filled, bool closed);
 static int is_closedp(void);
+Errcode csd_render_poly(Poly* poly, bool filled, bool closed);
+Errcode clone_ppoints(Poly* s, Poly* d);
 
 /************* polygon and spline marqi and dotout drawing routines ***********/
 
-void
-poly_cline_with_render_dot(SHORT x1, SHORT y1, SHORT x2, SHORT y2, void *data)
+void poly_cline_with_render_dot(SHORT x1, SHORT y1, SHORT x2, SHORT y2, void* data)
 {
 	pj_cline(x1, y1, x2, y2, render_dot, data);
 }
 
-static void dot_poly(register Poly *poly, dotout_func dotout, void *dotdat)
+static void dot_poly(register Poly* poly, dotout_func dotout, void* dotdat)
 {
-register LLpoint *this;
-int i;
+	register LLpoint* this;
+	int i;
 
 	i = poly->pt_count;
 	this = poly->clipped_list;
-	while (--i >= 0)
-	{
-		(*dotout)(this->x,this->y,dotdat);
+	while (--i >= 0) {
+		(*dotout)(this->x, this->y, dotdat);
 		this = this->next;
 	}
 }
-void marqi_polydots(Marqihdr *mh,Poly *poly)
+
+void marqi_polydots(Marqihdr* mh, Poly* poly)
 {
-	dot_poly(poly,mh->pdot,mh);
-}
-void undo_polydots(Marqihdr *mh,Poly *poly)
-{
-	dot_poly(poly,undo_marqidot,mh);
+	dot_poly(poly, mh->pdot, mh);
 }
 
-static void cpoly(Poly *poly, dotout_func dotout, void *data, bool closeit)
+void undo_polydots(Marqihdr* mh, Poly* poly)
 {
-register LLpoint *this, *next;
-int i;
+	dot_poly(poly, undo_marqidot, mh);
+}
+
+static void cpoly(Poly* poly, dotout_func dotout, void* data, bool closeit)
+{
+	register LLpoint* this, *next;
+	int i;
 
 	i = poly->pt_count;
-	if(!closeit)
+	if (!closeit) {
 		--i;
+	}
 	this = poly->clipped_list;
-	while (--i >= 0)
-	{
+	while (--i >= 0) {
 		next = this->next;
-		pj_cline( this->x, this->y, next->x, next->y,
-			   dotout, data);
+		pj_cline(this->x, this->y, next->x, next->y, dotout, data);
 		this = next;
 	}
 }
-static void marqi_open_poly(Marqihdr *mh, Poly *poly)
 /* used in make poly draws all but rubba vectors */
+static void marqi_open_poly(Marqihdr* mh, Poly* poly)
 {
-	cpoly(poly,mh->pdot,mh,0);
+	cpoly(poly, mh->pdot, mh, 0);
 }
 
-static void mwpoly(Marqihdr *mh, dotout_func dotout, Poly *p, bool closed)
+static void mwpoly(Marqihdr* mh, dotout_func dotout, Poly* p, bool closed)
 {
-	if (curveflag)
+	if (curveflag) {
 		some_spline(p, dotout, mh, pj_cline, closed, 16);
-	else
-		cpoly(p,dotout,mh,closed);
-}
-void marqi_poly(Marqihdr *mh, Poly *p, bool closed)
-{
-	mwpoly(mh,mh->pdot, p, closed);
-}
-void undo_poly(Marqihdr *mh, Poly *p, bool closed)
-{
-	mwpoly(mh,undo_marqidot, p, closed);
+	} else {
+		cpoly(p, dotout, mh, closed);
+	}
 }
 
+void marqi_poly(Marqihdr* mh, Poly* p, bool closed)
+{
+	mwpoly(mh, mh->pdot, p, closed);
+}
 
-typedef struct dot_buffer
-	{
-	UBYTE *save_pixels;
-	Short_xy *save_coors;
+void undo_poly(Marqihdr* mh, Poly* p, bool closed)
+{
+	mwpoly(mh, undo_marqidot, p, closed);
+}
+
+typedef struct dot_buffer {
+	UBYTE* save_pixels;
+	Short_xy* save_coors;
 	long pt_count;
 	long pt_alloc;
 	UBYTE saved;
-	} Dot_buffer;
+} Dot_buffer;
 
-static void dot_buffer_put(SHORT x, SHORT y, void *marqihdr)
+static void dot_buffer_put(SHORT x, SHORT y, void* marqihdr)
 {
-Marqihdr *mh = marqihdr;
-Dot_buffer *db;
-int pt_count;
-assert(x >= 0 && y >= 0);
+	Marqihdr* mh = marqihdr;
+	Dot_buffer* db;
+	int pt_count;
+	assert(x >= 0 && y >= 0);
 
-db = mh->adata;
-if ((pt_count = db->pt_count) < db->pt_alloc)
-	{
-	if (x < vb.pencel->width && y < vb.pencel->height)
-		{
-		db->save_pixels[pt_count] = pj__get_dot(vb.pencel,x,y);
-		db->save_coors[pt_count].x = x;
-		db->save_coors[pt_count].y = y;
-		db->pt_count = pt_count+1;
-		(*mh->pdot)(x,y,mh);
+	db = mh->adata;
+	pt_count = db->pt_count;
+	if (pt_count < db->pt_alloc) {
+		if (x < vb.pencel->width && y < vb.pencel->height) {
+			db->save_pixels[pt_count] = pj__get_dot(vb.pencel, x, y);
+			db->save_coors[pt_count].x = x;
+			db->save_coors[pt_count].y = y;
+			db->pt_count = pt_count + 1;
+			(*mh->pdot)(x, y, mh);
 		}
 	}
 }
 
-static void restore_dot_buffer(Marqihdr *mh)
+static void restore_dot_buffer(Marqihdr* mh)
 {
-Dot_buffer *db;
-Short_xy *coors;
-UBYTE *dots;
-int count;
+	Dot_buffer* db;
+	Short_xy* coors;
+	UBYTE* dots;
+	int count;
 
-db = mh->adata;
-count = db->pt_count;
-coors = db->save_coors + count;
-dots = db->save_pixels + count;
-while (--count >= 0)
-	{
-	--dots;
-	--coors;
-	(*mh->putdot)((Raster *)vb.pencel, *dots, coors->x, coors->y);
+	db = mh->adata;
+	count = db->pt_count;
+	coors = db->save_coors + count;
+	dots = db->save_pixels + count;
+	while (--count >= 0) {
+		--dots;
+		--coors;
+		(*mh->putdot)((Raster*)vb.pencel, *dots, coors->x, coors->y);
 	}
-db->pt_count = 0;
+	db->pt_count = 0;
 }
 
-static Errcode
-move_spline_segment(Marqihdr *mh, int moving_point_ix, Poly *poly)
+static Errcode move_spline_segment(Marqihdr* mh, int moving_point_ix, Poly* poly)
 {
-Dot_buffer rs;
-int closed;
-Errcode err;
+	Dot_buffer rs;
+	int closed;
+	Errcode err;
 
 
-pj_stuff_bytes(0, &rs, sizeof(rs) );
-rs.pt_alloc = 4*(vb.pencel->width+vb.pencel->height);
-if (((rs.save_coors = pj_malloc(rs.pt_alloc*sizeof(Short_xy))) == NULL) ||
-	((rs.save_pixels = pj_malloc(rs.pt_alloc*sizeof(UBYTE))) == NULL))
-	{
-	err = Err_no_memory;
-	goto ERROR;
+	pj_stuff_bytes(0, &rs, sizeof(rs));
+	rs.pt_alloc = 4 * (vb.pencel->width + vb.pencel->height);
+	if (((rs.save_coors = pj_malloc(rs.pt_alloc * sizeof(Short_xy))) == NULL) ||
+		((rs.save_pixels = pj_malloc(rs.pt_alloc * sizeof(UBYTE))) == NULL)) {
+		err = Err_no_memory;
+		goto ERROR;
 	}
-mh->adata = &rs;
-closed = is_closedp();
-partial_spline(poly, dot_buffer_put, mh, pj_cline, closed, 16,
-	moving_point_ix,0);
-wait_any_input();
-restore_dot_buffer(mh);
-err = Success;
+	mh->adata = &rs;
+	closed = is_closedp();
+	partial_spline(poly, dot_buffer_put, mh, pj_cline, closed, 16, moving_point_ix, 0);
+	wait_any_input();
+	restore_dot_buffer(mh);
+	err = Success;
+
 ERROR:
-pj_gentle_free(rs.save_pixels);
-pj_gentle_free(rs.save_coors);
-return(err);
+	pj_gentle_free(rs.save_pixels);
+	pj_gentle_free(rs.save_coors);
+	return err;
 }
-
 
 /******** end marqi routines ********/
-
-
-
-void free_polypoints(Poly *poly)
+void free_polypoints(Poly* poly)
 {
-register LLpoint *this, *next;
-int i;
+	register LLpoint* this, *next;
+	int i;
 
-i = poly->pt_count;
-this = poly->clipped_list;
-while (--i >= 0)
-	{
-	next = this->next;
-	pj_free(this);
-	this = next;
+	i = poly->pt_count;
+	this = poly->clipped_list;
+	while (--i >= 0) {
+		next = this->next;
+		pj_free(this);
+		this = next;
 	}
-poly->pt_count = 0;
-poly->clipped_list = NULL;
+	poly->pt_count = 0;
+	poly->clipped_list = NULL;
 }
 
-#ifdef SLUFFED
-void free_poly(Poly *p)
+
+LLpoint* poly_last_point(Poly* p)
 {
-if (p != NULL)
-	{
-	free_polypoints(p);
-	pj_free(p);
+	return slist_el((Slnode*)p->clipped_list, p->pt_count - 1);
+}
+
+static LLpoint* beg_this_mouse(void)
+{
+	LLpoint* this;
+
+	if ((this = begmem(sizeof(*this))) == NULL) {
+		return NULL;
 	}
-}
-#endif /* SLUFFED */
-
-
-
-
-
-
-LLpoint *poly_last_point(Poly *p)
-{
-	return slist_el((Slnode *)p->clipped_list, p->pt_count-1);
+	this->x = icb.mx;
+	this->y = icb.my;
+	this->z = 0;
+	return this;
 }
 
-static LLpoint *beg_this_mouse(void)
+Errcode render_poly(Poly* wply, bool filled, bool closed)
 {
-LLpoint *this;
-
-if ((this = begmem(sizeof(*this))) == NULL)
-	return(NULL);
-this->x = icb.mx;
-this->y = icb.my;
-this->z = 0;
-return(this);
-}
-
-Errcode render_poly(Poly *wply, bool filled, bool closed)
-{
-Errcode err;
+	Errcode err;
 
 	/* We don't render polys so well in line grad ink, so force line
 	   gradient to horizontal gradient. */
 
 	disable_lsp_ink();
-	if((err = make_render_cashes()) >= Success)
-	{
-		err = csd_render_poly(wply, filled,closed);
+	err = make_render_cashes();
+	if (err >= Success) {
+		err = csd_render_poly(wply, filled, closed);
 		free_render_cashes();
 	}
 	enable_lsp_ink();
-	return(err);
+	return err;
 }
-void poly_grad_dims(Poly *p, bool filled)
+
+void poly_grad_dims(Poly* p, bool filled)
 {
-Rectangle r;
-int halfsize;
-int off;
+	Rectangle r;
+	int halfsize;
+	int off;
 
 
-	off = ((!filled || vs.color2) && vs.use_brush)?get_brush_size():0; 
+	off = ((!filled || vs.color2) && vs.use_brush) ? get_brush_size() : 0;
 	find_pminmax(p, &r);
-	halfsize = off - off/2;
+	halfsize = off - off / 2;
 	r.x -= halfsize;
 	r.y -= halfsize;
 	r.height += off;
@@ -265,483 +244,430 @@ int off;
 	set_gradrect(&r);
 }
 
-Errcode render_fill_poly(Poly *p)
+Errcode render_fill_poly(Poly* p)
 {
 	start_abort_atom();
-	return(errend_abort_atom(filled_polygon(p,poll_render_hline,
-					vb.pencel, poly_cline_with_render_dot, NULL)));
+	return errend_abort_atom(filled_polygon(p,poll_render_hline,
+					vb.pencel, poly_cline_with_render_dot, NULL));
 }
 
-static Errcode
-render_a_poly_or_spline(Poly *poly,
-									   bool filled,
-									   bool closed,
-									   bool curved)
+static Errcode render_a_poly_or_spline(Poly* poly, bool filled, bool closed, bool curved)
 {
-Errcode err;
-int oc;
+	Errcode err;
+	int oc;
 
-
-/*	off = ((!filled || vs.color2) && vs.use_brush)?get_brush_size():0; */ 
+	/*	off = ((!filled || vs.color2) && vs.use_brush)?get_brush_size():0; */
 
 	dirties();
-	if (curved)
-	{
-		if (filled)
+	if (curved) {
+		if (filled) {
 			err = filled_spline(poly);
-		else
-			err = hollow_spline(poly,closed);
-	}
-	else
-	{
-		poly_grad_dims(poly,filled);
-		if (filled)
+		} else {
+			err = hollow_spline(poly, closed);
+		}
+	} else {
+		poly_grad_dims(poly, filled);
+		if (filled) {
 			err = render_fill_poly(poly);
-		else
-			err = render_opoly(poly,closed);
+		} else {
+			err = render_opoly(poly, closed);
+		}
 	}
 
-	if(err < Success)
+	if (err < Success) {
 		goto error;
+	}
 
-	if(filled && vs.color2)
-	{
+	if (filled && vs.color2) {
 		oc = vs.ccolor;
 		vs.ccolor = vs.inks[7];
 		free_render_cashes();
 		make_render_cashes();
-		if(curved)
+		if (curved) {
 			err = hollow_spline(poly, true);
-		else
+		} else {
 			err = render_opoly(poly, true);
+		}
 		vs.ccolor = oc;
 	}
 
 error:
-	return(err);
+	return err;
 }
 
-static Errcode csd_render_poly(Poly *poly, bool filled, bool closed)
+Errcode csd_render_poly(Poly* poly, bool filled, bool closed)
 {
 	return render_a_poly_or_spline(poly, filled, closed, curveflag);
 }
 
-
 Errcode finish_polyt(bool filled, bool closed)
 {
-Errcode err;
+	Errcode err;
 
 	save_poly(poly_name, &working_poly); /* if we can't save don't report */
-	err = render_poly(&working_poly, filled,closed);
+	err = render_poly(&working_poly, filled, closed);
 	free_polypoints(&working_poly);
 	save_redo_poly(curveflag);
-	if (vs.cycle_draw)
+	if (vs.cycle_draw) {
 		cycle_redraw_ccolor();
-	return(err);
+	}
+	return err;
 }
 
 Errcode maybe_finish_polyt(bool filled, bool closed)
 {
-	if (JSTHIT(MBPEN))
-		return(finish_polyt(filled,closed));
+	if (JSTHIT(MBPEN)) {
+		return finish_polyt(filled, closed);
+	}
 
 	free_polypoints(&working_poly);
-	return(Err_abort);
+	return Err_abort;
 }
 
-LLpoint *new_poly_point(Poly *poly)
+LLpoint* new_poly_point(Poly* poly)
 {
-LLpoint *this;
+	LLpoint* this = beg_this_mouse();
 
-	if ((this = beg_this_mouse()) == NULL)
-		return(NULL);
-	if (poly->clipped_list == NULL)
-	{
-		poly->clipped_list = this->next = this;
+	if (this == NULL) {
+		return NULL;
 	}
-	else
-	{
+	if (poly->clipped_list == NULL) {
+		poly->clipped_list = this->next = this;
+	} else {
 		poly_last_point(poly)->next = this;
 		this->next = poly->clipped_list;
 	}
 	poly->pt_count++;
-	return(this);
+	return this;
 }
 
-#ifdef SLUFFED
-LLpoint *poly_add_point(void)
-{
-return(new_poly_point(&working_poly));
-}
-#endif /* SLUFFED */
-
-
-LLpoint *start_polyt(Poly *p)
+LLpoint* start_polyt(Poly* p)
 {
 	free_polypoints(p);
-	if (!pti_input())
-		return(NULL);
+	if (!pti_input()) {
+		return NULL;
+	}
 	save_undo();
-	return(new_poly_point(p));
+	return new_poly_point(p);
 }
 
-Errcode polyf_tool(Pentool *pt, Wndo *w)
+Errcode polyf_tool(Pentool* pt, Wndo* w)
 {
-	Errcode err;
 	(void)pt;
 	(void)w;
+	Errcode err = make_poly(&working_poly, vs.closed_curve);
 
-	if((err = make_poly(&working_poly, vs.closed_curve))>=Success)
-		err = finish_polyt(vs.fillp,vs.closed_curve);
-	return(err);
+	if (err >= Success) {
+		err = finish_polyt(vs.fillp, vs.closed_curve);
+	}
+	return err;
 }
 
-#ifdef SLUFFED
-void mmake_path(void)
+void make_poly_loop(Poly* poly, bool curved, bool closed, LLpoint* this, int color)
 {
-	hide_mp();
-	make_path();
-	show_mp();
-}
-#endif /* SLUFFED */
+	LLpoint* prev;
+	LLpoint* next;
+	Marqihdr mh;
+	int cur_point_ix = 0;
 
-void
-make_poly_loop(Poly *poly,
-					bool curved,
-					bool closed, LLpoint *this,
-			   int color)
-{
-LLpoint *prev;
-LLpoint *next;
-Marqihdr mh;
-int cur_point_ix = 0;
-
-	cinit_marqihdr(&mh,color,color, true);
-	for (;;)
-	{
+	cinit_marqihdr(&mh, color, color, true);
+	for (;;) {
 		this->x = icb.mx;
 		this->y = icb.my;
 		this->z = 0;
-		if (JSTHIT(MBPEN))
-		{
-			if ((this = new_poly_point(poly)) == NULL)
-			{
+		if (JSTHIT(MBPEN)) {
+			this = new_poly_point(poly);
+			if (this == NULL) {
 				undo_poly(&mh, poly, closed);
 				break;
 			}
 			cur_point_ix++;
-			if(curved)
-			{
-				/* draw the bits that won't change as they move around
-				a point */
-				partial_spline(poly, mh.pdot, &mh,
-					pj_cline, closed, 16, cur_point_ix,1);
+			if (curved) {
+				/* draw the bits that won't change as they move around a point */
+				partial_spline(poly, mh.pdot, &mh, pj_cline, closed, 16, cur_point_ix, 1);
 			}
-			else if(poly->pt_count >= 2) /* should always happen */
+			else if (poly->pt_count >= 2) /* should always happen */
 			{
-				prev = slist_el((Slnode *)poly->clipped_list,
-							poly->pt_count-2);
+				prev = slist_el((Slnode*)poly->clipped_list, poly->pt_count - 2);
 			}
 		}
-		if (JSTHIT(MBRIGHT))
-		{
+		if (JSTHIT(MBRIGHT)) {
 			undo_poly(&mh, poly, closed);
 			pj_free(this);
-			poly->pt_count-=1;
-			if (poly->pt_count >= 1)
-				poly_last_point(poly)->next
-								= poly->clipped_list;
+			poly->pt_count -= 1;
+			if (poly->pt_count >= 1) {
+				poly_last_point(poly)->next = poly->clipped_list;
+			}
 			break;
 		}
-		if(curved)
-		{
+		if (curved) {
 			move_spline_segment(&mh, cur_point_ix, poly);
-		}
-		else
-		{
-			if(closed)
+		} else {
+			if (closed) {
 				next = this->next;
-			else
+			} else {
 				next = prev;
-			marqi_open_poly(&mh,poly);
-			for(;;)
-			{
-				get_rub_vertex((Short_xy *)&(prev->x),
-					   (Short_xy *)&(this->x),
-					   (Short_xy *)&(next->x), color);
-				if(JSTHIT(MBPEN|MBRIGHT))
+			}
+			marqi_open_poly(&mh, poly);
+			for (;;) {
+				get_rub_vertex((Short_xy*)&(prev->x), (Short_xy*)&(this->x), (Short_xy*)&(next->x),
+							   color);
+				if (JSTHIT(MBPEN | MBRIGHT)) {
 					break;
+				}
 			}
 		}
 	}
 }
 
-Errcode make_poly(Poly *p, bool closed)
+Errcode make_poly(Poly* p, bool closed)
 {
-LLpoint *this;
+	LLpoint* this = start_polyt(p);
 
-	if ((this = start_polyt(p)) == NULL)
-		return(Err_abort);
+	if (this == NULL) {
+		return Err_abort;
+	}
 	make_poly_loop(p, curveflag, closed, this, vs.ccolor);
-	return(Success);
+	return Success;
 }
 
-Errcode curve_tool(Pentool *pt, Wndo *w)
+Errcode curve_tool(Pentool* pt, Wndo* w)
 {
 	Errcode err;
 
 	curveflag = 1;
 	err = polyf_tool(pt, w);
 	curveflag = 0;
-	return(err);
+	return err;
 }
 
-Errcode shapef_tool(Pentool *pt, Wndo *w)
+Errcode shapef_tool(Pentool* pt, Wndo* w)
 {
 	(void)pt;
 	(void)w;
 
-	if(start_polyt(&working_poly) == NULL)
-		return(Err_no_memory);
-	get_rub_shape(&working_poly,vs.ccolor,vs.ccolor);
-	return(finish_polyt(vs.fillp,vs.closed_curve));
+	if (start_polyt(&working_poly) == NULL) {
+		return Err_no_memory;
+	}
+
+	get_rub_shape(&working_poly, vs.ccolor, vs.ccolor);
+	return finish_polyt(vs.fillp, vs.closed_curve);
 }
 
 static long lround_div(long p, int q)
 {
-if (p > 0)
-	p += q>>1;
-else
-	p -= q>>1;
-return(p/q);
-}
-
-static long llround_div(long p,long q)
-{
-if (p > 0)
-	p += q>>1;
-else
-	p -= q>>1;
-return(p/q);
-}
-
-int
-make_sp_wpoly(Poly *poly, int x0, int y0, int rad, int theta,
-		int points, int star, int sratio)
-{
-int i;
-LLpoint *next;
-int irad;
-int itheta, temp;
-register int ppoints;
-int x,y;
-long ellmat[2][2];
-int s,c;
-
-theta &= (TWOPI-1);
-irad = (star ? (rad*sratio+50)/100 : rad);
-itheta = 0;
-free_polypoints(poly);
-ppoints = points;
-switch (star)
-	{
-	case WP_RPOLY:
-		break;
-	case WP_STAR:
-		ppoints*=2;
-		break;
-	case WP_PETAL:	/* petals */
-		ppoints *= 32;
-		break;
-	case WP_ELLIPSE:	/* ellipse */
-		if (theta == TWOPI/4 || theta == 3*TWOPI/4)
-			{
-			/* swap axis and call theta 0 */
-			temp = rad;
-			rad = sratio;
-			sratio = temp;
-			theta = 0;
-			}
-		else if (theta == 0 || theta == TWOPI/2)
-			theta = 0;
-		else
-			{
-			s = isin(theta);
-			c = icos(theta);
-			ellmat[0][0] = lround_div((long)rad*s,1<<9);
-			ellmat[0][1] = lround_div((long)sratio*c,1<<9);
-			ellmat[1][0] = lround_div((long)rad*-c,1<<9);
-			ellmat[1][1] = lround_div((long)sratio*s,1<<9);
-			}
-		break;
+	if (p > 0) {
+		p += q >> 1;
+	} else {
+		p -= q >> 1;
 	}
-poly->pt_count = ppoints;
-for (i=0; i<ppoints; i++)
-	{
-	if ((next = begmem(sizeof(*next))) == NULL)
-		return(0);
-	next->next = poly->clipped_list;
-	poly->clipped_list = next;
-	switch (star)
-		{
+	return p / q;
+}
+
+static long llround_div(long p, long q)
+{
+	if (p > 0) {
+		p += q >> 1;
+	} else {
+		p -= q >> 1;
+	}
+	return p / q;
+}
+
+int make_sp_wpoly(Poly* poly, int x0, int y0, int rad, int theta, int points, int star, int sratio)
+{
+	int i;
+	LLpoint* next;
+	int irad;
+	int itheta, temp;
+	register int ppoints;
+	int x, y;
+	long ellmat[2][2];
+	int s, c;
+
+	theta &= (TWOPI - 1);
+	irad = (star ? (rad * sratio + 50) / 100 : rad);
+	itheta = 0;
+	free_polypoints(poly);
+	ppoints = points;
+	switch (star) {
 		case WP_RPOLY:
+			break;
 		case WP_STAR:
-			polar((int)((long)theta + ((long)TWOPI*i+ppoints/2)/ppoints),
-				(i&1 ? irad : rad),
-				&next->x);
+			ppoints *= 2;
 			break;
-		case WP_PETAL:
-			temp = intabs(icos(itheta));
-			itheta += TWOPI/(32*2);
-			polar((int)((long)theta + ((long)TWOPI*i+ppoints/2)/ppoints),
-				irad + itmult(temp,rad-irad),
-				&next->x);
+		case WP_PETAL: /* petals */
+			ppoints *= 32;
 			break;
-		case WP_ELLIPSE:
-			itheta = ((long)TWOPI*i+(ppoints>>1))/ppoints;
-			if (theta == 0)
-				{
-				next->y = itmult(rad,icos(itheta));
-				next->x = itmult(sratio,isin(itheta));
-				}
-			else
-				{
-				x = icos(itheta);
-				y = isin(itheta);
-				next->x = llround_div(x*ellmat[0][0]+y*ellmat[0][1],(1L<<19));
-				next->y = llround_div(x*ellmat[1][0]+y*ellmat[1][1],(1L<<19));
-				}
+		case WP_ELLIPSE: /* ellipse */
+			if (theta == TWOPI / 4 || theta == 3 * TWOPI / 4) {
+				/* swap axis and call theta 0 */
+				temp = rad;
+				rad = sratio;
+				sratio = temp;
+				theta = 0;
+			} else if (theta == 0 || theta == TWOPI / 2) {
+				theta = 0;
+			} else {
+				s = isin(theta);
+				c = icos(theta);
+				ellmat[0][0] = lround_div((long)rad * s, 1 << 9);
+				ellmat[0][1] = lround_div((long)sratio * c, 1 << 9);
+				ellmat[1][0] = lround_div((long)rad * -c, 1 << 9);
+				ellmat[1][1] = lround_div((long)sratio * s, 1 << 9);
+			}
 			break;
-		}
-	next->x += x0;
-	next->y += y0;
-	next->z = 0;
 	}
-poly_last_point(poly)->next = poly->clipped_list;
-return(1);
+	poly->pt_count = ppoints;
+	for (i = 0; i < ppoints; i++) {
+		if ((next = begmem(sizeof(*next))) == NULL) {
+			return 0;
+		}
+		next->next = poly->clipped_list;
+		poly->clipped_list = next;
+		switch (star) {
+			case WP_RPOLY:
+			case WP_STAR:
+				polar((int)((long)theta + ((long)TWOPI * i + ppoints / 2) / ppoints),
+					  (i & 1 ? irad : rad), &next->x);
+				break;
+			case WP_PETAL:
+				temp = intabs(icos(itheta));
+				itheta += TWOPI / (32 * 2);
+				polar((int)((long)theta + ((long)TWOPI * i + ppoints / 2) / ppoints),
+					  irad + itmult(temp, rad - irad), &next->x);
+				break;
+			case WP_ELLIPSE:
+				itheta = ((long)TWOPI * i + (ppoints >> 1)) / ppoints;
+				if (theta == 0) {
+					next->y = itmult(rad, icos(itheta));
+					next->x = itmult(sratio, isin(itheta));
+				} else {
+					x = icos(itheta);
+					y = isin(itheta);
+					next->x = llround_div(x * ellmat[0][0] + y * ellmat[0][1], (1L << 19));
+					next->y = llround_div(x * ellmat[1][0] + y * ellmat[1][1], (1L << 19));
+				}
+				break;
+		}
+		next->x += x0;
+		next->y += y0;
+		next->z = 0;
+	}
+	poly_last_point(poly)->next = poly->clipped_list;
+	return 1;
 }
 
-Errcode polystar_loop(Poly *poly,
-	int star, int dot_color, int dash_color, int x0, int y0,
-	int *ptheta, int *prad)
+Errcode polystar_loop(Poly* poly, int star, int dot_color, int dash_color, int x0, int y0,
+					  int* ptheta, int* prad)
 {
-int theta, rad;
-Marqihdr mh;
-Errcode err = Success;
+	int theta, rad;
+	Marqihdr mh;
+	Errcode err = Success;
 
-cinit_marqihdr(&mh,dot_color,dash_color, true);
-for (;;)
-	{
-	rad = calc_distance(icb.mx,icb.my,x0,y0);
-	theta = -arctan(icb.mx - x0, icb.my - y0);
-	if (!make_sp_wpoly(poly,
-		x0,y0,rad,theta,vs.star_points,star,vs.star_ratio))
-		break;
-	marqi_poly(&mh, poly, true);
-	wait_any_input();
-	undo_poly(&mh, poly, true);
-	if (JSTHIT(MBRIGHT|KEYHIT))
-		{
-		err = Err_abort;
-		break;
+	cinit_marqihdr(&mh, dot_color, dash_color, true);
+	for (;;) {
+		rad = calc_distance(icb.mx, icb.my, x0, y0);
+		theta = -arctan(icb.mx - x0, icb.my - y0);
+		if (!make_sp_wpoly(poly, x0, y0, rad, theta, vs.star_points, star, vs.star_ratio)) {
+			break;
 		}
-	if (JSTHIT(MBPEN))
-		break;
+		marqi_poly(&mh, poly, true);
+		wait_any_input();
+		undo_poly(&mh, poly, true);
+		if (JSTHIT(MBRIGHT | KEYHIT)) {
+			err = Err_abort;
+			break;
+		}
+		if (JSTHIT(MBPEN)) {
+			break;
+		}
 	}
-*ptheta = theta;
-*prad = rad;
-return(err);
+	*ptheta = theta;
+	*prad = rad;
+	return err;
 }
-
 
 static Errcode polystartool(int star)
 {
-int theta, rad;
-	if (!pti_input())
-		return(Success);
+	int theta, rad;
+	if (!pti_input()) {
+		return Success;
+	}
 	save_undo();
-	polystar_loop(&working_poly, star, vs.ccolor, vs.ccolor, icb.mx, icb.my,
-		&theta, &rad);
-	return(maybe_finish_polyt(vs.fillp, true));
+	polystar_loop(&working_poly, star, vs.ccolor, vs.ccolor, icb.mx, icb.my, &theta, &rad);
+	return maybe_finish_polyt(vs.fillp, true);
 }
 
-Errcode rpolyf_tool(Pentool *pt, Wndo *w)
+Errcode rpolyf_tool(Pentool* pt, Wndo* w)
 {
 	(void)pt;
 	(void)w;
-
-	return(polystartool(WP_RPOLY));
+	return polystartool(WP_RPOLY);
 }
 
-Errcode starf_tool(Pentool *pt, Wndo *w)
+Errcode starf_tool(Pentool* pt, Wndo* w)
 {
 	(void)pt;
 	(void)w;
-
-	return(polystartool(WP_STAR));
+	return polystartool(WP_STAR);
 }
 
-Errcode petlf_tool(Pentool *pt, Wndo *w)
+Errcode petlf_tool(Pentool* pt, Wndo* w)
 {
 	(void)pt;
 	(void)w;
-
-	return(polystartool(WP_PETAL));
+	return polystartool(WP_PETAL);
 }
 
-Errcode check_poly_file(char *filename)
+Errcode check_poly_file(char* filename)
 {
-Errcode err;
-Poly poly;
+	Errcode err;
+	Poly poly;
 	err = read_gulp(filename, &poly, sizeof(poly));
-if (err < Success) {
-	return err;
-}
-if (poly.polymagic != POLYMAGIC) {
-	return Err_bad_magic;
-}
-return Success;
+	if (err < Success) {
+		return err;
+	}
+	if (poly.polymagic != POLYMAGIC) {
+		return Err_bad_magic;
+	}
+	return Success;
 }
 
-int ld_poly(XFILE *f, Poly *poly)
+int ld_poly(XFILE* f, Poly* poly)
 {
-Errcode err;
-int i;
-int count;
-LLpoint *this;
+	Errcode err;
+	int i;
+	int count;
+	LLpoint* this;
 
 	free_polypoints(poly);
 	err = xffread(f, poly, sizeof(*poly));
 	if (err < Success) {
 		goto head_error;
 	}
-	if(poly->polymagic != POLYMAGIC)
-	{
+	if (poly->polymagic != POLYMAGIC) {
 		err = Err_bad_magic;
 		goto head_error;
 	}
 	count = poly->pt_count;
 	poly->pt_count = 0;
 	poly->clipped_list = NULL;
-	for (i=0; i<count; i++)
-	{
+	for (i = 0; i < count; i++) {
 		this = new_poly_point(poly);
-		if (this != NULL)
-		{
-			err = xffread(f, &this->x, 3*sizeof(SHORT));
+		if (this != NULL) {
+			err = xffread(f, &this->x, 3 * sizeof(SHORT));
 			if (err < Success) {
 				goto error;
 			}
-		}
-		else
-		{
+		} else {
 			err = Err_no_memory;
 			goto error;
 		}
 	}
 	return Success;
 
-	error:
+error:
 	free_polypoints(poly);
 
 head_error:
@@ -749,51 +675,54 @@ head_error:
 	return err;
 }
 
-Errcode load_a_poly(char *name, Poly *poly)
+Errcode load_a_poly(char* name, Poly* poly)
 {
-Errcode err;
-XFILE *f;
+	Errcode err;
+	XFILE* f;
 
 	err = xffopen(name, &f, XREADONLY);
 	if (err >= Success) {
 		err = ld_poly(f, poly);
 	}
+
 	xffclose(&f);
 	return err;
 }
 
-Errcode s_poly(XFILE *f, Poly *poly)
+Errcode s_poly(XFILE* f, Poly* poly)
 {
-Errcode err;
-int i;
-LLpoint *pt;
+	Errcode err;
+	int i;
+	LLpoint* pt;
 
 	poly->polymagic = POLYMAGIC;
 	pt = poly->clipped_list;
 	poly->clipped_list = NULL;
 	err = xffwrite(f, poly, sizeof(Poly));
 	poly->clipped_list = pt;
-	if(err < Success) {
+	if (err < Success) {
 		goto error;
 	}
+
 	i = poly->pt_count;
-	while(--i >= 0)
-	{
-		err = xffwrite(f, &pt->x, 3*sizeof(SHORT));
+	while (--i >= 0) {
+		err = xffwrite(f, &pt->x, 3 * sizeof(SHORT));
 		if (err < Success) {
 			goto error;
 		}
 		pt = pt->next;
 	}
+
 	return Success;
+
 error:
 	return err;
 }
 
-int save_poly(char *name, Poly *poly)
+int save_poly(char* name, Poly* poly)
 {
-Errcode err;
-XFILE *f;
+	Errcode err;
+	XFILE* f;
 
 	err = xffopen(name, &f, XWRITEONLY);
 	if (err < Success) {
@@ -803,102 +732,104 @@ XFILE *f;
 
 error:
 	xffclose(&f);
-	if(err < Success) {
+	if (err < Success) {
 		pj_delete(name);
 	}
 	return err;
 }
 
-LLpoint *closest_point(Poly *p, int x, int y, long *dsquared)
+LLpoint* closest_point(Poly* p, int x, int y, long* dsquared)
 {
-int i;
-LLpoint *pt;
-LLpoint *closest;
-long closestd, curd;
-long dx,dy;
+	int i;
+	LLpoint* pt;
+	LLpoint* closest;
+	long closestd, curd;
+	long dx, dy;
 
-pt = closest = p->clipped_list;
-closestd = 0x7fffffff;
-i = p->pt_count;
-while (--i >= 0)
-	{
-	dx = x-pt->x;
-	dy = y-pt->y;
-	curd = dx*dx+dy*dy;
-	if (curd < closestd)
-		{
-		closestd = curd;
-		closest = pt;
+	pt = closest = p->clipped_list;
+	closestd = 0x7fffffff;
+	i = p->pt_count;
+	while (--i >= 0) {
+		dx = x - pt->x;
+		dy = y - pt->y;
+		curd = dx * dx + dy * dy;
+		if (curd < closestd) {
+			closestd = curd;
+			closest = pt;
 		}
-	pt = pt->next;
+		pt = pt->next;
 	}
-*dsquared = closestd;
-return(closest);
+	*dsquared = closestd;
+	return closest;
 }
 
-void pp_find_next_prev(Poly *poly, LLpoint *point,
-	LLpoint **next, LLpoint **prev)
 /* find point before and after a given point in poly */
+void pp_find_next_prev(Poly* poly, LLpoint* point, LLpoint** next, LLpoint** prev)
 {
-LLpoint *pt;
+	LLpoint* pt;
 
-pt = poly->clipped_list;
-while (pt->next != point)
+	pt = poly->clipped_list;
+	while (pt->next != point) {
+		pt = pt->next;
+	}
+	*prev = pt;
 	pt = pt->next;
-*prev = pt;
-pt = pt->next;
-pt = pt->next;
-*next = pt;
+	pt = pt->next;
+	*next = pt;
 }
 
 static int is_closedp(void)
 {
-if (is_path)
-	return(vs.pa_closed);
-else
-	return(vs.closed_curve);
+	if (is_path) {
+		return vs.pa_closed;
+	} else {
+		return vs.closed_curve;
+	}
 }
 
-Errcode load_and_paste_poly(char *name)
+Errcode load_and_paste_poly(char* name)
 {
-Poly poly;
-Errcode err;
+	Poly poly;
+	Errcode err;
 
 	clear_struct(&poly);
-	if ((err = load_a_poly(name, &poly)) >= Success)
-	{
-		err = render_poly(&poly, vs.fillp,vs.closed_curve);
-		if (vs.cycle_draw)
+	err = load_a_poly(name, &poly);
+	if (err >= Success) {
+		err = render_poly(&poly, vs.fillp, vs.closed_curve);
+		if (vs.cycle_draw) {
 			cycle_redraw_ccolor();
+		}
 		free_polypoints(&poly);
 	}
-	return(err);
+	return err;
 }
-Errcode edit_poly_file(char *name, char curve)
+
+Errcode edit_poly_file(char* name, char curve)
 {
-Poly poly;
-Errcode err;
-char ocurve;
+	Poly poly;
+	Errcode err;
+	char ocurve;
 
 	clear_struct(&poly);
-	if((err = load_a_poly(name, &poly)) < Success)
-		return(err);
+	err = load_a_poly(name, &poly);
+	if (err < Success) {
+		return err;
+	}
 	ocurve = curveflag;
 	curveflag = curve;
 	move_poly_points(&poly, vs.closed_curve);
 	save_poly(poly_name, &poly);
 	free_polypoints(&poly);
 	curveflag = ocurve;
-	return(err);
+	return err;
 }
 
 void edit_poly(void)
 {
 	hide_mp();
-	if(load_a_poly(poly_name, &working_poly) >= 0)
-	{
+	if (load_a_poly(poly_name, &working_poly) >= 0) {
 		move_poly_points(&working_poly, vs.closed_curve);
-		finish_polyt(vs.fillp,vs.closed_curve);
+		finish_polyt(vs.fillp, vs.closed_curve);
 	}
 	show_mp();
 }
@@ -910,75 +841,73 @@ void edit_curve(void)
 	curveflag = 0;
 }
 
-
-void linkup_poly(Poly *p)
+void linkup_poly(Poly* p)
 {
-int i;
-LLpoint *pt;
+	int i;
+	LLpoint* pt;
 
-i = p->pt_count;
-pt = p->clipped_list;
-while (--i >= 0)
-	{
-	pt->next = pt+1;
-	pt++;
+	i = p->pt_count;
+	pt = p->clipped_list;
+	while (--i >= 0) {
+		pt->next = pt + 1;
+		pt++;
 	}
---pt;
-pt->next = p->clipped_list;
+	--pt;
+	pt->next = p->clipped_list;
 }
 
-static Errcode clone_ppoints(Poly *s, Poly *d)
 /* makes d's point list a clone of s's.
    Previous d point list is overwritten, but not freed. */
+Errcode clone_ppoints(Poly* s, Poly* d)
 {
-int count;
-LLpoint *np,*op;
+	int count;
+	LLpoint *np, *op;
 
-op = s->clipped_list;
-count = s->pt_count;
-d->clipped_list = NULL;
-d->pt_count = 0;
-while (--count >= 0)
-	{
-	if ((np = new_poly_point(d)) == NULL)
-		return(Err_no_memory);
-	np->x = op->x;
-	np->y = op->y;
-	np->z = op->z;
-	op = op->next;
+	op = s->clipped_list;
+	count = s->pt_count;
+	d->clipped_list = NULL;
+	d->pt_count = 0;
+	while (--count >= 0) {
+		np = new_poly_point(d);
+		if (np == NULL) {
+			return Err_no_memory;
+		}
+		np->x = op->x;
+		np->y = op->y;
+		np->z = op->z;
+		op = op->next;
 	}
-return(Success);
+	return Success;
 }
 
-Errcode update_poly(Poly *s, Poly *d)
 /* Make d a replica of s, with it's own point list which is a
    duplicate of s's point list. */
+Errcode update_poly(Poly* s, Poly* d)
 {
-free_polypoints(d);
-*d = *s;
-return(clone_ppoints(s,d));
+	free_polypoints(d);
+	*d = *s;
+	return clone_ppoints(s, d);
 }
 
-void dotty_disp_poly(Poly *p, bool closed,  Pixel dit_color, Pixel dot_color)
+void dotty_disp_poly(Poly* p, bool closed, Pixel dit_color, Pixel dot_color)
 {
-Marqihdr mh;
+	Marqihdr mh;
 
-cinit_marqihdr(&mh,dit_color,dot_color, true);
-marqi_poly(&mh, p, closed);
+	cinit_marqihdr(&mh, dit_color, dot_color, true);
+	marqi_poly(&mh, p, closed);
 }
 
-void offset_poly(Poly *poly, int x, int y, int z)
+void offset_poly(Poly* poly, int x, int y, int z)
 {
-LLpoint *pt;
-int count;
+	LLpoint* pt;
+	int count;
 
-pt = poly->clipped_list;
-count = poly->pt_count;
-while (--count >= 0)
-	{
-	pt->x += x;
-	pt->y += y;
-	pt->z += z;
-	pt = pt->next;
+	pt = poly->clipped_list;
+	count = poly->pt_count;
+	while (--count >= 0) {
+		pt->x += x;
+		pt->y += y;
+		pt->z += z;
+		pt = pt->next;
 	}
 }

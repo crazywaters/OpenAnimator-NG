@@ -16,11 +16,11 @@ typedef struct libhead {
 
 #ifndef REXLIB_INTERNALS
 
-extern Libhead aa_syslib; /* aasyslib.obj */
-extern Libhead aa_gfxlib; /* aagfxlib.obj */
+extern Libhead aa_syslib;   /* aasyslib.obj */
+extern Libhead aa_gfxlib;   /* aagfxlib.obj */
 extern Libhead aa_stdiolib; /* stdiolib.obj */
-extern Libhead aa_pocolib; /* porexlib.obj */
-extern Libhead aa_mathlib; /* mathhost.obj */
+extern Libhead aa_pocolib;  /* porexlib.obj */
+extern Libhead aa_mathlib;  /* mathhost.obj */
 
 #else /* REXLIB_INTERNALS */
 

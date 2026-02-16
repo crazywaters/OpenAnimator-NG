@@ -156,7 +156,8 @@ LONG do_menuloop(Wscreen *screen, register Menuhdr *mh, Button *initb, Menuhdr *
 	get_mouset(&mset);
 	push_group(screen, &mg);
 
-	if ((mg.retcode = startloop_open(&mg, mh, initb, pull)) < 0) {
+	mg.retcode = startloop_open(&mg, mh, initb, pull);
+	if (mg.retcode < 0) {
 		goto error;
 	}
 

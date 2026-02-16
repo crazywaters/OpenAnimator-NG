@@ -3,34 +3,38 @@
 #include "pocoface.h"
 #include "pocolib.h"
 
-static Boolean po_alt_exists(void)
+#include "alt.h"
+
 /*****************************************************************************
  * Boolean SwapExists(void);
  ****************************************************************************/
+static bool po_alt_exists(void)
 {
-	return(vl.alt_cel != NULL);
+	return vl.alt_cel != NULL;
 }
 
-static void po_alt_grab(void)
 /*****************************************************************************
  * void SwapClip(void);
  *	The grab_alt() routine has non-optional softerr reporting and doesn't
  *	return an error status to us.  As a workaround, we check to make sure
  *	an alt cel got allocated, and if not, we set builtin_err to Err_reported.
  ****************************************************************************/
+static void po_alt_grab(void)
 {
 	grab_alt();
-	if (vl.alt_cel == NULL)
+	if (vl.alt_cel == NULL) {
 		builtin_err = Err_no_memory;
+	}
 }
 
-static Errcode po_alt_swap(void)
 /*****************************************************************************
  * ErrCode SwapTrade(void);
  ****************************************************************************/
+static Errcode po_alt_swap(void)
 {
-	if (vl.alt_cel == NULL)
+	if (vl.alt_cel == NULL) {
 		return Err_not_found;
+	}
 	swap_alt();
 	return Success;
 }
@@ -59,17 +63,13 @@ static Errcode po_alt_swap(void)
  *--------------------------------------------------------------------------*/
 
 PolibSwap po_libswap = {
-po_alt_exists,
-	"Boolean SwapExists(void);",
-po_alt_grab,
-	"void    SwapClip(void);",
-free_alt,
-	"void    SwapRelease(void);",
-po_alt_swap,
-	"ErrCode SwapTrade(void);",
+	po_alt_exists, "Boolean SwapExists(void);",  po_alt_grab, "void    SwapClip(void);",
+	free_alt,      "void    SwapRelease(void);", po_alt_swap, "ErrCode SwapTrade(void);",
 };
 
 Poco_lib po_alt_lib = {
-	NULL, "Swap Screen",
-	(Lib_proto *)&po_libswap, POLIB_SWAP_SIZE,
-	};
+	NULL,
+	"Swap Screen",
+	(Lib_proto*)&po_libswap,
+	POLIB_SWAP_SIZE,
+};

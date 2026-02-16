@@ -1,6 +1,8 @@
 #ifndef JFILE_H
 #define JFILE_H
 
+#include <stddef.h>
+
 #ifndef STDTYPES_H
 	#include "stdtypes.h"
 #endif
@@ -38,6 +40,17 @@ typedef void *Jfile;
 #endif
 
 /** basic low level dos file calls found in the syslib **/
+
+/* Low-level unbuffered file I/O (from legacy syslib) */
+Jfile pj_open(char *path, int mode);
+Jfile pj_create(char *path, int mode);
+Errcode pj_close(Jfile f);
+Errcode pj_closez(Jfile *jf);
+long pj_read(Jfile f, void *buf, long size);
+long pj_write(Jfile f, void *buf, long size);
+long pj_seek(Jfile f, long offset, int mode);
+long pj_tell(Jfile f);
+Errcode pj_readoset(Jfile f, void *buf, long offset, size_t size);
 
 bool pj_exists(const char *path);
 Errcode pj_ioerr(void);

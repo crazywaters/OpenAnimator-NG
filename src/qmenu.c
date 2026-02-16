@@ -99,7 +99,7 @@ static int ab_get_color(Wndo* w)
 	return (true);
 }
 
-static int qcolor(void)
+int qcolor(void)
 {
 	Errcode err;
 

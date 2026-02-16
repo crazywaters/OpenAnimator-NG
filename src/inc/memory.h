@@ -1,9 +1,9 @@
 #ifndef MEMORY_H
 #define MEMORY_H
 
-#ifndef STDTYPES_H
-	#include "stdtypes.h"
-#endif
+#include "stdtypes.h"
+#include <stdint.h>
+#include <stddef.h>
 
 /* stack check cookies */
 #define STACK_COOKIES 0xCC
@@ -11,10 +11,10 @@ void pj_init_stack();
 int pj_get_stack_used();
 
 extern void *pj_enorm_pointer(void *);	/* WORD-alligns pointer */
-extern void *begmem(unsigned);
-extern void *lbegmem(long);
-extern void *pj_malloc(size_t);
-extern void *pj_zalloc(size_t);
+extern void *begmem(unsigned size);
+extern void *lbegmem(long size);
+extern void *pj_malloc(size_t size);
+extern void *pj_zalloc(size_t size);
 	/* return pointer to cleared buffer of size long, or NULL */
 Errcode ealloc(void **pt, long size);
 	/* allocate cleared buffer of size into *pt.

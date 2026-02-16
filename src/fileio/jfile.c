@@ -20,7 +20,7 @@
  ** 
  ** So at this level our open/close/read/write/seek etc. functions
  ** do little but jump through to the corresponding functions in the
- ** attatched device jumptable.   It serves as a way for dealing with
+ ** attached device jumptable.   It serves as a way for dealing with
  ** files resident on disparate devices in a uniform fashion.
  **
  ** jfile.c begins with 3 families of glue routines to connect each of
@@ -114,6 +114,7 @@ Errcode pj_is_fixed(const char *device)
 	if(dc == 'A' || dc == 'B') {
 		return 0;
 	}
+
 	return 1;
 }
 

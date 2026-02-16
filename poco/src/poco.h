@@ -112,7 +112,6 @@ extern "C"
  * #include's used by most everything in poco...
  ****************************************************************************/
 
-#include <memory.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -132,8 +131,8 @@ extern "C"
 	#include "token.h"
 #endif
 
-#ifndef ERRCODES_H
-#include "errcodes.h"
+#ifndef POCO_ERRCODES_H
+#include "poco_errcodes.h"
 #endif
 
 #ifndef PTRMACRO_H
@@ -706,6 +705,7 @@ extern "C"
 		Conditional* ifdef_stack;
 		Names* include_dirs; /* directory to find include files */
 		Names* pre_defines;	 /* symbols DEFINED before we start */
+		PoBoolean verbose;   /* enable verbose debug output for searches */
 		struct text_symbol* define_list[HASH_SIZE];
 		char line_b1[SZTOKE];
 		char line_b2[SZTOKE];
@@ -804,6 +804,7 @@ extern "C"
 	/* in pocoface.c */
 
 	extern Errcode builtin_err;
+	void poco_set_error(const char* fmt, ...);
 
 	/* in pocoutil.asm */
 
@@ -991,14 +992,15 @@ extern "C"
 	Poco_lib* po_open_library(Poco_cb* pcb, char* libname, char* id_str);
 	char* po_get_libproto_line(Poco_cb* pcb);
 	Errcode compile_poco(void** ppexe,
-						 char* source_name,
-						 char* errors,
-						 char* dump_name,
-						 Poco_lib* lib,
-						 char* err_file,
-						 long* err_line,
-						 int* err_char,
-						 Names* include_dirs);
+					 char* source_name,
+					 char* errors,
+					 char* dump_name,
+					 Poco_lib* lib,
+					 char* err_file,
+					 long* err_line,
+					 int* err_char,
+					 Names* include_dirs,
+					 bool verbose);
 	Errcode run_poco(void** ppexe,
 					 char* trace_file,
 					 bool (*check_abort)(void*),

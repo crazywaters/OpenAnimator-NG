@@ -320,7 +320,7 @@ Errcode go_quick_menu(void)
 #ifdef WITH_POCO
 	err = init_poco_pull(&tpull, POC_DOT_PUL, POC_PUL);
 	if (err < Success) {
-		fprintf(stderr, "init_poco_pull failed\n");
+        xfprintf(xstderr, "init_poco_pull failed\n");
 	}
 #endif // WITH_POCO
 

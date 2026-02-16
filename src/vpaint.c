@@ -152,7 +152,7 @@ void qload(void)
 	}
 }
 
-static Errcode load_the_pic(char* title)
+Errcode load_the_pic(char* title)
 {
 	return load_any_picture(title, vb.pencel);
 }

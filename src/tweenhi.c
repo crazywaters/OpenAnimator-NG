@@ -187,8 +187,7 @@ trash_tween_state(&ts);
 return(err);
 }
 
-static Errcode
-tween1(void *tween1_data, int ix, int intween, int scale, Autoarg *aa)
+Errcode tween1(void *tween1_data, int ix, int intween, int scale, Autoarg *aa)
 {
 Tween1_data *twd = tween1_data;
 Poly dpoly;

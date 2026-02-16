@@ -15,9 +15,7 @@
 #ifndef LINKLIST_H
 #define LINKLIST_H
 
-#ifndef PTRMACRO_H
 #include "ptrmacro.h"
-#endif
 
 
 #define DLL_SAFETY /* if this defined doubly linked calls will set node->next

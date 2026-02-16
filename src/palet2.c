@@ -207,7 +207,7 @@ static Errcode refit1(void *data, int ix, int intween, int scale, Autoarg *aa)
 }
 
 /* loads a palette from a palette file or a fli reports errors */
-static Errcode load_palette(char *title, int fitting)
+Errcode load_palette(char *title, int fitting)
 {
 	Errcode err;
 	Errcode fliret;
@@ -625,7 +625,7 @@ void set_use_bun(int newbun)
 	}
 }
 
-static void set_ccycle(bool newcyc)
+void set_ccycle(bool newcyc)
 {
 	if ((vs.cycle_draw = newcyc) != 0) {
 		vs.cdraw_ix = 0;

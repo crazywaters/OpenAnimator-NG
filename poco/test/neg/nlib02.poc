@@ -1,0 +1,8 @@
+/* nlib02.poc - Test Err_poco_lib_no_entry: Library missing entry point */
+#pragma poco library "noentry"
+
+main()
+{
+	puts("This should never execute!");
+}
+

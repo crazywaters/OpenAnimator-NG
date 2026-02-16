@@ -99,7 +99,9 @@ extern Errcode marqmove_rect(Marqihdr *mh, Rectangle *rect, Rectangle *bclip);
 extern void marqi_cut(Marqihdr *mh, Coor x, Coor y);
 extern Errcode mh_cut_rect(Marqihdr *mh, Rectangle *rect, Rectangle *sclip);
 
-extern Errcode
-screen_cut_rect(struct wscreen *s, Rectangle *rect, Rectangle *sclip);
+extern Errcode screen_cut_rect(struct wscreen *s, Rectangle *rect, Rectangle *sclip);
+
+// for poco integration
+extern void disp_line_alot(Short_xy *v);
 
 #endif

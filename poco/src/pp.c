@@ -106,6 +106,15 @@
 #include <ctype.h>
 #include <string.h>
 #include <time.h>
+#include <unistd.h>
+#ifdef _WIN32
+#include <windows.h>
+#else
+#include <limits.h>
+#ifdef __APPLE__
+#include <mach-o/dyld.h>
+#endif
+#endif
 
 /*----------------------------------------------------------------------------
  * Some macros...
@@ -158,7 +167,7 @@ static char pragma_unknown[]	= "'%s' is not a valid poco pragma";
 static char lib_name_missing[]	= "missing or malformed filename for library pragma";
 static char lib_cant_find[]		= "can't find POE library module %s";
 static char lib_open_failed[]	= "can't load POE library module %s";
-static char stksz_value_bad[]	= "stacksize value must be in kbytes, between 4 and 64";
+static char stksz_value_bad[]	= "stacksize value must be in kbytes, between 32 and 256";
 static char unexpected_tok[]	= "Unexpected \"%s\"";
 static char unexpected_eol[]	= "Unexpected end of line.";
 static char if_defined_syntax[] = "syntax error in '#if defined' statement";
@@ -211,19 +220,36 @@ static char* pp_findfile(Names* idirs, char* fname)
 	static char path[PATH_SIZE];
 	FILE* f;
 	int namelen;
+	PoBoolean verbose = (ppcb && ppcb->t.verbose);
+	PoBoolean found = false;
 
 	if (0 == (namelen = strlen(fname))) /* naughty naughty user...	  */
 		return NULL;					/* ...can't fool us that easy */
 
+	if (verbose) {
+		fprintf(stderr, "[poco include] #include search for '%s'\n", fname);
+	}
+
 	while (idirs != NULL) {
 		if (namelen + strlen(idirs->name) < PATH_SIZE) {
 			sprintf(path, "%s%s", idirs->name, fname);
+			if (verbose) {
+				fprintf(stderr, "[poco include search] trying '%s'\n", path);
+			}
 			if (NULL != (f = fopen(path, "r"))) {
 				fclose(f);
+				found = true;
+				if (verbose) {
+					fprintf(stderr, "[poco include search] found '%s'\n", path);
+				}
 				return path;
 			}
 		}
 		idirs = idirs->next;
+	}
+
+	if (verbose && !found) {
+		fprintf(stderr, "[poco include search] not found for '%s'\n", fname);
 	}
 
 	return NULL;
@@ -479,6 +505,157 @@ static void pp_copy_pstring(Poco_cb* pcb, char** out, char** in)
 	}
 	*in	 = inptr;
 	*out = outptr;
+}
+
+/*
+ * Helper: extract directory from a full path into dir buffer.
+ */
+static void pp_get_dir_from_path(const char* path, char* dir, size_t dir_size)
+{
+    const char* last_slash = strrchr(path, '/');
+#ifdef _WIN32
+    const char* last_backslash = strrchr(path, '\\');
+    if (last_backslash > last_slash) {
+        last_slash = last_backslash;
+    }
+#endif
+    if (last_slash != NULL) {
+        size_t len = (size_t)(last_slash - path + 1);
+        if (len < dir_size) {
+            strncpy(dir, path, len);
+            dir[len] = '\0';
+        } else {
+            dir[0] = '\0';
+        }
+    } else {
+        dir[0] = '\0';
+    }
+}
+
+/*
+ * Helper: ensure a directory path ends with a separator.
+ */
+static void pp_ensure_trailing_sep(char* dir, size_t dir_size)
+{
+    size_t len = strlen(dir);
+    if (len == 0) return;
+    if (dir[len - 1] != '/'
+#ifdef _WIN32
+        && dir[len - 1] != '\\'
+#endif
+        ) {
+        if (len + 1 < dir_size) {
+            strcat(dir, "/");
+        }
+    }
+}
+
+/*
+ * Print the full candidate paths that will be searched for the library.
+ * Order:
+ *   1) Script directory
+ *   2) Current working directory
+ *   3) Poco executable directory
+ */
+static void pp_print_library_search_candidates(Poco_cb* pcb, const char* libname)
+{
+    char dir_path[PATH_SIZE * 2];
+    char exe_path[PATH_SIZE * 2];
+    const char* platform_ext;
+    const char* dot = strrchr(libname, '.');
+    int has_ext = (dot && dot != libname && *(dot + 1) != '\0');
+
+    /* Only print if verbose flag is enabled */
+    if (!pcb || !pcb->t.verbose) {
+        return;
+    }
+
+#ifdef _WIN32
+    platform_ext = ".dll";
+#elif defined(__APPLE__)
+    platform_ext = ".dylib";
+#else
+    platform_ext = ".so";
+#endif
+
+    fprintf(stderr, "[poco library] #pragma poco library search for '%s'\n", libname);
+
+    /* 1) Script directory */
+    if (pcb && pcb->t.file_stack && pcb->t.file_stack->name) {
+        pp_get_dir_from_path(pcb->t.file_stack->name, dir_path, sizeof(dir_path));
+        if (dir_path[0]) {
+            pp_ensure_trailing_sep(dir_path, sizeof(dir_path));
+            if (has_ext) {
+                fprintf(stderr, "[poco library search] trying '%s%s'\n", dir_path, libname);
+            } else {
+                fprintf(stderr, "[poco library search] trying '%s%s%s'\n", dir_path, libname, ".poe");
+                fprintf(stderr, "[poco library search] trying '%s%s%s'\n", dir_path, libname, platform_ext);
+            }
+        }
+    }
+
+    /* 2) Current working directory */
+    if (getcwd(dir_path, sizeof(dir_path)) != NULL) {
+        pp_ensure_trailing_sep(dir_path, sizeof(dir_path));
+        if (has_ext) {
+            fprintf(stderr, "[poco library search] trying '%s%s'\n", dir_path, libname);
+        } else {
+            fprintf(stderr, "[poco library search] trying '%s%s%s'\n", dir_path, libname, ".poe");
+            fprintf(stderr, "[poco library search] trying '%s%s%s'\n", dir_path, libname, platform_ext);
+        }
+    }
+
+    /* 3) Poco executable directory */
+#ifdef _WIN32
+    {
+        DWORD len = GetModuleFileNameA(NULL, exe_path, (DWORD)sizeof(exe_path));
+        if (len > 0) {
+            pp_get_dir_from_path(exe_path, dir_path, sizeof(dir_path));
+            if (dir_path[0]) {
+                pp_ensure_trailing_sep(dir_path, sizeof(dir_path));
+                if (has_ext) {
+                    fprintf(stderr, "[poco library search] trying '%s%s'\n", dir_path, libname);
+                } else {
+                    fprintf(stderr, "[poco library search] trying '%s%s%s'\n", dir_path, libname, ".poe");
+                    fprintf(stderr, "[poco library search] trying '%s%s%s'\n", dir_path, libname, platform_ext);
+                }
+            }
+        }
+    }
+#else
+    {
+        ssize_t r = readlink("/proc/self/exe", exe_path, sizeof(exe_path) - 1);
+        if (r > 0) {
+            exe_path[r] = '\0';
+            pp_get_dir_from_path(exe_path, dir_path, sizeof(dir_path));
+            if (dir_path[0]) {
+                pp_ensure_trailing_sep(dir_path, sizeof(dir_path));
+                if (has_ext) {
+                    fprintf(stderr, "[poco library search] trying '%s%s'\n", dir_path, libname);
+                } else {
+                    fprintf(stderr, "[poco library search] trying '%s%s%s'\n", dir_path, libname, ".poe");
+                    fprintf(stderr, "[poco library search] trying '%s%s%s'\n", dir_path, libname, platform_ext);
+                }
+            }
+        }
+#ifdef __APPLE__
+        /* Fallback for macOS bundles */
+        uint32_t bsize = (uint32_t)sizeof(exe_path);
+        if (_NSGetExecutablePath(exe_path, &bsize) == 0) {
+            pp_get_dir_from_path(exe_path, dir_path, sizeof(dir_path));
+            if (dir_path[0]) {
+                pp_ensure_trailing_sep(dir_path, sizeof(dir_path));
+                if (has_ext) {
+                    fprintf(stderr, "[poco library search] trying '%s%s'\n", dir_path, libname);
+                } else {
+                    fprintf(stderr, "[poco library search] trying '%s%s%s'\n", dir_path, libname, ".poe");
+                    fprintf(stderr, "[poco library search] trying '%s%s%s'\n", dir_path, libname, platform_ext);
+                }
+            }
+        }
+#endif
+    }
+#endif
 }
 
 /*****************************************************************************
@@ -1154,10 +1331,10 @@ static void pp_pragma(Poco_cb* pcb, char* line, char* word_buf)
 					path = word_buf;
 				} else {
 					word_buf[sizeof(tbuf) - 1] = 0; /* in case we are too big */
-					if (NULL == (path = pp_findfile(pcb->t.include_dirs, word_buf))) {
-						fatal = lib_cant_find;
-						goto fatal_error;
-					}
+					/* Print search candidates in required order */
+					pp_print_library_search_candidates(pcb, word_buf);
+					/* Defer actual resolution to the loader; pass raw name */
+					path = word_buf;
 				}
 				want_pp_string = 2;	   /* quotes only */
 				end_ok		   = true; /* we can finish here */

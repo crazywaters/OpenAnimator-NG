@@ -74,13 +74,13 @@ Popot popot_string;
 String_ref *ref;
 
 DDT(("po_sr_new(%d)\n", len));
-popot_ref = po_malloc(sizeof(String_ref));
+popot_ref = poco_lmalloc(sizeof(String_ref));
 if ((ref = popot_ref.pt) == NULL)
 	{
 	builtin_err = Err_poco_out_of_string_space;
 	return(NULL);
 	}
-ref->string = popot_string = po_malloc(len);
+ref->string = popot_string = poco_lmalloc(len);
 if (popot_string.pt == NULL)
 	{
 	builtin_err = Err_poco_out_of_string_space;

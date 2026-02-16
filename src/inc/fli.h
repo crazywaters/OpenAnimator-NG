@@ -367,6 +367,8 @@ extern SHORT flx_get_frameix(void *data);
 extern SHORT flx_get_framecount(void *data);
 extern void flx_seek_frame(SHORT frame);
 extern void flx_seek_frame_with_data(SHORT frame, void *data);
+extern Errcode vp_playit(LONG frames);
+
 
 /* savefli.c */
 extern void dirties(void);

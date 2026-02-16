@@ -1,3 +1,4 @@
+#include <limits.h>
 #include <stdlib.h>
 #include "asm.h"
 #include "errcodes.h"
@@ -11,8 +12,11 @@ typedef struct cmem_chunk {
 	char mem[1];
 } Lochunk;
 
-long mem_free = 0x7FFFFFFF;
-long init_mem_free = 0x7FFFFFFF;
+/* On modern systems with CLIB_MEMORY, mem_free is a soft counter that
+ * gates c_askmem(); the real limit is the system allocator.  Use LONG_MAX
+ * so it never artificially restricts allocations. */
+long mem_free = LONG_MAX;
+long init_mem_free = LONG_MAX;
 
 Errcode init_mem(long max_mem)
 /* this is actually optional in the cmem library but the mem_free vars will

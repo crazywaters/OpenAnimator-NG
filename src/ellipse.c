@@ -8,9 +8,9 @@
 #include "pentools.h"
 #include "poly.h"
 
-static int ell_points(int bothrad)
+int ell_points(int bothrad)
 {
-register int p2 = 8;
+int p2 = 8;
 
 for (;;)
 	{

@@ -3,46 +3,33 @@
 
 Errcode jerr = Success;
 
+extern Errcode pj_close(Jfile f); // from syslib.c
+
 Errcode pj_ioerr()
 {
-	return(jerr);
+	return jerr;
 }
-Errcode pj_close(Jfl *f)
-{
-	/* do some error checking first... */
-	if(f == NULL)
-		return(jerr = Err_null_ref);
-	if(f->jfl_magic != JFL_MAGIC)
-		return(jerr = Err_corrupted);
-	if(f->handle.j)
-		pj_dclose(f->handle.j);
-	pj_free(f);
-	return(Success);
-}
-static Jfl *jopen_it(char *name, int mode, 
-					 Doserr (*openit)(int *phandle, char *name,int mode))
-{
-Jfl *tf;
 
-	if((tf = pj_zalloc(sizeof(*tf))) == NULL)
-	{
+static Jfl* jopen_it(char* name, int mode, Doserr (*openit)(int* phandle, char* name, int mode))
+{
+	Jfl* tf = pj_zalloc(sizeof(*tf));
+
+	if (tf == NULL) {
 		jerr = Err_no_memory;
-		return(NULL);
+		return NULL;
 	}
+
 	tf->jfl_magic = JFL_MAGIC;
-	if((jerr = pj_mserror((*openit)(&(tf->handle.j),name,mode))) < Success)
+	jerr = pj_mserror((*openit)(&(tf->handle.j), name, mode));
+	if (jerr < Success) {
 		goto error;
+	}
+
 	tf->rwmode = mode;
-	return(tf);
+	return tf;
+
 error:
 	pj_close(tf);
-	return(NULL);
+	return NULL;
 }
-Jfl *pj_open(char *name,int mode)
-{
-	return(jopen_it(name,mode,pj_dopen));
-}
-Jfl *pj_create(char *name, int mode)
-{
-	return(jopen_it(name,mode,pj_dcreate));
-}
+

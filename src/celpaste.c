@@ -487,6 +487,7 @@ static void do_delta_celcurs(SHORT dx,SHORT dy)
 	else
 		draw_flicel(thecel,DRAW_DELTA,OLD_CFIT);
 }
+
 static Errcode advance_draw_fli(Fli_frame *frame, 
 								VFUNC pre_decomp, void *pddat)
 /* increment fli for pasting wrapping through ring frame if appropriate */

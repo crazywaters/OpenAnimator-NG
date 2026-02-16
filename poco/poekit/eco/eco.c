@@ -285,7 +285,7 @@ return(closest);
 
 int time,total;
 /********* Some relatively fast graphics *****************/
-Popot cpscreen;
+void* cpscreen;
 LibRast *cscreen;
 LibRast *bscreen;
 
@@ -997,7 +997,7 @@ bscreen = GetPicScreen();
 copy_rasthdr(bscreen, &rhead);
 if ((err = pj_rcel_bytemap_alloc(&rhead, &ccel, COLORS)) < Success)
 	{
-	poeQerror(0,0,err,poco_buf(errmsg1));
+	poeQerror(err, errmsg1);
 	goto OUT;
 	}
 cscreen = (LibRast *)ccel;
@@ -1011,9 +1011,9 @@ poeSetAbort(FALSE);
 poeHideCursor();
 for (;;)
 	{
-	poePollInput(poco_buf(&mouse_x),poco_buf(&mouse_y),
-		poco_buf(&mouse_left),poco_buf(&mouse_right),
-		poco_buf(&key));
+	poePollInput(&mouse_x, &mouse_y,
+		&mouse_left, &mouse_right,
+		&key);
 	key &= 0xff;
 	Random(2);	//just to jiggle random values
 	time = time+1;
@@ -1049,7 +1049,7 @@ for (;;)
 		}
 	else if (key == 'q' || key == 0x1b || key == 'Q')
 		{
-		if (poeQquestion(0,0,poco_buf(quitmsg)))
+		if (poeQquestion(quitmsg))
 			break;
 		}
 	//set up variables to keep track of how many of what creature around.
@@ -1062,7 +1062,7 @@ for (;;)
 	//let everyone live 1 tick
 	evolve();
 	//and display results in text
-	poeprintf(7, 28, poco_buf(emessage),
+	poeprintf(emessage,
 		time, gcount, pcount, 
 		hcount, rcount, bcount, hcount+pcount+rcount+bcount);
 	swap();

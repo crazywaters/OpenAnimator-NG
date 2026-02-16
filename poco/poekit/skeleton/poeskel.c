@@ -6,8 +6,8 @@
  * include the usual header files...
  *--------------------------------------------------------------------------*/
 
+#include "errcodes.h"   /* host error codes (must precede pocorex.h)     */
 #include "pocorex.h"    /* required header file, also includes pocolib.h */
-#include "errcodes.h"   /* most POE programs will need error codes info  */
 
 //#include "syslib.h"   /* include this if you use AA_SYSLIB   */
 //#include "gfx.h"      /* include this if you use AA_GFXLIB   */

@@ -23,7 +23,8 @@ Errcode compile_poco(void **ppev,	/* returns executable pexe on Success */
 	char *err_fname,	/* file where error detected */
 	long *err_line, 	/* line where error detected */
 	int *err_char,		/* character in line where err detected */
-	Names *include_dirs /* include search path */
+	Names *include_dirs, /* include search path */
+	bool verbose		/* enable verbose debug output */
 	);
 /* Compile poco function.  Leave error messages in a file named errors.
    Otherwise build up executable structure in *ppev */
@@ -55,6 +56,13 @@ void pev_free_data(void *p);
 void *po_fuf_code(void *fuf);
 char *po_fuf_name(void *fuf);
 
+/* Boundary constant: poco's value for Err_in_err_file.
+ * Use this at the poco/host boundary instead of Err_in_err_file,
+ * whose numeric value differs between the two errcodes.h files. */
+#define POCO_ERR_IN_ERR_FILE (-11)
 
+/* Retrieve last error message from libpoco.
+ * Returns pointer to static buffer; cleared at start of compile/run. */
+const char* poco_get_error(void);
 
 #endif /* POCOFACE_H */

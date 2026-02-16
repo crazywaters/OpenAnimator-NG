@@ -283,8 +283,8 @@ no_mem_error:
 	return(err);
 }
 
-static Errcode set_circle_brush(int size)
 /* size of 0 is a dot and not a circle brush 1 is 2x2 square and on up */
+Errcode set_circle_brush(int size)
 {
 Rbrush *rb = &thebrush;
 
@@ -314,8 +314,8 @@ Rbrush *rb = &thebrush;
 	return(Success);
 }
 
-static Errcode set_square_brush(int size)
 /* size of 0 is a dot and 1 is 2x2 square and on up */
+static Errcode set_square_brush(int size)
 {
 Rbrush *rb = &thebrush;
 

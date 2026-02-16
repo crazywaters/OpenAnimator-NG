@@ -1,0 +1,8 @@
+/* nlib05.poc - Test Err_poco_lib_empty: Library has no functions */
+#pragma poco library "empty"
+
+main()
+{
+	puts("This should never execute!");
+}
+

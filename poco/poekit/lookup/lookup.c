@@ -220,7 +220,7 @@ static void add_name(unsigned char *proto)
 	if (fullnamecount >= maxnames) {
 		if (!warning_shown) {
 			++warning_shown;		  /* prevent repeats of the warning message */
-			poeQtext(1, sizeof(int), ovflow_warning, maxnames);
+			poeQtext(ovflow_warning.pt, maxnames);
 		}
 		return; /* don't add name */
 	}
@@ -427,7 +427,7 @@ COPY_FULLINE:
 	 * we do right after the Qtext call anyway.
 	 */
 
-	poeQtext(1,sizeof(char *), prompt, formatted_proto);
+	poeQtext(prompt.pt, formatted_proto);
 
 }
 
@@ -494,7 +494,7 @@ static Errcode do_sublist_dialog(Popot *nameptrs, char **protoptrs,
 	 */
 
 	if (subcount == 0) {
-		poeQtext(1,sizeof(char *), notfound, substr);
+		poeQtext(notfound.pt, substr);
 		err = builtin_err;	/* in case Qtext croaked for some reason */
 		goto ERROR_EXIT;
 	}
@@ -530,11 +530,7 @@ ERROR_EXIT:
 	int 	choice;
 	int 	lastpos = 0;
 	char	choicestr[MAX_MAXSTRLEN];
-	Popot	ppt_choicestr	= array2ppt(choicestr);
-	Popot	ppt_nameptrs	= ptr2ppt(nameptrs,   sizeof(Popot)*namecount);
-	Popot	ppt_choice		= var2ppt(choice);
-	Popot	ppt_lastpos 	= var2ppt(lastpos);
-	Popot	ppt_prompt		= str2ppt("Select Library Function to Look Up:");
+	(void)0; /* Popot wrappers no longer needed */
 
 	/*
 	 * dialog loop...
@@ -553,9 +549,9 @@ ERROR_EXIT:
 		 */
 
 		choicestr[0] = '\0';
-		ctinue = poeQlist(ppt_choicestr, ppt_choice,
-						  ppt_nameptrs, namecount,
-						  ppt_lastpos, ppt_prompt);
+		ctinue = poeQlist(choicestr, &choice,
+						  nameptrs, namecount,
+						  &lastpos, "Select Library Function to Look Up:");
 
 		/*
 		 * if a builtin_error occurred, return it to our caller.  if the user

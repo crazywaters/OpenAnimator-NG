@@ -132,4 +132,7 @@ extern void menu_doredo(void);
 /* Pointer fixes for Apple Silicon */
 extern void save_undo_rect_lbh(Coor x, Coor y, Coor w, Coor h, void* data);
 
+/* for poco */
+extern Errcode _redo_draw(Redo_rec *r);
+
 #endif
